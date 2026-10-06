@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Bar, BarChart, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import type { TooltipContentProps } from "recharts";
 import { CurrencyText } from "@/components/atoms/CurrencyText";
 import { Text } from "@/components/atoms/Text";
 import { formatCurrency } from "@/lib/format";
+import { useIsClient } from "@/hooks/useIsClient";
 
 const CHART_HEIGHT = 208;
 
@@ -26,11 +26,7 @@ interface WaterfallDatum {
 }
 
 export function FlowWaterfallChart({ incomeCents, expenseCents, savingsCents, debtPaymentCents, remainingCents }: FlowWaterfallChartProps) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- flag de "ya estamos en el cliente", patrón intencional (no sincroniza con nada externo, es un solo re-render extra a propósito).
-    setMounted(true);
-  }, []);
+  const mounted = useIsClient();
 
   let cumulative = 0;
   const steps: Array<{ name: string; delta: number }> = [

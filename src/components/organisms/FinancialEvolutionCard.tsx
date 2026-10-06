@@ -1,20 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Card } from "@heroui/react";
+import { EVOLUTION_RANGE_LABELS, EvolutionRangeButtons } from "@/components/molecules/EvolutionRangeButtons";
+import { ACTIVE_ACCENT, SegmentedButtons } from "@/components/molecules/SegmentedButtons";
 import { LineEvolutionChart } from "./LineEvolutionChart";
-import { EVOLUTION_METRICS, EVOLUTION_RANGES, type EvolutionMetric, type EvolutionPoint, type EvolutionRangeKey } from "@/domain/evolution/rules";
+import { EVOLUTION_METRICS, type EvolutionMetric, type EvolutionPoint, type EvolutionRangeKey } from "@/domain/evolution/rules";
 
-const METRIC_LABELS: Record<EvolutionMetric, string> = { balance: "Saldo", income: "Ingresos", expense: "Gastos", savings: "Ahorro" };
-const RANGE_LABELS: Record<EvolutionRangeKey, string> = { "30d": "30 días", "3m": "3 meses", "6m": "6 meses", "1y": "1 año" };
+const METRIC_LABELS: Record<EvolutionMetric, string> = { balance: "Saldo", netWorth: "Patrimonio", debt: "Deuda", income: "Ingresos", expense: "Gastos", savings: "Ahorro" };
+const METRIC_OPTIONS = EVOLUTION_METRICS.map((metric) => ({ value: metric, label: METRIC_LABELS[metric] }));
 
-export type EvolutionDataset = Record<EvolutionMetric, Record<EvolutionRangeKey, EvolutionPoint[]>>;
+const DEFAULT_METRIC: EvolutionMetric = "balance";
+const DEFAULT_RANGE: EvolutionRangeKey = "30d";
 
-export function FinancialEvolutionCard({ data }: { data: EvolutionDataset }) {
-  const [metric, setMetric] = useState<EvolutionMetric>("balance");
-  const [range, setRange] = useState<EvolutionRangeKey>("30d");
+const seriesKey = (metric: EvolutionMetric, range: EvolutionRangeKey) => `${metric}:${range}`;
 
-  const series = data[metric][range];
+export interface FinancialEvolutionCardProps {
+  initialSeries: EvolutionPoint[];
+  loadSeries: (metric: EvolutionMetric, range: EvolutionRangeKey) => Promise<EvolutionPoint[]>;
+}
+
+export function FinancialEvolutionCard({ initialSeries, loadSeries }: FinancialEvolutionCardProps) {
+  const [metric, setMetric] = useState<EvolutionMetric>(DEFAULT_METRIC);
+  const [range, setRange] = useState<EvolutionRangeKey>(DEFAULT_RANGE);
+  const [loaded, setLoaded] = useState<Record<string, EvolutionPoint[]>>({ [seriesKey(DEFAULT_METRIC, DEFAULT_RANGE)]: initialSeries });
+  const [isLoading, startLoading] = useTransition();
+
+  const series = loaded[seriesKey(metric, range)];
+
+  function select(nextMetric: EvolutionMetric, nextRange: EvolutionRangeKey) {
+    setMetric(nextMetric);
+    setRange(nextRange);
+    const key = seriesKey(nextMetric, nextRange);
+    if (loaded[key]) return;
+    startLoading(async () => {
+      const loadedSeries = await loadSeries(nextMetric, nextRange);
+      setLoaded((current) => ({ ...current, [key]: loadedSeries }));
+    });
+  }
 
   return (
     <Card className="p-5">
@@ -23,43 +46,23 @@ export function FinancialEvolutionCard({ data }: { data: EvolutionDataset }) {
       </Card.Header>
       <Card.Content>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-1.5">
-            {EVOLUTION_METRICS.map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setMetric(m)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  metric === m ? "bg-accent text-accent-foreground" : "text-muted hover:bg-separator"
-                }`}
-              >
-                {METRIC_LABELS[m]}
-              </button>
-            ))}
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {EVOLUTION_RANGES.map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRange(r)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  range === r ? "bg-separator text-foreground" : "text-muted hover:bg-separator"
-                }`}
-              >
-                {RANGE_LABELS[r]}
-              </button>
-            ))}
-          </div>
+          <SegmentedButtons options={METRIC_OPTIONS} value={metric} onChange={(next) => select(next, range)} activeClassName={ACTIVE_ACCENT} />
+          <EvolutionRangeButtons value={range} onChange={(next) => select(metric, next)} />
         </div>
 
         <div className="mt-5">
-          <LineEvolutionChart
-            series={series}
-            dateGranularity={range === "30d" ? "daily" : "monthly"}
-            emptyMessage="Todavía no hay suficientes datos para graficar esta combinación."
-            tableCaption={`${METRIC_LABELS[metric]} — ${RANGE_LABELS[range]}`}
-          />
+          {series ? (
+            <LineEvolutionChart
+              series={series}
+              dateGranularity={range === "30d" ? "daily" : "monthly"}
+              emptyMessage="Todavía no hay suficientes datos para graficar esta combinación."
+              tableCaption={`${METRIC_LABELS[metric]} — ${EVOLUTION_RANGE_LABELS[range]}`}
+            />
+          ) : (
+            <p className="py-10 text-center text-sm text-muted" aria-live="polite">
+              {isLoading ? "Cargando…" : "No se pudo cargar esta combinación."}
+            </p>
+          )}
         </div>
       </Card.Content>
     </Card>

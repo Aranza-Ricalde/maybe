@@ -1,8 +1,7 @@
 "use client";
 
-import { Switch } from "@heroui/react";
-import { useTransition } from "react";
-import { Text } from "@/components/atoms/Text";
+import { FormSwitch } from "./FormSwitch";
+import { FIELD } from "@/lib/formFields";
 
 export interface RecurringStatusToggleProps {
   itemId: number;
@@ -11,29 +10,14 @@ export interface RecurringStatusToggleProps {
 }
 
 export function RecurringStatusToggle({ itemId, isActive, toggleAction }: RecurringStatusToggleProps) {
-  const [isPending, startTransition] = useTransition();
-
-  function handleChange(nextSelected: boolean) {
-    const formData = new FormData();
-    formData.set("id", String(itemId));
-    formData.set("nextStatus", nextSelected ? "active" : "paused");
-    startTransition(async () => {
-      await toggleAction(formData);
-    });
-  }
-
   return (
-    <div className="flex items-center gap-2">
-      <Switch size="sm" isSelected={isActive} isDisabled={isPending} onChange={handleChange} aria-label={isActive ? "Pausar recurrente" : "Reactivar recurrente"}>
-        <Switch.Content>
-          <Switch.Control>
-            <Switch.Thumb />
-          </Switch.Control>
-        </Switch.Content>
-      </Switch>
-      <Text size="xs" tone="muted">
-        {isActive ? "Activo" : "Pausado"}
-      </Text>
-    </div>
+    <FormSwitch
+      isSelected={isActive}
+      fields={{ id: itemId }}
+      stateField={{ name: FIELD.nextStatus, onValue: "active", offValue: "paused" }}
+      action={toggleAction}
+      ariaLabel={isActive ? "Pausar recurrente" : "Reactivar recurrente"}
+      label={isActive ? "Activo" : "Pausado"}
+    />
   );
 }

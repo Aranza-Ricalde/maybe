@@ -1,6 +1,5 @@
 import { TrashBin } from "@gravity-ui/icons";
 import type { ReactNode } from "react";
-import { Icon } from "@/components/atoms/Icon";
 import { Text } from "@/components/atoms/Text";
 import { FormModal } from "@/components/organisms/FormModal";
 
@@ -15,9 +14,6 @@ export interface ConfirmDeleteButtonProps {
   pendingLabel?: string;
 }
 
-const TRIGGER_CLASSNAME =
-  "inline-flex! size-7 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-secondary hover:text-danger";
-
 export function ConfirmDeleteButton({
   title,
   triggerAriaLabel,
@@ -31,11 +27,7 @@ export function ConfirmDeleteButton({
   return (
     <FormModal
       title={title}
-      trigger={<Icon icon={TrashBin} />}
-      triggerVariant="ghost"
-      triggerIsIconOnly
-      triggerAriaLabel={triggerAriaLabel}
-      triggerClassName={TRIGGER_CLASSNAME}
+      iconTrigger={{ icon: TrashBin, label: triggerAriaLabel, tone: "danger" }}
       submitLabel={submitLabel}
       submitVariant="danger"
       pendingLabel={pendingLabel}

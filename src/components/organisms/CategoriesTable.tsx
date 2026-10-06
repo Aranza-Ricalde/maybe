@@ -1,16 +1,24 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Chip } from "@/components/atoms/Chip";
+import { SPENDING_NATURE_LABELS, type SpendingNature } from "@/domain/categories/nature";
 import { CategoryModal } from "./CategoryModal";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
-import { DataTable, type DataTableColumn } from "./DataTable";
+import { ClientDataTable } from "./ClientDataTable";
+import type { DataTableColumn } from "./DataTable";
+import { FIELD } from "@/lib/formFields";
+import { CategoryNameCell } from "@/components/molecules/CategoryNameCell";
 
 export interface CategoryRow {
   id: number;
   name: string;
   color: string;
   classification: "income" | "expense";
+  parentId: number | null;
+  nature: SpendingNature | null;
+  depth: 0 | 1;
+  hasChildren: boolean;
 }
 
 export interface CategoriesTableProps {
@@ -19,24 +27,15 @@ export interface CategoriesTableProps {
   deleteAction: (formData: FormData) => Promise<void> | void;
 }
 
-const PAGE_SIZE = 10;
-
 export function CategoriesTable({ rows, updateAction, deleteAction }: CategoriesTableProps) {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
-  const pageRows = useMemo(() => rows.slice((page - 1) * pageSize, page * pageSize), [rows, page, pageSize]);
+  const topLevel = useMemo(() => rows.filter((r) => r.depth === 0), [rows]);
 
   const columns: DataTableColumn<CategoryRow>[] = [
     {
       key: "name",
       header: "Nombre",
       isRowHeader: true,
-      cell: (c) => (
-        <div className="flex items-center gap-2">
-          <span className="size-2.5 shrink-0 rounded-full" style={{ background: c.color }} />
-          <span className="font-medium">{c.name}</span>
-        </div>
-      ),
+      cell: (c) => <CategoryNameCell name={c.name} color={c.color} depth={c.depth} />,
     },
     {
       key: "type",
@@ -44,12 +43,27 @@ export function CategoriesTable({ rows, updateAction, deleteAction }: Categories
       cell: (c) => <Chip tone={c.classification === "income" ? "success" : "muted"}>{c.classification === "income" ? "Ingreso" : "Gasto"}</Chip>,
     },
     {
+      key: "nature",
+      header: "Naturaleza",
+      cell: (c) =>
+        c.classification === "expense" && c.nature ? (
+          <Chip tone={c.nature === "essential" ? "success" : "muted"}>{SPENDING_NATURE_LABELS[c.nature]}</Chip>
+        ) : (
+          <span className="text-xs text-muted">{c.classification === "expense" ? "—" : ""}</span>
+        ),
+    },
+    {
       key: "actions",
       header: "Acciones",
       align: "right",
       cell: (c) => (
         <div className="flex items-center justify-end gap-1">
-          <CategoryModal mode="edit" action={updateAction} initialValues={{ id: c.id, name: c.name, classification: c.classification, color: c.color }} />
+          <CategoryModal
+            mode="edit"
+            action={updateAction}
+            initialValues={{ id: c.id, name: c.name, classification: c.classification, color: c.color, parentId: c.parentId, nature: c.nature }}
+            parentOptions={c.hasChildren ? [] : topLevel.filter((p) => p.id !== c.id).map((p) => ({ value: String(p.id), label: p.name }))}
+          />
           <ConfirmDeleteButton
             title="Eliminar categoría"
             triggerAriaLabel={`Eliminar ${c.name}`}
@@ -59,7 +73,7 @@ export function CategoriesTable({ rows, updateAction, deleteAction }: Categories
               </>
             }
             helperText="Los movimientos, recurrentes o presupuestos que la usaban se quedan sin categoría — no se pierde ningún movimiento."
-            hiddenFields={{ id: c.id }}
+            hiddenFields={{ [FIELD.id]: c.id }}
             action={deleteAction}
           />
         </div>
@@ -68,20 +82,15 @@ export function CategoriesTable({ rows, updateAction, deleteAction }: Categories
   ];
 
   return (
-    <DataTable
+    <ClientDataTable
       ariaLabel="Categorías"
       columns={columns}
-      rows={pageRows}
+      rows={rows}
       getRowId={(c) => c.id}
-      totalItems={rows.length}
-      page={page}
-      pageSize={pageSize}
-      onPageChange={setPage}
-      onPageSizeChange={setPageSize}
       emptyTitle="Sin categorías todavía"
       emptyDescription="Crea tu primera categoría arriba."
       itemsLabel="categorías"
-      minWidthClassName="min-w-[420px]"
+      minWidthClassName="min-w-[520px]"
       wrapInCard={false}
     />
   );

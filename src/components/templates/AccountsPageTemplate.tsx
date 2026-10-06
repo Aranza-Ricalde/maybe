@@ -2,33 +2,30 @@ import { Card } from "@heroui/react";
 import { EmptyState } from "@/components/molecules/EmptyState";
 import { CreateAccountModal } from "@/components/molecules/CreateAccountModal";
 import { PageHeader } from "@/components/molecules/PageHeader";
-import { AccountExplorerCard, type AccountExplorerOption, type AccountTransactionRow } from "@/components/organisms/AccountExplorerCard";
+import { AccountExplorerCard, type FetchAccountMovements, type LoadBalanceHistory } from "@/components/organisms/AccountExplorerCard";
 import { AccountsTable, type AccountRow } from "@/components/organisms/AccountsTable";
 import { ArchivedAccountsModal, type ArchivedAccountInput } from "@/components/organisms/ArchivedAccountsModal";
-import type { EvolutionPoint, EvolutionRangeKey } from "@/domain/evolution/rules";
+import type { EvolutionPoint } from "@/domain/evolution/rules";
+import type { AccountOption } from "@/components/viewModels";
 
 export interface AccountsPageTemplateProps {
   accounts: AccountRow[];
   archivedAccounts: ArchivedAccountInput[];
-  balanceHistory: Record<number, Record<EvolutionRangeKey, EvolutionPoint[]>>;
+  initialBalanceSeries: EvolutionPoint[];
+  loadBalanceHistory: LoadBalanceHistory;
   today: string;
   createAccountAction: (formData: FormData) => Promise<void> | void;
   updateAccountAction: (formData: FormData) => Promise<void> | void;
   deleteAccountAction: (formData: FormData) => Promise<void> | void;
   restoreAccountAction: (formData: FormData) => Promise<void> | void;
-  fetchTransactionsPage: (
-    accountId: number,
-    fromDate: string,
-    toDate: string,
-    page: number,
-    pageSize: number,
-  ) => Promise<{ rows: AccountTransactionRow[]; total: number }>;
+  fetchTransactionsPage: FetchAccountMovements;
 }
 
 export function AccountsPageTemplate({
   accounts,
   archivedAccounts,
-  balanceHistory,
+  initialBalanceSeries,
+  loadBalanceHistory,
   today,
   createAccountAction,
   updateAccountAction,
@@ -36,7 +33,7 @@ export function AccountsPageTemplate({
   restoreAccountAction,
   fetchTransactionsPage,
 }: AccountsPageTemplateProps) {
-  const explorerAccounts: AccountExplorerOption[] = accounts.map((a) => ({ id: a.id, name: a.name }));
+  const explorerAccounts: AccountOption[] = accounts.map((a) => ({ id: a.id, name: a.name }));
 
   return (
     <>
@@ -60,7 +57,8 @@ export function AccountsPageTemplate({
           <AccountsTable rows={accounts} updateAccountAction={updateAccountAction} deleteAccountAction={deleteAccountAction} />
           <AccountExplorerCard
             accounts={explorerAccounts}
-            balanceHistory={balanceHistory}
+            initialSeries={initialBalanceSeries}
+            loadBalanceHistory={loadBalanceHistory}
             fetchTransactionsPage={fetchTransactionsPage}
             today={today}
           />

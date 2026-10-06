@@ -1,19 +1,27 @@
-import type { getPendingRecurringCandidates } from "@/app/lib/queries";
+import type { AccountOption, CategoryOption, RecurringCandidateView } from "@/components/viewModels";
 import { PageHeader } from "@/components/molecules/PageHeader";
+import { RecurringBudgetPolicyNote } from "@/components/molecules/RecurringBudgetPolicyNote";
+import { RecurringBudgetDecisionBanner, type BudgetDecisionItem } from "@/components/organisms/RecurringBudgetDecisionBanner";
+import type { BudgetPolicy } from "@/domain/recurring/budgetInclusion";
 import { RecurringCandidatesCard } from "@/components/organisms/RecurringCandidatesCard";
-import { RecurringItemModal, type RecurringItemAccountOption, type RecurringItemCategoryOption, type RecurringItemConceptOption } from "@/components/organisms/RecurringItemModal";
+import { RecurringItemModal } from "@/components/organisms/RecurringItemModal";
 import { RecurringItemsTable, type RecurringItemRow } from "@/components/organisms/RecurringItemsTable";
 
 export interface RecurringPageTemplateProps {
   rows: RecurringItemRow[];
-  candidates: Awaited<ReturnType<typeof getPendingRecurringCandidates>>;
-  accounts: RecurringItemAccountOption[];
-  categories: RecurringItemCategoryOption[];
-  concepts: RecurringItemConceptOption[];
+  candidates: RecurringCandidateView[];
+  accounts: AccountOption[];
+  categories: CategoryOption[];
   createAction: (formData: FormData) => Promise<void> | void;
   updateAction: (formData: FormData) => Promise<void> | void;
   deleteAction: (formData: FormData) => Promise<void> | void;
   toggleAction: (formData: FormData) => Promise<void> | void;
+  acceptCandidateAction: (formData: FormData) => Promise<void> | void;
+  dismissCandidateAction: (formData: FormData) => Promise<void> | void;
+  pendingBudgetDecisions: BudgetDecisionItem[];
+  budgetPolicy: BudgetPolicy;
+  budgetDecisionAction: (formData: FormData) => void;
+  resetBudgetPolicyAction: () => void;
 }
 
 export function RecurringPageTemplate({
@@ -21,31 +29,41 @@ export function RecurringPageTemplate({
   candidates,
   accounts,
   categories,
-  concepts,
   createAction,
   updateAction,
   deleteAction,
   toggleAction,
+  acceptCandidateAction,
+  dismissCandidateAction,
+  pendingBudgetDecisions,
+  budgetPolicy,
+  budgetDecisionAction,
+  resetBudgetPolicyAction,
 }: RecurringPageTemplateProps) {
   return (
     <>
       <PageHeader
         title="Recurrentes"
         subtitle="Gastos e ingresos que se repiten cada mes."
-        action={<RecurringItemModal mode="create" accounts={accounts} categories={categories} concepts={concepts} action={createAction} />}
+        action={<RecurringItemModal mode="create" accounts={accounts} categories={categories} action={createAction} />}
       />
 
-      <RecurringCandidatesCard candidates={candidates} />
+      <RecurringBudgetDecisionBanner pending={pendingBudgetDecisions} action={budgetDecisionAction} />
+
+      <RecurringCandidatesCard candidates={candidates} acceptAction={acceptCandidateAction} dismissAction={dismissCandidateAction} />
 
       <RecurringItemsTable
         rows={rows}
         accounts={accounts}
         categories={categories}
-        concepts={concepts}
+       
         updateAction={updateAction}
         deleteAction={deleteAction}
         toggleAction={toggleAction}
+        budgetDecisionAction={budgetDecisionAction}
       />
+
+      <RecurringBudgetPolicyNote policy={budgetPolicy} resetAction={resetBudgetPolicyAction} />
     </>
   );
 }

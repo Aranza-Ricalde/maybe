@@ -1,13 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { CurrencyText } from "@/components/atoms/CurrencyText";
 import { Text } from "@/components/atoms/Text";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
-import { DataTable, type DataTableColumn } from "./DataTable";
-import { RecurringItemModal, type RecurringItemAccountOption, type RecurringItemCategoryOption, type RecurringItemConceptOption } from "./RecurringItemModal";
+import { ClientDataTable } from "./ClientDataTable";
+import type { DataTableColumn } from "./DataTable";
+import { RecurringItemModal } from "./RecurringItemModal";
+import { RecurringBudgetInclusionCell } from "@/components/molecules/RecurringBudgetInclusionCell";
 import { RecurringStatusToggle } from "@/components/molecules/RecurringStatusToggle";
+import { isBudgetRelevant, type BudgetInclusion } from "@/domain/recurring/budgetInclusion";
 import { amountSignTone } from "@/lib/format";
+import { FIELD } from "@/lib/formFields";
+import type { AccountOption, CategoryOption } from "@/components/viewModels";
 
 export interface RecurringItemRow {
   id: number;
@@ -19,24 +23,20 @@ export interface RecurringItemRow {
   accountId: number | null;
   dayOfMonth: number;
   status: "active" | "paused";
+  budgetInclusion: BudgetInclusion | null;
 }
 
 export interface RecurringItemsTableProps {
   rows: RecurringItemRow[];
-  accounts: RecurringItemAccountOption[];
-  categories: RecurringItemCategoryOption[];
-  concepts: RecurringItemConceptOption[];
+  accounts: AccountOption[];
+  categories: CategoryOption[];
   updateAction: (formData: FormData) => Promise<void> | void;
   deleteAction: (formData: FormData) => Promise<void> | void;
   toggleAction: (formData: FormData) => Promise<void> | void;
+  budgetDecisionAction: (formData: FormData) => void;
 }
 
-const PAGE_SIZE = 10;
-
-export function RecurringItemsTable({ rows, accounts, categories, concepts, updateAction, deleteAction, toggleAction }: RecurringItemsTableProps) {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
-  const pageRows = useMemo(() => rows.slice((page - 1) * pageSize, page * pageSize), [rows, page, pageSize]);
+export function RecurringItemsTable({ rows, accounts, categories, updateAction, deleteAction, toggleAction, budgetDecisionAction }: RecurringItemsTableProps) {
   const categoryNameById = new Map(categories.map((c) => [c.id, c.name]));
   const accountNameById = new Map(accounts.map((a) => [a.id, a.name]));
 
@@ -65,6 +65,13 @@ export function RecurringItemsTable({ rows, accounts, categories, concepts, upda
       cell: (item) => <RecurringStatusToggle itemId={item.id} isActive={item.status === "active"} toggleAction={toggleAction} />,
     },
     {
+      key: "budget",
+      header: "Presupuesto",
+      cell: (item) => (
+        <RecurringBudgetInclusionCell itemId={item.id} isRelevant={isBudgetRelevant(item)} budgetInclusion={item.budgetInclusion} action={budgetDecisionAction} />
+      ),
+    },
+    {
       key: "actions",
       header: "Acciones",
       align: "right",
@@ -74,7 +81,6 @@ export function RecurringItemsTable({ rows, accounts, categories, concepts, upda
             mode="edit"
             accounts={accounts}
             categories={categories}
-            concepts={concepts}
             action={updateAction}
             initialValues={{
               id: item.id,
@@ -82,7 +88,6 @@ export function RecurringItemsTable({ rows, accounts, categories, concepts, upda
               flow: item.flow,
               estimatedAmount: item.estimatedAmountCents / 100,
               categoryId: item.categoryId,
-              conceptId: item.conceptId,
               accountId: item.accountId,
               dayOfMonth: item.dayOfMonth,
             }}
@@ -96,7 +101,7 @@ export function RecurringItemsTable({ rows, accounts, categories, concepts, upda
               </>
             }
             helperText="No afecta los movimientos que ya registraste, solo deja de proyectarse hacia adelante."
-            hiddenFields={{ id: item.id }}
+            hiddenFields={{ [FIELD.id]: item.id }}
             action={deleteAction}
           />
         </div>
@@ -105,20 +110,15 @@ export function RecurringItemsTable({ rows, accounts, categories, concepts, upda
   ];
 
   return (
-    <DataTable
+    <ClientDataTable
       ariaLabel="Recurrentes"
       columns={columns}
-      rows={pageRows}
+      rows={rows}
       getRowId={(item) => item.id}
-      totalItems={rows.length}
-      page={page}
-      pageSize={pageSize}
-      onPageChange={setPage}
-      onPageSizeChange={setPageSize}
       emptyTitle="Sin recurrentes todavía"
       emptyDescription="Crea uno manualmente o confirma un patrón detectado arriba."
       itemsLabel="recurrentes"
-      minWidthClassName="min-w-[640px]"
+      minWidthClassName="min-w-[820px]"
     />
   );
 }

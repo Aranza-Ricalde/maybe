@@ -4,9 +4,10 @@ import { DetailModal } from "./DetailModal";
 
 export interface TelegramLinkInfoProps {
   isLinked: boolean;
+  linkCode: string;
 }
 
-export function TelegramLinkInfo({ isLinked }: TelegramLinkInfoProps) {
+export function TelegramLinkInfo({ isLinked, linkCode }: TelegramLinkInfoProps) {
   if (isLinked) {
     return <Chip tone="success">Vinculado</Chip>;
   }
@@ -21,7 +22,7 @@ export function TelegramLinkInfo({ isLinked }: TelegramLinkInfoProps) {
             Abre Telegram y busca <span className="font-semibold">@V2_MaybeBot</span>.
           </li>
           <li>
-            Mándale el comando <code className="rounded bg-separator px-1 py-0.5 text-xs">/link</code>.
+            Mándale el comando <code className="rounded bg-separator px-1 py-0.5 text-xs">/link {linkCode}</code>.
           </li>
           <li>Listo — tu cuenta queda vinculada y ya puedes mandarle tus gastos directo por chat.</li>
         </ol>

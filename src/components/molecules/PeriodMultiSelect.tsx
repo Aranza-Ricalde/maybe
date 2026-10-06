@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/atoms/Button";
 import { Icon } from "@/components/atoms/Icon";
+import { periodsHref } from "@/domain/shared/routes";
 
 export interface PeriodMultiSelectOption {
   id: number;
@@ -27,9 +28,9 @@ export function PeriodMultiSelect({ periods, selectedIds, basePath }: PeriodMult
 
   function apply() {
     if (draft.size > 0) {
-      const query = [...draft].sort((a, b) => a - b).join(",");
+      const ids = [...draft].sort((a, b) => a - b);
       startNavigationTransition(() => {
-        router.push(`${basePath}?periods=${query}`);
+        router.push(periodsHref(basePath, ids));
       });
     }
     setIsOpen(false);

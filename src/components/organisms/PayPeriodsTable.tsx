@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { Chip } from "@/components/atoms/Chip";
 import { Text } from "@/components/atoms/Text";
 import { periodLabel } from "@/domain/payPeriod/rules";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
-import { DataTable, type DataTableColumn } from "./DataTable";
+import { ClientDataTable } from "./ClientDataTable";
+import type { DataTableColumn } from "./DataTable";
 import { PayPeriodModal } from "@/components/molecules/PayPeriodModal";
+import { FIELD } from "@/lib/formFields";
 
 export interface PayPeriodRow {
   id: number;
@@ -22,12 +23,7 @@ export interface PayPeriodsTableProps {
   deleteAction: (formData: FormData) => Promise<void> | void;
 }
 
-const PAGE_SIZE = 10;
-
 export function PayPeriodsTable({ rows, updateAction, deleteAction }: PayPeriodsTableProps) {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
-  const pageRows = useMemo(() => rows.slice((page - 1) * pageSize, page * pageSize), [rows, page, pageSize]);
 
   const columns: DataTableColumn<PayPeriodRow>[] = [
     {
@@ -65,7 +61,7 @@ export function PayPeriodsTable({ rows, updateAction, deleteAction }: PayPeriods
                 ¿Eliminar <span className="font-semibold">Quincena {p.index}</span> ({periodLabel(p.start, p.end)})?
               </>
             }
-            hiddenFields={{ id: p.id }}
+            hiddenFields={{ [FIELD.id]: p.id }}
             action={deleteAction}
           />
         </div>
@@ -74,16 +70,11 @@ export function PayPeriodsTable({ rows, updateAction, deleteAction }: PayPeriods
   ];
 
   return (
-    <DataTable
+    <ClientDataTable
       ariaLabel="Periodos de pago"
       columns={columns}
-      rows={pageRows}
+      rows={rows}
       getRowId={(p) => p.id}
-      totalItems={rows.length}
-      page={page}
-      pageSize={pageSize}
-      onPageChange={setPage}
-      onPageSizeChange={setPageSize}
       emptyTitle="Sin periodos todavía"
       emptyDescription="Agrega tu primera quincena arriba."
       itemsLabel="periodos"

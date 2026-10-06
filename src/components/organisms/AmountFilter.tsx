@@ -1,13 +1,9 @@
 "use client";
 
-import { Popover } from "@heroui/react";
-import { useState } from "react";
-import { Button } from "react-aria-components";
-import { InlinePrefixLabel } from "@/components/atoms/Label";
-import { FILTER_PILL_MODIFIERS } from "@/components/molecules/FilterSelect";
-import { FilterPopoverHeader } from "@/components/molecules/FilterPopoverHeader";
+import { FilterPillPopover } from "@/components/molecules/FilterPillPopover";
 import { TextInput } from "@/components/molecules/FormField";
 import { formatCurrency } from "@/lib/format";
+import { FIELD } from "@/lib/formFields";
 
 export type AmountFilterMode = "min" | "max";
 
@@ -24,20 +20,17 @@ function valueLabel(mode: AmountFilterMode, amount: string): string {
 }
 
 export function AmountFilter({ mode, amount, onChange }: AmountFilterProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
   return (
-    <Popover.Root isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Button className={`select__trigger ${FILTER_PILL_MODIFIERS}`} onPress={() => setIsOpen(true)}>
-        <InlinePrefixLabel>Monto:</InlinePrefixLabel> {valueLabel(mode, amount)}
-      </Button>
-      <Popover.Content>
-        <Popover.Dialog className="flex w-48 flex-col gap-2 p-2">
-          <FilterPopoverHeader
-            title="Monto"
-            clearAriaLabel="Limpiar monto"
-            onClear={amount ? () => { onChange(mode, ""); setIsOpen(false); } : undefined}
-          />
+    <FilterPillPopover
+      label="Monto"
+      valueLabel={valueLabel(mode, amount)}
+      title="Monto"
+      clearAriaLabel="Limpiar monto"
+      onClear={amount ? () => onChange(mode, "") : undefined}
+      dialogClassName="flex w-48 flex-col gap-2 p-2"
+    >
+      {() => (
+        <>
           <div className="flex gap-1">
             {(["min", "max"] as const).map((m) => (
               <button
@@ -52,9 +45,9 @@ export function AmountFilter({ mode, amount, onChange }: AmountFilterProps) {
               </button>
             ))}
           </div>
-          <TextInput name="amount" type="number" step="0.01" placeholder="0.00" value={amount} onChange={(value) => onChange(mode, value)} />
-        </Popover.Dialog>
-      </Popover.Content>
-    </Popover.Root>
+          <TextInput name={FIELD.amount} type="number" step="0.01" placeholder="0.00" value={amount} onChange={(value) => onChange(mode, value)} />
+        </>
+      )}
+    </FilterPillPopover>
   );
 }

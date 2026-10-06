@@ -1,19 +1,19 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import { Card } from "@heroui/react";
 import { CurrencyText } from "@/components/atoms/CurrencyText";
 import { EyebrowLabel } from "@/components/atoms/EyebrowLabel";
 import { Text } from "@/components/atoms/Text";
+import { EVOLUTION_RANGE_LABELS, EvolutionRangeButtons } from "@/components/molecules/EvolutionRangeButtons";
 import { SelectField } from "@/components/molecules/FormField";
 import { DataTable, type DataTableColumn } from "./DataTable";
 import { LineEvolutionChart } from "./LineEvolutionChart";
 import { pickDefaultAccountId } from "@/domain/accounts/rules";
-import { EVOLUTION_RANGES, rangeBounds, type EvolutionPoint, type EvolutionRangeKey } from "@/domain/evolution/rules";
+import { rangeBounds, type EvolutionPoint, type EvolutionRangeKey } from "@/domain/evolution/rules";
 import { usePaginatedFilterTable, type SortState } from "@/hooks/usePaginatedFilterTable";
 import { formatDate } from "@/lib/format";
-
-const RANGE_LABELS: Record<EvolutionRangeKey, string> = { "30d": "30 días", "3m": "3 meses", "6m": "6 meses", "1y": "1 año" };
+import type { AccountOption } from "@/components/viewModels";
 
 export interface AccountTransactionRow {
   id: number;
@@ -23,21 +23,14 @@ export interface AccountTransactionRow {
   categoryName: string | null;
 }
 
-export interface AccountExplorerOption {
-  id: number;
-  name: string;
-}
+export type FetchAccountMovements = (accountId: number, fromDate: string, toDate: string, page: number, pageSize: number) => Promise<{ rows: AccountTransactionRow[]; total: number }>;
+export type LoadBalanceHistory = (accountId: number, range: EvolutionRangeKey) => Promise<EvolutionPoint[]>;
 
 export interface AccountExplorerCardProps {
-  accounts: AccountExplorerOption[];
-  balanceHistory: Record<number, Record<EvolutionRangeKey, EvolutionPoint[]>>;
-  fetchTransactionsPage: (
-    accountId: number,
-    fromDate: string,
-    toDate: string,
-    page: number,
-    pageSize: number,
-  ) => Promise<{ rows: AccountTransactionRow[]; total: number }>;
+  accounts: AccountOption[];
+  initialSeries: EvolutionPoint[];
+  loadBalanceHistory: LoadBalanceHistory;
+  fetchTransactionsPage: FetchAccountMovements;
   today: string;
 }
 
@@ -69,9 +62,28 @@ const columns: DataTableColumn<AccountTransactionRow>[] = [
   },
 ];
 
-export function AccountExplorerCard({ accounts, balanceHistory, fetchTransactionsPage, today }: AccountExplorerCardProps) {
+const DEFAULT_RANGE: EvolutionRangeKey = "30d";
+const historyKey = (accountId: number, range: EvolutionRangeKey) => `${accountId}:${range}`;
+
+export function AccountExplorerCard({ accounts, initialSeries, loadBalanceHistory, fetchTransactionsPage, today }: AccountExplorerCardProps) {
   const [accountId, setAccountId] = useState<number | null>(() => pickDefaultAccountId(accounts));
-  const [range, setRange] = useState<EvolutionRangeKey>("30d");
+  const [range, setRange] = useState<EvolutionRangeKey>(DEFAULT_RANGE);
+  const [loadedHistory, setLoadedHistory] = useState<Record<string, EvolutionPoint[]>>(() => {
+    const defaultAccountId = pickDefaultAccountId(accounts);
+    return defaultAccountId == null ? {} : { [historyKey(defaultAccountId, DEFAULT_RANGE)]: initialSeries };
+  });
+  const [isLoadingHistory, startLoadingHistory] = useTransition();
+
+  function select(nextAccountId: number, nextRange: EvolutionRangeKey) {
+    setAccountId(nextAccountId);
+    setRange(nextRange);
+    const key = historyKey(nextAccountId, nextRange);
+    if (loadedHistory[key]) return;
+    startLoadingHistory(async () => {
+      const series = await loadBalanceHistory(nextAccountId, nextRange);
+      setLoadedHistory((current) => ({ ...current, [key]: series }));
+    });
+  }
 
   const filters = useMemo<AccountExplorerFilters>(() => ({ accountId, range }), [accountId, range]);
 
@@ -97,7 +109,7 @@ export function AccountExplorerCard({ accounts, balanceHistory, fetchTransaction
 
   if (accounts.length === 0 || accountId === null) return null;
 
-  const series = balanceHistory[accountId]?.[range] ?? [];
+  const series = loadedHistory[historyKey(accountId, range)];
   const selectedName = accounts.find((a) => a.id === accountId)?.name ?? "";
 
   return (
@@ -109,34 +121,28 @@ export function AccountExplorerCard({ accounts, balanceHistory, fetchTransaction
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div className="w-56">
             <SelectField
+              ariaLabel="Cuenta"
               value={accountId != null ? String(accountId) : undefined}
-              onChange={(v) => setAccountId(Number(v))}
+              onChange={(v) => select(Number(v), range)}
               options={accounts.map((a) => ({ value: String(a.id), label: a.name }))}
             />
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {EVOLUTION_RANGES.map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRange(r)}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
-                  range === r ? "bg-separator text-foreground" : "text-muted hover:bg-separator"
-                }`}
-              >
-                {RANGE_LABELS[r]}
-              </button>
-            ))}
-          </div>
+          <EvolutionRangeButtons value={range} onChange={(next) => select(accountId, next)} />
         </div>
 
         <div className="mt-5">
-          <LineEvolutionChart
-            series={series}
-            dateGranularity={range === "30d" ? "daily" : "monthly"}
-            emptyMessage="Todavía no hay suficientes datos para graficar esta cuenta."
-            tableCaption={`Saldo de ${selectedName} — ${RANGE_LABELS[range]}`}
-          />
+          {series ? (
+            <LineEvolutionChart
+              series={series}
+              dateGranularity={range === "30d" ? "daily" : "monthly"}
+              emptyMessage="Todavía no hay suficientes datos para graficar esta cuenta."
+              tableCaption={`Saldo de ${selectedName} — ${EVOLUTION_RANGE_LABELS[range]}`}
+            />
+          ) : (
+            <p className="py-10 text-center text-sm text-muted" aria-live="polite">
+              {isLoadingHistory ? "Cargando…" : "No se pudo cargar el saldo de esta cuenta."}
+            </p>
+          )}
         </div>
 
         <div className="mt-5 border-t border-separator pt-4">

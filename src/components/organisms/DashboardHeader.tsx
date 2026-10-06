@@ -4,6 +4,8 @@ import { Text } from "@/components/atoms/Text";
 import { PageHeader } from "@/components/molecules/PageHeader";
 import { PeriodMultiSelect, type PeriodMultiSelectOption } from "@/components/molecules/PeriodMultiSelect";
 import { greetingForHour } from "@/lib/greeting";
+import { currentHour } from "@/lib/today";
+import { ROUTES } from "@/domain/shared/routes";
 
 export interface DashboardHeaderProps {
   userName: string;
@@ -16,9 +18,9 @@ export function DashboardHeader({ userName, periodLabel, periods, selectedIds }:
   return (
     <div className="flex flex-col gap-2">
       <PageHeader
-        title={`${greetingForHour(new Date().getHours())}, ${userName}`}
+        title={`${greetingForHour(currentHour())}, ${userName}`}
         action={
-          <Link href="/transactions">
+          <Link href={ROUTES.transactions}>
             <Button variant="primary">+ Registrar movimiento</Button>
           </Link>
         }
@@ -27,7 +29,7 @@ export function DashboardHeader({ userName, periodLabel, periods, selectedIds }:
         <Text weight="medium" className="capitalize">
           {periodLabel}
         </Text>
-        <PeriodMultiSelect periods={periods} selectedIds={selectedIds} basePath="/" />
+        <PeriodMultiSelect periods={periods} selectedIds={selectedIds} basePath={ROUTES.dashboard} />
       </div>
     </div>
   );

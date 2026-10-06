@@ -1,14 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { Chip } from "@/components/atoms/Chip";
 import { CurrencyText } from "@/components/atoms/CurrencyText";
 import { Text } from "@/components/atoms/Text";
 import { BudgetLineModal } from "./BudgetLineModal";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
-import { DataTable, type DataTableColumn } from "./DataTable";
+import { ClientDataTable } from "./ClientDataTable";
+import type { DataTableColumn } from "./DataTable";
 import { classifyBudgetProgress, computeBudgetPercent, type BudgetCadence } from "@/domain/budget/rules";
-import { BUDGET_CADENCE_OPTIONS } from "@/lib/format";
+import { BUDGET_CADENCE_OPTIONS, formatCurrency, formatPercent } from "@/lib/format";
+import { FIELD } from "@/lib/formFields";
+import { CategoryNameCell } from "@/components/molecules/CategoryNameCell";
 
 export interface BudgetRow {
   categoryId: number;
@@ -18,6 +20,10 @@ export interface BudgetRow {
   manualBudgetedAmountCents: number;
   effectiveBudgetedCents: number;
   actualCents: number;
+  depth: 0 | 1;
+  childrenAllocatedCents: number;
+  isOverAllocated: boolean;
+  isDerivedFromChildren: boolean;
 }
 
 export interface BudgetsTableProps {
@@ -26,7 +32,6 @@ export interface BudgetsTableProps {
   deleteLineAction: (formData: FormData) => Promise<void> | void;
 }
 
-const PAGE_SIZE = 10;
 const CADENCE_LABEL = Object.fromEntries(BUDGET_CADENCE_OPTIONS.map((o) => [o.value, o.label]));
 
 function percentChip(budgetedCents: number, actualCents: number) {
@@ -34,27 +39,19 @@ function percentChip(budgetedCents: number, actualCents: number) {
   if (percent === null) return <Text size="xs" tone="muted">Sin presupuestar</Text>;
   return (
     <Chip tone={classifyBudgetProgress(percent)} className="tabular-nums">
-      {Math.round(percent * 100)}%
+      {formatPercent(percent)}
     </Chip>
   );
 }
 
 export function BudgetsTable({ rows, setLineAction, deleteLineAction }: BudgetsTableProps) {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
-  const pageRows = useMemo(() => rows.slice((page - 1) * pageSize, page * pageSize), [rows, page, pageSize]);
 
   const columns: DataTableColumn<BudgetRow>[] = [
     {
       key: "name",
       header: "Categoría",
       isRowHeader: true,
-      cell: (c) => (
-        <div className="flex items-center gap-2">
-          <span className="size-2.5 shrink-0 rounded-full" style={{ background: c.color }} />
-          <span className="font-medium">{c.name}</span>
-        </div>
-      ),
+      cell: (c) => <CategoryNameCell name={c.name} color={c.color} depth={c.depth} />,
     },
     { key: "actual", header: "Gastado", align: "right", cell: (c) => <CurrencyText cents={c.actualCents} absolute /> },
     {
@@ -68,6 +65,16 @@ export function BudgetsTable({ rows, setLineAction, deleteLineAction }: BudgetsT
             {c.manualBudgetedAmountCents > 0 && (
               <Text size="xs" tone="muted">
                 {CADENCE_LABEL[c.cadence]}
+              </Text>
+            )}
+            {c.isDerivedFromChildren && (
+              <Text size="xs" tone="muted">
+                Suma de sus subcategorías
+              </Text>
+            )}
+            {c.isOverAllocated && (
+              <Text size="xs" tone="danger">
+                Sus subcategorías suman {formatCurrency(c.childrenAllocatedCents)}, más que este tope
               </Text>
             )}
           </div>
@@ -98,7 +105,7 @@ export function BudgetsTable({ rows, setLineAction, deleteLineAction }: BudgetsT
                   ¿Quitar el presupuesto de <span className="font-semibold">&ldquo;{c.name}&rdquo;</span>?
                 </>
               }
-              hiddenFields={{ categoryId: c.categoryId }}
+              hiddenFields={{ [FIELD.categoryId]: c.categoryId }}
               action={deleteLineAction}
               submitLabel="Sí, quitar"
               pendingLabel="Quitando…"
@@ -110,16 +117,11 @@ export function BudgetsTable({ rows, setLineAction, deleteLineAction }: BudgetsT
   ];
 
   return (
-    <DataTable
+    <ClientDataTable
       ariaLabel="Presupuesto por categoría"
       columns={columns}
-      rows={pageRows}
+      rows={rows}
       getRowId={(c) => c.categoryId}
-      totalItems={rows.length}
-      page={page}
-      pageSize={pageSize}
-      onPageChange={setPage}
-      onPageSizeChange={setPageSize}
       emptyTitle="Sin categorías todavía"
       emptyDescription="Crea categorías en Configuración para poder presupuestar."
       itemsLabel="categorías"

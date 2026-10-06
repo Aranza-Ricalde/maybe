@@ -2,15 +2,14 @@
 
 import { useState } from "react";
 import { Label } from "@/components/atoms/Label";
-
-export const CATEGORY_PALETTE = ["#0d7d6f", "#2563eb", "#b45309", "#be123c", "#7c3aed", "#0891b2"] as const;
+import { CATEGORY_PALETTE, DEFAULT_CATEGORY_COLOR } from "@/domain/categories/palette";
 
 export interface ColorSwatchPickerProps {
   name: string;
   defaultValue?: string;
 }
 
-export function ColorSwatchPicker({ name, defaultValue = CATEGORY_PALETTE[0] }: ColorSwatchPickerProps) {
+export function ColorSwatchPicker({ name, defaultValue = DEFAULT_CATEGORY_COLOR }: ColorSwatchPickerProps) {
   const [value, setValue] = useState(defaultValue);
 
   return (

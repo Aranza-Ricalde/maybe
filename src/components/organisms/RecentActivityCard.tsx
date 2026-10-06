@@ -1,19 +1,18 @@
 import { Card } from "@heroui/react";
 import Link from "next/link";
-import type { getRecentTransactions } from "@/app/lib/queries";
+import type { RecentTransactionView } from "@/components/viewModels";
 import { CurrencyText } from "@/components/atoms/CurrencyText";
 import { Text } from "@/components/atoms/Text";
 import { EmptyState } from "@/components/molecules/EmptyState";
 import { amountSignTone, formatDate } from "@/lib/format";
+import { ROUTES } from "@/domain/shared/routes";
 
-type RecentTransaction = Awaited<ReturnType<typeof getRecentTransactions>>[number];
-
-export function RecentActivityCard({ transactions }: { transactions: RecentTransaction[] }) {
+export function RecentActivityCard({ transactions }: { transactions: RecentTransactionView[] }) {
   return (
     <Card className="p-5">
       <Card.Header className="flex items-center justify-between">
         <Card.Title>Actividad reciente</Card.Title>
-        <Link href="/transactions" className="text-xs text-accent hover:underline">
+        <Link href={ROUTES.transactions} className="text-xs text-accent hover:underline">
           Ver todos →
         </Link>
       </Card.Header>

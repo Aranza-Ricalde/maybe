@@ -1,7 +1,8 @@
 "use client";
 
-import { ListBox, Select } from "@heroui/react";
+import { Select } from "@heroui/react";
 import { InlinePrefixLabel } from "@/components/atoms/Label";
+import { SelectOptionsPopover } from "./SelectOptionsPopover";
 
 export interface FilterSelectOption {
   id: string;
@@ -25,9 +26,7 @@ export function FilterSelect({ label, options, value, onChange }: FilterSelectPr
         <Select.Value className="text-xs!" />
         <Select.Indicator className="size-3.5" />
       </Select.Trigger>
-      <Select.Popover className="max-h-60">
-        <ListBox items={options}>{(opt) => <ListBox.Item id={opt.id}>{opt.label}</ListBox.Item>}</ListBox>
-      </Select.Popover>
+      <SelectOptionsPopover options={options} />
     </Select.Root>
   );
 }

@@ -6,6 +6,7 @@ import { Icon } from "@/components/atoms/Icon";
 import { Text } from "@/components/atoms/Text";
 import { type CategoryBudgetInput, topCategoryBudgets } from "@/domain/budget/rules";
 import { formatCurrency } from "@/lib/format";
+import { ROUTES } from "@/domain/shared/routes";
 
 const MAX_CATEGORIES_SHOWN = 4;
 
@@ -21,7 +22,7 @@ export function BudgetByCategoryCard({ categories }: BudgetByCategoryCardProps) 
     <Card className="p-5">
       <div className="flex items-center justify-between gap-3">
         <EyebrowLabel>Presupuesto por categorías</EyebrowLabel>
-        <Link href="/budgets" className="shrink-0 text-xs text-accent hover:underline">
+        <Link href={ROUTES.budgets} className="shrink-0 text-xs text-accent hover:underline">
           Ver todo →
         </Link>
       </div>

@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { CurrencyText } from "@/components/atoms/CurrencyText";
 import { Text } from "@/components/atoms/Text";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
-import { DataTable, type DataTableColumn } from "./DataTable";
-import { GoalModal, type GoalAccountOption } from "./GoalModal";
+import { ClientDataTable } from "./ClientDataTable";
+import type { DataTableColumn } from "./DataTable";
+import { GoalModal } from "./GoalModal";
 import { formatCurrency } from "@/lib/format";
+import { goalProgress } from "@/domain/dashboard/rules";
+import { FIELD } from "@/lib/formFields";
+import type { AccountOption } from "@/components/viewModels";
 
 export interface GoalRow {
   id: number;
@@ -14,23 +17,19 @@ export interface GoalRow {
   targetAmountCents: number;
   targetDate: string | null;
   currentCents: number;
+  projection: { headline: string; detail?: string } | null;
   linkedAccountNames: string[];
   linkedAccountIds: number[];
 }
 
 export interface GoalsTableProps {
   rows: GoalRow[];
-  accounts: GoalAccountOption[];
+  accounts: AccountOption[];
   updateAction: (formData: FormData) => Promise<void> | void;
   deleteAction: (formData: FormData) => Promise<void> | void;
 }
 
-const PAGE_SIZE = 10;
-
 export function GoalsTable({ rows, accounts, updateAction, deleteAction }: GoalsTableProps) {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
-  const pageRows = useMemo(() => rows.slice((page - 1) * pageSize, page * pageSize), [rows, page, pageSize]);
 
   const columns: DataTableColumn<GoalRow>[] = [
     { key: "name", header: "Meta", isRowHeader: true, cell: (g) => <span className="font-medium">{g.name}</span> },
@@ -38,8 +37,8 @@ export function GoalsTable({ rows, accounts, updateAction, deleteAction }: Goals
       key: "progress",
       header: "Progreso",
       cell: (g) => {
-        const current = Math.max(0, g.currentCents);
-        const pct = g.targetAmountCents > 0 ? Math.min(100, Math.round((current / g.targetAmountCents) * 100)) : 0;
+        const { currentCents: current, percent } = goalProgress(g.currentCents, g.targetAmountCents);
+        const pct = Math.round(percent * 100);
         return (
           <div className="min-w-32">
             <div className="flex items-center justify-between gap-2 text-xs">
@@ -54,6 +53,25 @@ export function GoalsTable({ rows, accounts, updateAction, deleteAction }: Goals
           </div>
         );
       },
+    },
+    {
+      key: "projection",
+      header: "Al ritmo actual",
+      cell: (g) =>
+        g.projection ? (
+          <div className="min-w-48 max-w-72">
+            <Text size="xs" weight="medium">
+              {g.projection.headline}
+            </Text>
+            {g.projection.detail && (
+              <Text size="xs" tone="muted">
+                {g.projection.detail}
+              </Text>
+            )}
+          </div>
+        ) : (
+          <span className="text-muted">—</span>
+        ),
     },
     {
       key: "accounts",
@@ -87,7 +105,7 @@ export function GoalsTable({ rows, accounts, updateAction, deleteAction }: Goals
               </>
             }
             helperText="Tus cuentas y movimientos no se tocan — solo se borra esta meta y sus vínculos."
-            hiddenFields={{ id: g.id }}
+            hiddenFields={{ [FIELD.id]: g.id }}
             action={deleteAction}
           />
         </div>
@@ -96,20 +114,15 @@ export function GoalsTable({ rows, accounts, updateAction, deleteAction }: Goals
   ];
 
   return (
-    <DataTable
+    <ClientDataTable
       ariaLabel="Metas"
       columns={columns}
-      rows={pageRows}
+      rows={rows}
       getRowId={(g) => g.id}
-      totalItems={rows.length}
-      page={page}
-      pageSize={pageSize}
-      onPageChange={setPage}
-      onPageSizeChange={setPageSize}
       emptyTitle="Sin metas todavía"
       emptyDescription="Crea tu primera meta de ahorro arriba."
       itemsLabel="metas"
-      minWidthClassName="min-w-[560px]"
+      minWidthClassName="min-w-[760px]"
     />
   );
 }

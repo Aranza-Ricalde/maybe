@@ -6,12 +6,14 @@ import { DetailModal } from "@/components/molecules/DetailModal";
 import { SectionLabel } from "@/components/molecules/SectionLabel";
 import { goalProgress } from "@/domain/dashboard/rules";
 import { formatCurrency } from "@/lib/format";
+import { ROUTES } from "@/domain/shared/routes";
 
 export interface SavingsGoalInput {
   id: number;
   name: string;
   targetAmountCents: number;
   currentCents: number;
+  projection?: { headline: string; detail?: string } | null;
 }
 
 export interface SavingsGoalsModalProps {
@@ -37,18 +39,24 @@ export function SavingsGoalsModal({ savingsTotalCents, goals }: SavingsGoalsModa
           {goals.map((g) => {
             const progress = goalProgress(g.currentCents, g.targetAmountCents);
             return (
-              <ProgressListRow
-                key={g.id}
-                label={g.name}
-                value={`${formatCurrency(progress.currentCents)} / ${formatCurrency(g.targetAmountCents)}`}
-                percent={progress.percent}
-              />
+              <div key={g.id}>
+                <ProgressListRow
+                  label={g.name}
+                  value={`${formatCurrency(progress.currentCents)} / ${formatCurrency(g.targetAmountCents)}`}
+                  percent={progress.percent}
+                />
+                {g.projection && (
+                  <Text size="xs" tone="muted" className="mt-1">
+                    {g.projection.headline}
+                  </Text>
+                )}
+              </div>
             );
           })}
         </div>
       </div>
 
-      <Link href="/goals" className="text-sm text-accent hover:underline">
+      <Link href={ROUTES.goals} className="text-sm text-accent hover:underline">
         Ver todas tus metas →
       </Link>
     </DetailModal>

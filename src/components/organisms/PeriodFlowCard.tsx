@@ -2,7 +2,8 @@ import { Card } from "@heroui/react";
 import { Text } from "@/components/atoms/Text";
 import { FinancialStatusBanner } from "./FinancialStatusBanner";
 import { FlowWaterfallChart } from "./FlowWaterfallChart";
-import { GastosBreakdownModal } from "./GastosBreakdownModal";
+import { categoryBreakdown, type CategoryTreeInput } from "@/domain/categories/rules";
+import { GastosBreakdownModal, type GastosBreakdownItem } from "./GastosBreakdownModal";
 import { LineEvolutionChart } from "./LineEvolutionChart";
 import type { DailyBalancePoint } from "@/domain/dashboard/ports";
 import type { FinancialStatusResult } from "@/domain/dashboard/rules";
@@ -17,19 +18,25 @@ export interface PeriodFlowCardProps {
   flow: { incomeCents: number; expenseCents: number; savingsCents: number; debtPaymentCents: number; remainingCents: number };
   balanceSeries: DailyBalancePoint[];
   categoryActuals: CategoryActual[];
-  categoryNameById: Map<number, string>;
+  categories: CategoryTreeInput[];
 }
 
-function buildGastosBreakdown(categoryActuals: CategoryActual[], categoryNameById: Map<number, string>) {
-  return categoryActuals
-    .map((a) => ({ name: categoryNameById.get(a.categoryId) ?? "Otro", spentCents: Math.abs(a.totalCents) }))
-    .filter((c) => c.spentCents > 0)
-    .sort((a, b) => b.spentCents - a.spentCents)
-    .slice(0, 6);
+const MAX_PRINCIPAL_CATEGORIES_SHOWN = 6;
+
+function buildGastosBreakdown(categoryActuals: CategoryActual[], categories: CategoryTreeInput[]): GastosBreakdownItem[] {
+  const rows = categoryBreakdown(categoryActuals, categories).map((r) => ({ name: r.name, spentCents: Math.abs(r.totalCents), depth: r.depth }));
+  const shown: GastosBreakdownItem[] = [];
+  let principals = 0;
+  for (const row of rows) {
+    if (row.depth === 0) principals++;
+    if (principals > MAX_PRINCIPAL_CATEGORIES_SHOWN) break;
+    shown.push(row);
+  }
+  return shown;
 }
 
-export function PeriodFlowCard({ status, flow, balanceSeries, categoryActuals, categoryNameById }: PeriodFlowCardProps) {
-  const gastosBreakdown = buildGastosBreakdown(categoryActuals, categoryNameById);
+export function PeriodFlowCard({ status, flow, balanceSeries, categoryActuals, categories }: PeriodFlowCardProps) {
+  const gastosBreakdown = buildGastosBreakdown(categoryActuals, categories);
   const totalExpenseCents = Math.abs(flow.expenseCents);
 
   return (

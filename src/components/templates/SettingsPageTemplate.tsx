@@ -4,30 +4,21 @@ import { PayPeriodModal } from "@/components/molecules/PayPeriodModal";
 import { TelegramLinkInfo } from "@/components/molecules/TelegramLinkInfo";
 import { CategoriesTable, type CategoryRow } from "@/components/organisms/CategoriesTable";
 import { CategoryModal } from "@/components/organisms/CategoryModal";
-import { ConceptModal, type ConceptCategoryOption, type ConceptProviderOption } from "@/components/organisms/ConceptModal";
-import { ConceptsTable, type ConceptRow } from "@/components/organisms/ConceptsTable";
+import { ApiTokenCard, type ApiTokenState, type ApiTokenView } from "@/components/organisms/ApiTokenCard";
 import { PayPeriodsTable, type PayPeriodRow } from "@/components/organisms/PayPeriodsTable";
-import { ProviderModal } from "@/components/organisms/ProviderModal";
-import { ProvidersTable, type ProviderRow } from "@/components/organisms/ProvidersTable";
 
 export interface SettingsPageTemplateProps {
   userName: string;
   userEmail: string | undefined;
   isTelegramLinked: boolean;
+  telegramLinkCode: string;
+  apiToken: ApiTokenView | null;
+  apiOrigin: string;
+  generateApiTokenAction: (previous: ApiTokenState, formData: FormData) => Promise<ApiTokenState>;
   categories: CategoryRow[];
   createCategoryAction: (formData: FormData) => Promise<void> | void;
   updateCategoryAction: (formData: FormData) => Promise<void> | void;
   deleteCategoryAction: (formData: FormData) => Promise<void> | void;
-  providers: ProviderRow[];
-  createProviderAction: (formData: FormData) => Promise<void> | void;
-  updateProviderAction: (formData: FormData) => Promise<void> | void;
-  deleteProviderAction: (formData: FormData) => Promise<void> | void;
-  concepts: ConceptRow[];
-  conceptCategoryOptions: ConceptCategoryOption[];
-  conceptProviderOptions: ConceptProviderOption[];
-  createConceptAction: (formData: FormData) => Promise<void> | void;
-  updateConceptAction: (formData: FormData) => Promise<void> | void;
-  deleteConceptAction: (formData: FormData) => Promise<void> | void;
   periods: PayPeriodRow[];
   nextPeriodDefaultStart: string;
   nextPeriodDefaultEnd: string;
@@ -40,20 +31,14 @@ export function SettingsPageTemplate({
   userName,
   userEmail,
   isTelegramLinked,
+  telegramLinkCode,
+  apiToken,
+  apiOrigin,
+  generateApiTokenAction,
   categories,
   createCategoryAction,
   updateCategoryAction,
   deleteCategoryAction,
-  providers,
-  createProviderAction,
-  updateProviderAction,
-  deleteProviderAction,
-  concepts,
-  conceptCategoryOptions,
-  conceptProviderOptions,
-  createConceptAction,
-  updateConceptAction,
-  deleteConceptAction,
   periods,
   nextPeriodDefaultStart,
   nextPeriodDefaultEnd,
@@ -78,44 +63,24 @@ export function SettingsPageTemplate({
           </p>
           <div className="flex items-center gap-2">
             <span className="text-muted">Telegram:</span>
-            <TelegramLinkInfo isLinked={isTelegramLinked} />
+            <TelegramLinkInfo isLinked={isTelegramLinked} linkCode={telegramLinkCode} />
           </div>
         </Card.Content>
       </Card>
 
+      <ApiTokenCard info={apiToken} origin={apiOrigin} generateAction={generateApiTokenAction} />
+
       <Card className="p-5">
         <Card.Header className="flex-row! items-center justify-between">
           <Card.Title>Categorías</Card.Title>
-          <CategoryModal mode="create" action={createCategoryAction} />
+          <CategoryModal
+            mode="create"
+            action={createCategoryAction}
+            parentOptions={categories.filter((c) => c.depth === 0).map((c) => ({ value: String(c.id), label: c.name }))}
+          />
         </Card.Header>
         <Card.Content>
           <CategoriesTable rows={categories} updateAction={updateCategoryAction} deleteAction={deleteCategoryAction} />
-        </Card.Content>
-      </Card>
-
-      <Card className="p-5">
-        <Card.Header className="flex-row! items-center justify-between">
-          <Card.Title>Proveedores</Card.Title>
-          <ProviderModal mode="create" action={createProviderAction} />
-        </Card.Header>
-        <Card.Content>
-          <ProvidersTable rows={providers} updateAction={updateProviderAction} deleteAction={deleteProviderAction} />
-        </Card.Content>
-      </Card>
-
-      <Card className="p-5">
-        <Card.Header className="flex-row! items-center justify-between">
-          <Card.Title>Conceptos</Card.Title>
-          <ConceptModal mode="create" action={createConceptAction} categories={conceptCategoryOptions} providers={conceptProviderOptions} />
-        </Card.Header>
-        <Card.Content>
-          <ConceptsTable
-            rows={concepts}
-            categories={conceptCategoryOptions}
-            providers={conceptProviderOptions}
-            updateAction={updateConceptAction}
-            deleteAction={deleteConceptAction}
-          />
         </Card.Content>
       </Card>
 

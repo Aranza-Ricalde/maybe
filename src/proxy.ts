@@ -6,8 +6,9 @@ import { ACCESS_TOKEN_COOKIE_NAME, REFRESH_TOKEN_COOKIE_NAME } from "@/app/lib/c
 import { JoseAccessTokenIssuer, loadAuthSecret } from "@/infrastructure/auth/accessTokens";
 import { CryptoSessionTokens } from "@/infrastructure/auth/sessionTokens";
 import { findSessionWithUserByTokenHashEdge } from "@/infrastructure/db/edgeSessionLookup";
+import { ROUTES } from "@/domain/shared/routes";
 
-const PUBLIC_PATHS = new Set(["/login"]);
+const PUBLIC_PATHS = new Set<string>([ROUTES.login]);
 const sessionTokens = new CryptoSessionTokens();
 
 async function hasValidAccessToken(token: string | undefined): Promise<boolean> {
@@ -41,12 +42,12 @@ export async function proxy(request: NextRequest) {
 
   const refreshToken = request.cookies.get(REFRESH_TOKEN_COOKIE_NAME)?.value;
   if (!refreshToken) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL(ROUTES.login, request.url));
   }
 
   const newAccessToken = await rotateAccessToken(refreshToken);
   if (!newAccessToken) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL(ROUTES.login, request.url));
   }
 
   request.cookies.set(ACCESS_TOKEN_COOKIE_NAME, newAccessToken);

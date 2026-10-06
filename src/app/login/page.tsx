@@ -1,16 +1,17 @@
 import { Button, Card, FieldError, Input, Label, TextField } from "@heroui/react";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/app/lib/dal";
+import { LOGIN_ERRORS, ROUTES, type LoginSearchParams } from "@/domain/shared/routes";
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<LoginSearchParams>;
 }) {
   const { error } = await searchParams;
 
   const user = await getCurrentUser();
-  if (user) redirect("/");
+  if (user) redirect(ROUTES.dashboard);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -23,7 +24,7 @@ export default async function LoginPage({
           <p className="text-sm text-muted">Entra a tus finanzas</p>
         </div>
 
-        <form method="POST" action="/api/login" className="flex flex-col gap-4">
+        <form method="POST" action={ROUTES.apiLogin} className="flex flex-col gap-4">
           <TextField name="email" type="email" isRequired autoFocus className="flex flex-col gap-1.5">
             <Label className="text-sm font-medium text-foreground">Email</Label>
             <Input />
@@ -38,7 +39,7 @@ export default async function LoginPage({
 
           {error && (
             <p className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger-soft-foreground">
-              Email o contraseña incorrectos.
+              {error === LOGIN_ERRORS.locked ? "Demasiados intentos fallidos. Espera unos minutos e inténtalo de nuevo." : "Email o contraseña incorrectos."}
             </p>
           )}
 

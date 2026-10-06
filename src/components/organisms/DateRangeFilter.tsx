@@ -1,11 +1,6 @@
 "use client";
 
-import { Popover } from "@heroui/react";
-import { useState } from "react";
-import { Button } from "react-aria-components";
-import { InlinePrefixLabel } from "@/components/atoms/Label";
-import { FILTER_PILL_MODIFIERS } from "@/components/molecules/FilterSelect";
-import { FilterPopoverHeader } from "@/components/molecules/FilterPopoverHeader";
+import { FilterPillPopover } from "@/components/molecules/FilterPillPopover";
 import { RangeCalendarField } from "@/components/molecules/RangeCalendarField";
 import { formatShortDate } from "@/lib/format";
 
@@ -26,32 +21,28 @@ function rangeLabel(value: DateRangeValue): string {
 }
 
 export function DateRangeFilter({ value, onChange }: DateRangeFilterProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const calendarValue = value.start && value.end ? { start: value.start, end: value.end } : null;
   const hasValue = Boolean(value.start || value.end);
 
   return (
-    <Popover.Root isOpen={isOpen} onOpenChange={setIsOpen}>
-      <Button className={`select__trigger ${FILTER_PILL_MODIFIERS}`} onPress={() => setIsOpen(true)}>
-        <InlinePrefixLabel>Periodo:</InlinePrefixLabel> {rangeLabel(value)}
-      </Button>
-      <Popover.Content>
-        <Popover.Dialog className="flex flex-col gap-1.5 p-2">
-          <FilterPopoverHeader
-            title="Periodo"
-            clearAriaLabel="Limpiar periodo"
-            onClear={hasValue ? () => { onChange({ start: null, end: null }); setIsOpen(false); } : undefined}
-          />
-          <RangeCalendarField
-            ariaLabel="Periodo"
-            value={calendarValue}
-            onChange={(range) => {
-              onChange(range);
-              setIsOpen(false);
-            }}
-          />
-        </Popover.Dialog>
-      </Popover.Content>
-    </Popover.Root>
+    <FilterPillPopover
+      label="Periodo"
+      valueLabel={rangeLabel(value)}
+      title="Periodo"
+      clearAriaLabel="Limpiar periodo"
+      onClear={hasValue ? () => onChange({ start: null, end: null }) : undefined}
+      dialogClassName="flex flex-col gap-1.5 p-2"
+    >
+      {(close) => (
+        <RangeCalendarField
+          ariaLabel="Periodo"
+          value={calendarValue}
+          onChange={(range) => {
+            onChange(range);
+            close();
+          }}
+        />
+      )}
+    </FilterPillPopover>
   );
 }

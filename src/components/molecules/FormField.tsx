@@ -1,9 +1,10 @@
 "use client";
 
-import { FieldError, ListBox, Select, TextField } from "@heroui/react";
+import { FieldError, Select, TextField } from "@heroui/react";
 import type { ComponentProps } from "react";
 import { Input } from "@/components/atoms/Input";
 import { InlinePrefixLabel, Label } from "@/components/atoms/Label";
+import { SelectOptionsPopover } from "./SelectOptionsPopover";
 
 export function TextInput({
   label,
@@ -34,6 +35,7 @@ export interface SelectFieldOption {
 
 export interface SelectFieldProps {
   label?: string;
+  ariaLabel?: string;
   name?: string;
   options: SelectFieldOption[];
   defaultValue?: string;
@@ -43,12 +45,12 @@ export interface SelectFieldProps {
   isRequired?: boolean;
 }
 
-export function SelectField({ label, name, options, defaultValue, value, onChange, placeholder, isRequired }: SelectFieldProps) {
+export function SelectField({ label, ariaLabel, name, options, defaultValue, value, onChange, placeholder, isRequired }: SelectFieldProps) {
   return (
     <div className="flex flex-col gap-1.5">
       {label && <InlinePrefixLabel tone="strong">{label}</InlinePrefixLabel>}
       <Select.Root
-        aria-label={label ?? placeholder}
+        aria-label={label ?? ariaLabel ?? placeholder}
         name={name}
         isRequired={isRequired}
         placeholder={placeholder}
@@ -60,9 +62,7 @@ export function SelectField({ label, name, options, defaultValue, value, onChang
           <Select.Value />
           <Select.Indicator />
         </Select.Trigger>
-        <Select.Popover className="max-h-60">
-          <ListBox items={options}>{(opt) => <ListBox.Item id={opt.value}>{opt.label}</ListBox.Item>}</ListBox>
-        </Select.Popover>
+        <SelectOptionsPopover options={options.map((option) => ({ id: option.value, label: option.label }))} />
       </Select.Root>
     </div>
   );

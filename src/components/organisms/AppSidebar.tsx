@@ -7,15 +7,18 @@ import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { Icon } from "@/components/atoms/Icon";
 import { Text } from "@/components/atoms/Text";
+import { ROUTES } from "@/domain/shared/routes";
 
 const NAV_ITEMS: { href: string; label: string; icon: ReactNode }[] = [
-  { href: "/", label: "Resumen", icon: <HomeIcon /> },
-  { href: "/accounts", label: "Cuentas", icon: <WalletIcon /> },
-  { href: "/transactions", label: "Movimientos", icon: <ListIcon /> },
-  { href: "/budgets", label: "Presupuestos", icon: <PieIcon /> },
-  { href: "/recurring", label: "Recurrentes", icon: <RepeatIcon /> },
-  { href: "/goals", label: "Metas", icon: <FlagIcon /> },
-  { href: "/settings", label: "Configuración", icon: <GearIcon /> },
+  { href: ROUTES.dashboard, label: "Resumen", icon: <HomeIcon /> },
+  { href: ROUTES.accounts, label: "Cuentas", icon: <WalletIcon /> },
+  { href: ROUTES.transactions, label: "Movimientos", icon: <ListIcon /> },
+  { href: ROUTES.budgets, label: "Presupuestos", icon: <PieIcon /> },
+  { href: ROUTES.spending, label: "Gasto por categoría", icon: <BarsIcon /> },
+  { href: ROUTES.recurring, label: "Recurrentes", icon: <RepeatIcon /> },
+  { href: ROUTES.projection, label: "Proyección", icon: <TrendIcon /> },
+  { href: ROUTES.goals, label: "Metas", icon: <FlagIcon /> },
+  { href: ROUTES.settings, label: "Configuración", icon: <GearIcon /> },
 ];
 
 function SidebarLabel({ collapsed, children }: { collapsed: boolean; children: ReactNode }) {
@@ -43,7 +46,7 @@ export function AppSidebar() {
 
       <div className="flex flex-1 flex-col gap-1">
         {NAV_ITEMS.map((item) => {
-          const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+          const active = item.href === ROUTES.dashboard ? pathname === ROUTES.dashboard : pathname.startsWith(item.href);
           return (
             <Link
               key={item.href}
@@ -61,7 +64,7 @@ export function AppSidebar() {
       </div>
 
       <div className={`flex items-center gap-3 rounded-lg border-t border-separator px-3 pt-3 ${collapsed ? "justify-center" : ""}`}>
-        <form method="POST" action="/api/logout">
+        <form method="POST" action={ROUTES.apiLogout}>
           <Button type="submit" variant="ghost" size="sm" isIconOnly aria-label="Salir">
             <Icon icon={ArrowRightFromSquare} />
           </Button>
@@ -98,8 +101,14 @@ function ListIcon() {
 function PieIcon() {
   return <svg {...iconProps()}><path d="M12 2a10 10 0 1 0 10 10H12V2z" /><path d="M12 2a10 10 0 0 1 10 10" /></svg>;
 }
+function BarsIcon() {
+  return <svg {...iconProps()}><path d="M4 20V10" /><path d="M10 20V4" /><path d="M16 20v-7" /><path d="M22 20H2" /></svg>;
+}
 function RepeatIcon() {
   return <svg {...iconProps()}><path d="M17 2l4 4-4 4" /><path d="M3 11V9a4 4 0 0 1 4-4h14" /><path d="M7 22l-4-4 4-4" /><path d="M21 13v2a4 4 0 0 1-4 4H3" /></svg>;
+}
+function TrendIcon() {
+  return <svg {...iconProps()}><path d="M3 17l6-6 4 4 8-8" /><path d="M15 7h6v6" /></svg>;
 }
 function FlagIcon() {
   return <svg {...iconProps()}><path d="M5 21V4" /><path d="M5 4h13l-3 4 3 4H5" /></svg>;

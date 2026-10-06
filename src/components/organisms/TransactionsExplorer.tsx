@@ -1,29 +1,30 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { getFamilyTransactionsPage, TransactionFilters, TransactionSort } from "@/app/lib/queries";
+import type { TransactionFilters, TransactionSort } from "@/domain/ledger/filters";
+import type { AccountOption, CategoryOption, TransactionRowView } from "@/components/viewModels";
+import { Chip } from "@/components/atoms/Chip";
 import { CurrencyText } from "@/components/atoms/CurrencyText";
 import { Text } from "@/components/atoms/Text";
-import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
 import { DataTable, type DataTableColumn, type DataTableSortDescriptor } from "./DataTable";
-import { EditTransactionModal } from "./EditTransactionModal";
-import {
-  EMPTY_TRANSACTION_FILTERS,
-  hasActiveTransactionFilters,
-  TransactionsFilterBar,
-  type TransactionFiltersValue,
-  type TransactionsFilterBarAccountOption,
-  type TransactionsFilterBarCategoryOption,
-} from "./TransactionsFilterBar";
+import { TransactionRowActions } from "./TransactionRowActions";
+import { EMPTY_TRANSACTION_FILTERS, hasActiveTransactionFilters, TransactionsFilterBar, type TransactionFiltersValue } from "./TransactionsFilterBar";
 import { usePaginatedFilterTable } from "@/hooks/usePaginatedFilterTable";
 import { amountSignTone, formatDate } from "@/lib/format";
-import { toApiTransactionFilters } from "@/lib/transactionFilters";
+import { toApiTransactionFilters } from "@/components/organisms/transactionFilters";
 
-type TransactionRow = Awaited<ReturnType<typeof getFamilyTransactionsPage>>["rows"][number];
+const KIND_CHIP: Partial<Record<string, string>> = {
+  transfer: "Transferencia",
+  cc_payment: "Pago de tarjeta",
+  loan_payment: "Pago de deuda",
+  adjustment: "Ajuste",
+};
+
+type TransactionRow = TransactionRowView;
 
 export interface TransactionsExplorerProps {
-  accounts: TransactionsFilterBarAccountOption[];
-  categories: TransactionsFilterBarCategoryOption[];
+  accounts: AccountOption[];
+  categories: CategoryOption[];
   fetchTransactionsPage: (
     filters: TransactionFilters,
     sort: TransactionSort,
@@ -32,7 +33,10 @@ export interface TransactionsExplorerProps {
   ) => Promise<{ rows: TransactionRow[]; total: number }>;
   updateTransactionAction: (formData: FormData) => Promise<void> | void;
   deleteTransactionAction: (formData: FormData) => Promise<void> | void;
+  undoTransferAction?: (formData: FormData) => Promise<void> | void;
+  markTransferAction?: (formData: FormData) => Promise<void> | void;
   refreshSignal?: number;
+  initialFilters?: Partial<TransactionFiltersValue>;
 }
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 200] as const;
@@ -43,9 +47,12 @@ export function TransactionsExplorer({
   fetchTransactionsPage,
   updateTransactionAction,
   deleteTransactionAction,
+  undoTransferAction,
+  markTransferAction,
   refreshSignal = 0,
+  initialFilters,
 }: TransactionsExplorerProps) {
-  const [filters, setFilters] = useState<TransactionFiltersValue>(EMPTY_TRANSACTION_FILTERS);
+  const [filters, setFilters] = useState<TransactionFiltersValue>({ ...EMPTY_TRANSACTION_FILTERS, ...initialFilters });
 
   const fetchPage = useCallback(
     (f: TransactionFiltersValue, sort: TransactionSort, page: number, pageSize: number) =>
@@ -64,15 +71,10 @@ export function TransactionsExplorer({
     refreshSignal,
   });
 
-  async function handleUpdate(formData: FormData) {
-    await updateTransactionAction(formData);
+  const thenRefetch = (action: ((formData: FormData) => Promise<void> | void) | undefined) => async (formData: FormData) => {
+    await action?.(formData);
     await refetch();
-  }
-
-  async function handleDelete(formData: FormData) {
-    await deleteTransactionAction(formData);
-    await refetch();
-  }
+  };
 
   function handleSortChange(descriptor: DataTableSortDescriptor) {
     setSort({ field: descriptor.column as TransactionSort["field"], direction: descriptor.direction === "ascending" ? "asc" : "desc" });
@@ -87,7 +89,10 @@ export function TransactionsExplorer({
       sortable: true,
       cell: (t) => (
         <>
-          <Text weight="medium">{t.name}</Text>
+          <span className="flex flex-wrap items-center gap-2">
+            <Text weight="medium">{t.name}</Text>
+            {KIND_CHIP[t.kind] && <Chip tone="muted">{KIND_CHIP[t.kind]}</Chip>}
+          </span>
           <Text size="xs" tone="muted">
             {t.accountName}
             {t.categoryName ? ` · ${t.categoryName}` : ""}
@@ -107,26 +112,15 @@ export function TransactionsExplorer({
       header: "Acciones",
       align: "right",
       cell: (t) => (
-        <div className="flex items-center justify-end gap-1">
-          <EditTransactionModal
-            accounts={accounts}
-            categories={categories}
-            action={handleUpdate}
-            initialValues={{ id: t.id, accountId: t.accountId, categoryId: t.categoryId, name: t.name, amountCents: t.amountCents, date: t.date }}
-          />
-          <ConfirmDeleteButton
-            title="Eliminar movimiento"
-            triggerAriaLabel={`Eliminar ${t.name}`}
-            confirmQuestion={
-              <>
-                ¿Eliminar <span className="font-semibold">&ldquo;{t.name}&rdquo;</span>?
-              </>
-            }
-            helperText="Tu saldo y tus totales de categoría se ajustan solos para que todo siga cuadrando."
-            hiddenFields={{ id: t.id }}
-            action={handleDelete}
-          />
-        </div>
+        <TransactionRowActions
+          row={t}
+          accounts={accounts}
+          categories={categories}
+          onUpdate={thenRefetch(updateTransactionAction)}
+          onDelete={thenRefetch(deleteTransactionAction)}
+          onUndoTransfer={undoTransferAction && thenRefetch(undoTransferAction)}
+          onMarkTransfer={markTransferAction && thenRefetch(markTransferAction)}
+        />
       ),
     },
   ];

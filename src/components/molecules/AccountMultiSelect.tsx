@@ -1,19 +1,16 @@
 "use client";
 
-import { ListBox, Select } from "@heroui/react";
+import { Select } from "@heroui/react";
 import { useState } from "react";
 import type { Key } from "react-aria-components";
 import { Label } from "@/components/atoms/Label";
-
-export interface AccountMultiSelectOption {
-  id: number;
-  name: string;
-}
+import type { AccountOption } from "@/components/viewModels";
+import { SelectOptionsPopover } from "./SelectOptionsPopover";
 
 export interface AccountMultiSelectProps {
   label?: string;
   name: string;
-  options: AccountMultiSelectOption[];
+  options: AccountOption[];
   defaultValue?: number[];
 }
 
@@ -34,9 +31,7 @@ export function AccountMultiSelect({ label, name, options, defaultValue = [] }: 
           <Select.Value>{selected.length === 0 ? "Ninguna cuenta" : `${selected.length} cuenta${selected.length === 1 ? "" : "s"}`}</Select.Value>
           <Select.Indicator />
         </Select.Trigger>
-        <Select.Popover className="max-h-60">
-          <ListBox items={options}>{(opt) => <ListBox.Item id={opt.id}>{opt.name}</ListBox.Item>}</ListBox>
-        </Select.Popover>
+        <SelectOptionsPopover options={options.map((option) => ({ id: option.id, label: option.name }))} />
       </Select.Root>
     </div>
   );

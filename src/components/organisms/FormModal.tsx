@@ -3,15 +3,29 @@
 import { Modal, Spinner } from "@heroui/react";
 import type { ReactNode } from "react";
 import { Button } from "@/components/atoms/Button";
+import { Icon, type IconProps } from "@/components/atoms/Icon";
 import { Text } from "@/components/atoms/Text";
 import { useFormModalController } from "@/hooks/useFormModalController";
 
+export type IconTriggerTone = "neutral" | "danger";
+
+export interface IconTrigger {
+  icon: IconProps["icon"];
+  label: string;
+  tone?: IconTriggerTone;
+}
+
+const ICON_TRIGGER_BASE = "inline-flex! size-7 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-secondary";
+const ICON_TRIGGER_TONE: Record<IconTriggerTone, string> = {
+  neutral: `${ICON_TRIGGER_BASE} hover:text-foreground`,
+  danger: `${ICON_TRIGGER_BASE} hover:text-danger`,
+};
+
 export interface FormModalProps {
   title: string;
-  trigger: ReactNode;
+  trigger?: ReactNode;
+  iconTrigger?: IconTrigger;
   triggerVariant?: "primary" | "ghost";
-  triggerIsIconOnly?: boolean;
-  triggerAriaLabel?: string;
   triggerClassName?: string;
   submitLabel: string;
   submitVariant?: "primary" | "danger";
@@ -24,9 +38,8 @@ export interface FormModalProps {
 export function FormModal({
   title,
   trigger,
+  iconTrigger,
   triggerVariant = "primary",
-  triggerIsIconOnly = false,
-  triggerAriaLabel,
   triggerClassName,
   submitLabel,
   submitVariant = "primary",
@@ -39,16 +52,15 @@ export function FormModal({
 
   return (
     <>
-      <Button
-        type="button"
-        variant={triggerVariant}
-        isIconOnly={triggerIsIconOnly}
-        aria-label={triggerAriaLabel}
-        className={triggerClassName}
-        onPress={() => setIsOpen(true)}
-      >
-        {trigger}
-      </Button>
+      {iconTrigger ? (
+        <Button type="button" variant="ghost" isIconOnly aria-label={iconTrigger.label} className={ICON_TRIGGER_TONE[iconTrigger.tone ?? "neutral"]} onPress={() => setIsOpen(true)}>
+          <Icon icon={iconTrigger.icon} />
+        </Button>
+      ) : (
+        <Button type="button" variant={triggerVariant} className={triggerClassName} onPress={() => setIsOpen(true)}>
+          {trigger}
+        </Button>
+      )}
       <Modal.Root isOpen={isOpen} onOpenChange={setIsOpen}>
         <Modal.Backdrop>
           <Modal.Container size={size}>

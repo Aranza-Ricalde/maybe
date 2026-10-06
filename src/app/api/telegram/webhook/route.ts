@@ -1,15 +1,9 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { LINK_COMMANDS } from "@/domain/telegram/rules";
-import { handleTelegramMessageUseCase, linkTelegramUseCase } from "@/infrastructure/container";
-
-interface TelegramUpdate {
-  message?: {
-    chat?: { id?: number | string };
-    text?: string;
-  };
-}
+import { parseLinkCommand } from "@/domain/telegram/rules";
+import { parseTelegramUpdate } from "@/domain/telegram/update";
+import { handleTelegramMessageUseCase, linkTelegramUseCase, processedTelegramUpdates } from "@/infrastructure/container";
 
 function isValidWebhookSecret(request: NextRequest): boolean {
   const expected = process.env.TELEGRAM_WEBHOOK_SECRET;
@@ -23,27 +17,35 @@ function isValidWebhookSecret(request: NextRequest): boolean {
   return timingSafeEqual(expectedBuffer, receivedBuffer);
 }
 
+async function readJson(request: NextRequest): Promise<unknown> {
+  try {
+    return await request.json();
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!isValidWebhookSecret(request)) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
-  const update = (await request.json()) as TelegramUpdate;
-  const chatId = update.message?.chat?.id;
-  const text = update.message?.text;
-
-  if (chatId == null || !text) {
+  const update = parseTelegramUpdate(await readJson(request));
+  if (!update) return NextResponse.json({ ok: true });
+  if (update.updateId != null && !processedTelegramUpdates.markIfNew(update.updateId)) {
     return NextResponse.json({ ok: true });
   }
 
   try {
-    if (LINK_COMMANDS.includes(text.trim())) {
-      await linkTelegramUseCase.execute(String(chatId));
+    if (update.kind === "callback") {
+      await handleTelegramMessageUseCase.handleCallback(update.chatId, update.callbackId, update.messageId, update.data);
     } else {
-      await handleTelegramMessageUseCase.execute(String(chatId), text);
+      const link = parseLinkCommand(update.text);
+      if (link) await linkTelegramUseCase.execute(update.chatId, link.code);
+      else await handleTelegramMessageUseCase.execute(update.chatId, update.text);
     }
   } catch (err) {
-    console.error("Error procesando update de Telegram:", err);
+    console.error("Error procesando update de Telegram:", err instanceof Error ? err.message : "desconocido");
   }
 
   return NextResponse.json({ ok: true });

@@ -1,12 +1,13 @@
 import { Card } from "@heroui/react";
 import { EmptyState } from "@/components/molecules/EmptyState";
 import { PageHeader } from "@/components/molecules/PageHeader";
-import { GoalModal, type GoalAccountOption } from "@/components/organisms/GoalModal";
+import { GoalModal } from "@/components/organisms/GoalModal";
 import { GoalsTable, type GoalRow } from "@/components/organisms/GoalsTable";
+import type { AccountOption } from "@/components/viewModels";
 
 export interface GoalsPageTemplateProps {
   rows: GoalRow[];
-  accounts: GoalAccountOption[];
+  accounts: AccountOption[];
   createAction: (formData: FormData) => Promise<void> | void;
   updateAction: (formData: FormData) => Promise<void> | void;
   deleteAction: (formData: FormData) => Promise<void> | void;

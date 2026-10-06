@@ -1,105 +1,96 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { isRecurringCandidateOwnedByFamily, isRecurringItemOwnedByFamily } from "@/app/lib/authorization";
+import { runFormAction } from "@/app/lib/actionRunner";
+import { ownsAccount, ownsCategory, ownsRecurringCandidate, ownsRecurringItem } from "@/app/lib/ownership";
+import { REVALIDATE } from "@/app/lib/revalidation";
 import { requireUser } from "@/app/lib/dal";
-import { FLOWS, type Flow } from "@/domain/ledger/rules";
+import { InvalidBudgetDecisionError } from "@/domain/recurring/budgetInclusion";
+import { dayOfMonthOf } from "@/domain/payPeriod/rules";
 import {
   acceptRecurringCandidateUseCase,
   createRecurringItemUseCase,
+  decideRecurringBudgetUseCase,
   deleteRecurringItemUseCase,
   dismissRecurringCandidateUseCase,
+  resetRecurringBudgetPolicyUseCase,
   toggleRecurringItemStatusUseCase,
   updateRecurringItemUseCase,
 } from "@/infrastructure/container";
-
-function parseRecurringForm(formData: FormData) {
-  const name = String(formData.get("name") ?? "").trim();
-  const flow = String(formData.get("flow") ?? "");
-  const estimatedAmount = Number(formData.get("estimatedAmount"));
-  const dayOfMonth = Number(formData.get("dayOfMonth"));
-  const categoryIdRaw = formData.get("categoryId");
-  const conceptIdRaw = formData.get("conceptId");
-  const accountIdRaw = formData.get("accountId");
-
-  if (!name || !FLOWS.includes(flow as Flow) || !Number.isFinite(estimatedAmount) || estimatedAmount <= 0) return null;
-  if (!Number.isInteger(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) return null;
-
-  return {
-    name,
-    flow: flow as Flow,
-    estimatedAmount,
-    dayOfMonth,
-    categoryId: categoryIdRaw ? Number(categoryIdRaw) : null,
-    conceptId: conceptIdRaw ? Number(conceptIdRaw) : null,
-    accountId: accountIdRaw ? Number(accountIdRaw) : null,
-  };
-}
+import { decideRecurringBudgetForm, idForm, recurringItemForm, recurringItemUpdateForm, toggleRecurringForm } from "@/lib/schemas";
+import { revalidateRoutes } from "@/app/lib/revalidation";
+import { todayIso } from "@/lib/today";
 
 export async function createRecurringItem(formData: FormData) {
-  const user = await requireUser();
-  const parsed = parseRecurringForm(formData);
-  if (!parsed) return;
-
-  await createRecurringItemUseCase.execute({ familyId: user.familyId, ...parsed });
-  revalidatePath("/recurring");
-  revalidatePath("/");
+  return runFormAction(formData, {
+    schema: recurringItemForm,
+    owns: [ownsCategory((input) => input.categoryId), ownsAccount((input) => input.accountId)],
+    run: (input, user) => createRecurringItemUseCase.execute({ familyId: user.familyId, ...input }),
+    revalidate: REVALIDATE.recurring,
+  });
 }
 
 export async function updateRecurringItem(formData: FormData) {
-  const user = await requireUser();
-  const id = Number(formData.get("id"));
-  if (!id) return;
-  if (!(await isRecurringItemOwnedByFamily(id, user.familyId))) return;
-
-  const parsed = parseRecurringForm(formData);
-  if (!parsed) return;
-
-  await updateRecurringItemUseCase.execute({ id, ...parsed });
-  revalidatePath("/recurring");
-  revalidatePath("/");
+  return runFormAction(formData, {
+    schema: recurringItemUpdateForm,
+    owns: [ownsRecurringItem((input) => input.id), ownsCategory((input) => input.categoryId), ownsAccount((input) => input.accountId)],
+    run: (input) => updateRecurringItemUseCase.execute(input),
+    revalidate: REVALIDATE.recurring,
+  });
 }
 
 export async function deleteRecurringItem(formData: FormData) {
-  const user = await requireUser();
-  const id = Number(formData.get("id"));
-  if (!id) return;
-  if (!(await isRecurringItemOwnedByFamily(id, user.familyId))) return;
-
-  await deleteRecurringItemUseCase.execute(id);
-  revalidatePath("/recurring");
-  revalidatePath("/");
+  return runFormAction(formData, {
+    schema: idForm,
+    owns: [ownsRecurringItem((input) => input.id)],
+    run: (input) => deleteRecurringItemUseCase.execute(input.id),
+    revalidate: REVALIDATE.recurring,
+  });
 }
 
 export async function acceptCandidate(formData: FormData) {
-  const user = await requireUser();
-  const id = Number(formData.get("id"));
-  if (!id) return;
-  if (!(await isRecurringCandidateOwnedByFamily(id, user.familyId))) return;
-
-  await acceptRecurringCandidateUseCase.execute(id, new Date().getUTCDate());
-  revalidatePath("/");
-  revalidatePath("/recurring");
+  return runFormAction(formData, {
+    schema: idForm,
+    owns: [ownsRecurringCandidate((input) => input.id)],
+    run: (input) => acceptRecurringCandidateUseCase.execute(input.id, dayOfMonthOf(todayIso())),
+    revalidate: REVALIDATE.recurring,
+  });
 }
 
 export async function dismissCandidate(formData: FormData) {
-  const user = await requireUser();
-  const id = Number(formData.get("id"));
-  if (!id) return;
-  if (!(await isRecurringCandidateOwnedByFamily(id, user.familyId))) return;
-
-  await dismissRecurringCandidateUseCase.execute(id);
-  revalidatePath("/");
-  revalidatePath("/recurring");
+  return runFormAction(formData, {
+    schema: idForm,
+    owns: [ownsRecurringCandidate((input) => input.id)],
+    run: (input) => dismissRecurringCandidateUseCase.execute(input.id),
+    revalidate: REVALIDATE.recurring,
+  });
 }
 
 export async function toggleRecurringItem(formData: FormData) {
-  const user = await requireUser();
-  const id = Number(formData.get("id"));
-  const nextStatus = String(formData.get("nextStatus"));
-  if (!id) return;
-  if (!(await isRecurringItemOwnedByFamily(id, user.familyId))) return;
+  return runFormAction(formData, {
+    schema: toggleRecurringForm,
+    owns: [ownsRecurringItem((input) => input.id)],
+    run: (input) => toggleRecurringItemStatusUseCase.execute(input.id, input.nextStatus === "active" ? "active" : "paused"),
+    revalidate: REVALIDATE.recurring,
+  });
+}
 
-  await toggleRecurringItemStatusUseCase.execute(id, nextStatus === "active" ? "active" : "paused");
-  revalidatePath("/recurring");
+export async function decideRecurringBudget(formData: FormData) {
+  return runFormAction(formData, {
+    schema: decideRecurringBudgetForm,
+    run: (input, user) =>
+      decideRecurringBudgetUseCase.execute({
+        familyId: user.familyId,
+        recurringItemId: input.recurringItemId,
+        decision: input.decision,
+        rememberForAll: input.rememberForAll,
+      }),
+    revalidate: REVALIDATE.recurringBudget,
+    tolerate: [InvalidBudgetDecisionError],
+  });
+}
+
+export async function resetRecurringBudgetPolicy() {
+  const user = await requireUser();
+  await resetRecurringBudgetPolicyUseCase.execute(user.familyId);
+  revalidateRoutes(REVALIDATE.recurringPolicy);
 }
