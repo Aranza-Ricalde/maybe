@@ -1,7 +1,8 @@
 import { and, eq } from "drizzle-orm";
-import type { ConceptMatchingRepository, ConceptMatchSuggestionRecord, TransactionForMatching } from "@/domain/matching/ports";
+import type { ConceptMatchingRepository, ConceptMatchSuggestionRecord, TransactionForMatching, TransactionMerchant } from "@/domain/matching/ports";
 import type { ConceptMatchCandidate } from "@/domain/matching/rules";
 import { db } from "./client";
+import { merchantPatterns } from "./schema/classification";
 import { concepts } from "./schema/concepts";
 import { recurringItems } from "./schema/budgeting";
 import { conceptMatchSuggestions } from "./schema/matching";
@@ -15,6 +16,7 @@ export class DrizzleConceptMatchingRepository implements ConceptMatchingReposito
         date: transactions.date,
         amountCents: transactions.amountCents,
         categoryId: transactions.categoryId,
+        kind: transactions.kind,
         rawDescription: transactions.rawDescription,
         name: transactions.name,
       })
@@ -22,6 +24,15 @@ export class DrizzleConceptMatchingRepository implements ConceptMatchingReposito
       .where(eq(transactions.id, transactionId))
       .limit(1);
     return row ? { ...row, rawDescription: row.rawDescription ?? null } : null;
+  }
+
+  async getTransactionMerchant(transactionId: number): Promise<TransactionMerchant | null> {
+    const [row] = await db
+      .select({ merchantName: merchantPatterns.cleanName, providerId: merchantPatterns.providerId })
+      .from(transactions)
+      .innerJoin(merchantPatterns, eq(merchantPatterns.id, transactions.merchantId))
+      .where(eq(transactions.id, transactionId));
+    return row ?? null;
   }
 
   async listConceptCandidates(familyId: number): Promise<ConceptMatchCandidate[]> {

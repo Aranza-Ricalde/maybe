@@ -1,7 +1,3 @@
-/**
- * Valida bootstrap/login/validateAccessToken/refreshAccessToken/logout contra la base real de Neon.
- * Uso: pnpm exec tsx --env-file=.env.local scripts/smoke-test-auth.ts
- */
 import { eq } from "drizzle-orm";
 import { BootstrapFamilyUseCase, FamilyAlreadyExistsError } from "@/application/bootstrapFamily";
 import { InvalidLoginError, LoginUseCase } from "@/application/login";
@@ -26,8 +22,6 @@ async function main() {
   const tokens = new CryptoSessionTokens();
   const accessTokens = new JoseAccessTokenIssuer(loadAuthSecret());
 
-  // hasAnyFamily() debe reflejar el estado real de la base, así que primero
-  // confirmamos que no hay ninguna family de una corrida anterior fallida.
   const preexisting = await db.select({ id: families.id }).from(families).limit(1);
   assert(preexisting.length === 0, "ya hay una family en la base — limpia antes de correr este smoke test");
 

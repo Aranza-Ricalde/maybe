@@ -1,9 +1,3 @@
-/**
- * Valida ProjectCashflowUseCase contra la base real de Neon, con una fecha
- * de referencia fija (no la fecha real de hoy) para poder calcular a mano
- * el resultado esperado exacto.
- * Uso: pnpm exec tsx --env-file=.env.local scripts/smoke-test-cashflow.ts
- */
 import { eq } from "drizzle-orm";
 import { ProjectCashflowUseCase } from "@/application/projectCashflow";
 import { db } from "@/infrastructure/db/client";
@@ -17,7 +11,7 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(`FALLÓ: ${message}`);
 }
 
-const AS_OF_DATE = "2026-06-15"; // fija a propósito: junio tiene 30 días, 15 quedan después de esta fecha
+const AS_OF_DATE = "2026-06-15";
 
 async function main() {
   console.log("Creando datos de prueba...");
@@ -32,22 +26,15 @@ async function main() {
     await db.insert(accountBalancesDaily).values({ accountId: account.id, date: AS_OF_DATE, balanceCents: 1_000_000 });
 
     await db.insert(recurringItems).values([
-      // ya "pasó" este mes (día 5 < 15) — no debe contar como remanente
       { familyId: family.id, name: "Renta", flow: "expense", estimatedAmountCents: -30000, dayOfMonth: 5, status: "active" },
-      // todavía no pasa (día 20 > 15) — sí debe contar
       { familyId: family.id, name: "Netflix", flow: "expense", estimatedAmountCents: -5000, dayOfMonth: 20, status: "active" },
-      // todavía no pasa — ingreso
       { familyId: family.id, name: "Nómina", flow: "income", estimatedAmountCents: 200000, dayOfMonth: 25, status: "active" },
-      // inactivo — no debe contar para nada
       { familyId: family.id, name: "Gym (cancelado)", flow: "expense", estimatedAmountCents: -9999999, dayOfMonth: 20, status: "paused" },
     ]);
 
     await db.insert(scheduledTransactions).values([
-      // dentro de la ventana (asOfDate, fin de mes] y "planned" — debe contar
       { familyId: family.id, name: "Dentista", amountCents: -10000, scheduledDate: "2026-06-18", status: "planned" },
-      // antes de asOfDate — no debe contar
       { familyId: family.id, name: "Ya pasó", amountCents: -999999, scheduledDate: "2026-06-10", status: "planned" },
-      // confirmado, no "planned" — no debe contar (ya es una transacción real)
       { familyId: family.id, name: "Ya confirmado", amountCents: -999999, scheduledDate: "2026-06-20", status: "confirmed" },
     ]);
 
@@ -65,15 +52,13 @@ async function main() {
 
     assert(projection.currentBalanceCents === 1_000_000, `saldo actual esperado 1,000,000, llegó ${projection.currentBalanceCents}`);
     assert(
-      projection.remainingRecurringCents === 195_000, // -5000 (Netflix) + 200000 (nómina), Renta y Gym excluidos
+      projection.remainingRecurringCents === 195_000,
       `remainingRecurringCents esperado 195000, llegó ${projection.remainingRecurringCents}`,
     );
     assert(
       projection.remainingScheduledCents === -10_000,
       `remainingScheduledCents esperado -10000, llegó ${projection.remainingScheduledCents}`,
     );
-    // avg(-200000,-180000,-220000) = -200000; recurrente total de egresos activos = -30000 + -5000 = -35000
-    // variable = min(0, -200000 - (-35000)) = -165000; tasa diaria = -165000/30 = -5500; ×15 días restantes = -82500
     assert(
       projection.projectedVariableSpendCents === -82_500,
       `projectedVariableSpendCents esperado -82500, llegó ${projection.projectedVariableSpendCents}`,

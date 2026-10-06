@@ -1,13 +1,14 @@
-import { and, desc, eq, gt, gte, lt, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, lt, lte, or, sql } from "drizzle-orm";
 import type { NeonDatabase } from "drizzle-orm/neon-serverless";
 import type { AccountSummary, LedgerOperations, LedgerUnitOfWork, NewTransactionInput, TransactionEditInput, TransactionRecord } from "@/domain/ledger/ports";
+import type { TransactionKind } from "@/domain/ledger/rules";
 import * as schema from "./schema";
 import { accountBalancesDaily, accounts } from "./schema/accounts";
 import { categoryMonthlyTotals, incomeExpenseMonthly } from "./schema/aggregates";
 import { transactions, transfers } from "./schema/transactions";
 
 type Db = NeonDatabase<typeof schema>;
-type Tx = Db;
+type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
 function toTransactionRecord(row: typeof transactions.$inferSelect): TransactionRecord {
   return {
@@ -60,6 +61,10 @@ class DrizzleLedgerOperations implements LedgerOperations {
       .where(eq(transactions.id, id))
       .returning();
     return toTransactionRecord(row);
+  }
+
+  async updateTransactionKind(id: number, kind: TransactionKind): Promise<void> {
+    await this.tx.update(transactions).set({ kind, updatedAt: new Date() }).where(eq(transactions.id, id));
   }
 
   async deleteTransactionRow(id: number): Promise<void> {
@@ -162,12 +167,26 @@ class DrizzleLedgerOperations implements LedgerOperations {
   async linkTransfer(outflowTransactionId: number, inflowTransactionId: number): Promise<void> {
     await this.tx.insert(transfers).values({ outflowTransactionId, inflowTransactionId, status: "confirmed" });
   }
+
+  async findTransferPartner(transactionId: number): Promise<number | null> {
+    const [row] = await this.tx
+      .select({ inflow: transfers.inflowTransactionId, outflow: transfers.outflowTransactionId })
+      .from(transfers)
+      .where(or(eq(transfers.inflowTransactionId, transactionId), eq(transfers.outflowTransactionId, transactionId)))
+      .limit(1);
+    if (!row) return null;
+    return row.inflow === transactionId ? row.outflow : row.inflow;
+  }
+
+  async unlinkTransfer(transactionId: number): Promise<void> {
+    await this.tx.delete(transfers).where(or(eq(transfers.inflowTransactionId, transactionId), eq(transfers.outflowTransactionId, transactionId)));
+  }
 }
 
 export class DrizzleLedgerUnitOfWork implements LedgerUnitOfWork {
   constructor(private readonly db: Db) {}
 
   async run<T>(fn: (ops: LedgerOperations) => Promise<T>): Promise<T> {
-    return this.db.transaction(async (tx) => fn(new DrizzleLedgerOperations(tx as unknown as Tx)));
+    return this.db.transaction(async (tx) => fn(new DrizzleLedgerOperations(tx)));
   }
 }

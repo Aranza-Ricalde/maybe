@@ -13,3 +13,7 @@ export * from "./payPeriods";
 export * from "./providers";
 export * from "./concepts";
 export * from "./matching";
+export * from "./occurrences";
+export * from "./reviews";
+export * from "./settings";
+export * from "./security";

@@ -1,10 +1,3 @@
-/**
- * Vacía TODAS las tablas de datos de usuario en la base actual — SOLO debe correr contra
- * el branch de Neon "e2e-tests" (nunca la base real). Verifica el host de DATABASE_URL
- * antes de truncar, como guardia de seguridad adicional.
- *
- * Uso: pnpm run reset:e2e
- */
 import { sql } from "drizzle-orm";
 import { db } from "@/infrastructure/db/client";
 
@@ -26,7 +19,7 @@ async function main() {
       transactions, transfers, rejected_transfers, transaction_tags, valuations,
       categories, tags, merchant_patterns,
       providers, concepts, concept_match_suggestions,
-      recurring_items, recurring_candidates, scheduled_transactions,
+      recurring_items, recurring_candidates, recurring_occurrences, scheduled_transactions,
       budget_category_settings, category_monthly_totals, income_expense_monthly,
       pay_periods, goals, goal_accounts,
       imports, import_mappings,

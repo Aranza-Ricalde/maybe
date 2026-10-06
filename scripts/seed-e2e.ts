@@ -1,18 +1,9 @@
-/**
- * Siembra datos de fixture completos y deterministas en la base de e2e (branch de Neon
- * "e2e-tests", NUNCA la base real). Usa los casos de uso reales de la app (no SQL crudo)
- * para que balances, agregados y periodos queden consistentes, igual que haría un usuario real.
- *
- * Uso: pnpm run seed:e2e
- */
 import { eq } from "drizzle-orm";
 import {
   bootstrapFamilyUseCase,
   createAccountUseCase,
   createCategoryUseCase,
-  createConceptUseCase,
   createGoalUseCase,
-  createProviderUseCase,
   createRecurringItemUseCase,
   listPayPeriodsUseCase,
   recordTransactionUseCase,
@@ -21,10 +12,14 @@ import {
   archiveOrDeleteAccountUseCase,
 } from "@/infrastructure/container";
 import { db } from "@/infrastructure/db/client";
-import { families, users } from "@/infrastructure/db/schema/core";
+import { DrizzleConceptsRepository } from "@/infrastructure/db/concepts";
+import { DrizzleProvidersRepository } from "@/infrastructure/db/providers";
+
+const providersRepo = new DrizzleProvidersRepository();
+const conceptsRepo = new DrizzleConceptsRepository();
+import { families } from "@/infrastructure/db/schema/core";
 import { accounts } from "@/infrastructure/db/schema/accounts";
 import { categories } from "@/infrastructure/db/schema/classification";
-import { concepts } from "@/infrastructure/db/schema/concepts";
 import { recurringCandidates, scheduledTransactions } from "@/infrastructure/db/schema/budgeting";
 import { conceptMatchSuggestions } from "@/infrastructure/db/schema/matching";
 import { findPeriodIndexContaining } from "@/domain/payPeriod/rules";
@@ -95,67 +90,23 @@ async function main() {
   const accLoan = await acc("Préstamo Auto", "loan");
   const accCash = await acc("Efectivo", "cash");
 
-  console.log("6) Creando proveedores y conceptos...");
-  const telmex = await createProviderUseCase.execute(familyId, "Telmex");
-  const cfe = await createProviderUseCase.execute(familyId, "CFE");
-  const netflixProvider = await createProviderUseCase.execute(familyId, "Netflix");
+  console.log("6) Creando proveedores...");
+  const telmex = await providersRepo.create(familyId, "Telmex");
+  const cfe = await providersRepo.create(familyId, "CFE");
+  const netflixProvider = await providersRepo.create(familyId, "Netflix");
 
-  const internetConcept = await createConceptUseCase.execute({
-    familyId,
-    name: "Internet Casa",
-    categoryId: catServicios,
-    providerId: telmex.id,
-    flow: "expense",
-  });
-  const luzConcept = await createConceptUseCase.execute({
-    familyId,
-    name: "Luz",
-    categoryId: catVivienda,
-    providerId: cfe.id,
-    flow: "expense",
-  });
-  const netflixConcept = await createConceptUseCase.execute({
-    familyId,
-    name: "Netflix",
-    categoryId: catOcio,
-    providerId: netflixProvider.id,
-    flow: "expense",
-  });
+  console.log("7) Creando recurrentes (el concepto nace de cada recurrente)...");
+  await createRecurringItemUseCase.execute({ familyId, name: "Internet Casa", flow: "expense", estimatedAmount: 499, dayOfMonth: 5, categoryId: catServicios, accountId: accChecking });
+  await createRecurringItemUseCase.execute({ familyId, name: "Luz", flow: "expense", estimatedAmount: 600, dayOfMonth: 20, categoryId: catVivienda, accountId: accChecking });
+  await createRecurringItemUseCase.execute({ familyId, name: "Netflix", flow: "expense", estimatedAmount: 229, dayOfMonth: 10, categoryId: catOcio, accountId: accChecking });
 
-  console.log("7) Creando recurrentes...");
-  // Internet Casa: vence día 5, ya pagado este periodo (abajo se crea la transacción real).
-  await createRecurringItemUseCase.execute({
-    familyId,
-    name: "placeholder",
-    flow: "expense",
-    estimatedAmount: 499,
-    dayOfMonth: 5,
-    categoryId: null,
-    conceptId: internetConcept.id,
-    accountId: accChecking,
-  });
-  // Luz: vence día 20, NO pagado este periodo todavía -> debe verse "Esperado"/"Atrasado".
-  await createRecurringItemUseCase.execute({
-    familyId,
-    name: "placeholder",
-    flow: "expense",
-    estimatedAmount: 600,
-    dayOfMonth: 20,
-    categoryId: null,
-    conceptId: luzConcept.id,
-    accountId: accChecking,
-  });
-  // Netflix: pausado, para probar el toggle de estado en /recurring.
-  await createRecurringItemUseCase.execute({
-    familyId,
-    name: "placeholder",
-    flow: "expense",
-    estimatedAmount: 229,
-    dayOfMonth: 10,
-    categoryId: null,
-    conceptId: netflixConcept.id,
-    accountId: accChecking,
-  });
+  for (const [conceptName, provider] of [["Internet Casa", telmex], ["Luz", cfe], ["Netflix", netflixProvider]] as const) {
+    const concept = await conceptsRepo.findByName(familyId, conceptName);
+    if (concept) await conceptsRepo.update({ id: concept.id, name: concept.name, categoryId: concept.categoryId, providerId: provider.id });
+  }
+  const internetConcept = (await conceptsRepo.findByName(familyId, "Internet Casa"))!;
+  const luzConcept = (await conceptsRepo.findByName(familyId, "Luz"))!;
+  const netflixConcept = (await conceptsRepo.findByName(familyId, "Netflix"))!;
   console.log("8) Creando presupuestos (uno sobre, uno bajo)...");
   await setBudgetLineUseCase.execute({ familyId, categoryId: catAlimentacion, cadence: "monthly", budgetedAmountCents: 300_000 });
   await setBudgetLineUseCase.execute({ familyId, categoryId: catTransporte, cadence: "monthly", budgetedAmountCents: 200_000 });
@@ -196,7 +147,6 @@ async function main() {
   console.log("11) Registrando movimientos del periodo actual...");
   const periodMid = currentPeriod.start;
 
-  // Nómina del periodo (ingreso)
   await recordTransactionUseCase.execute({
     accountId: accChecking,
     date: periodMid,
@@ -206,7 +156,6 @@ async function main() {
     source: "manual",
   });
 
-  // Internet Casa: PAGADO, directamente con conceptId (determinista, sin depender del matching).
   await recordTransactionUseCase.execute({
     accountId: accChecking,
     date: periodMid,
@@ -217,7 +166,6 @@ async function main() {
     source: "manual",
   });
 
-  // Alimentación: por ENCIMA del presupuesto ($3,000) a propósito.
   await recordTransactionUseCase.execute({
     accountId: accChecking,
     date: periodMid,
@@ -227,7 +175,6 @@ async function main() {
     source: "manual",
   });
 
-  // Transporte: por DEBAJO del presupuesto ($2,000) a propósito.
   await recordTransactionUseCase.execute({
     accountId: accChecking,
     date: periodMid,
@@ -237,7 +184,6 @@ async function main() {
     source: "manual",
   });
 
-  // Ocio (sin concepto, para variedad en "Actividad reciente")
   await recordTransactionUseCase.execute({
     accountId: accCash,
     date: periodMid,

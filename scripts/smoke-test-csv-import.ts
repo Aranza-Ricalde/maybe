@@ -1,9 +1,3 @@
-/**
- * Valida ImportCsvUseCase contra la base real de Neon: parseo con comillas,
- * detección de duplicados cruzando con una transacción manual, filas con
- * error que no abortan el import completo, y mapeo de columnas recordado.
- * Uso: pnpm exec tsx --env-file=.env.local scripts/smoke-test-csv-import.ts
- */
 import { eq } from "drizzle-orm";
 import { RecordTransactionUseCase } from "@/application/recordTransaction";
 import { ImportCsvUseCase, MissingColumnMappingError } from "@/application/importCsv";
@@ -84,7 +78,6 @@ async function main() {
       accountId: account.id,
       filename: "febrero.csv",
       csvText: CSV_SECOND_BATCH,
-      // sin mapping — debe recordarlo de la vez anterior
     });
     assert(secondSummary.imported === 1, `se esperaba importar 1 fila (Spotify), llegó ${secondSummary.imported}`);
     console.log("   ✓ el mapeo recordado se usó sin que lo volviera a pasar");

@@ -1,109 +1,141 @@
-/**
- * Valida la integración de Telegram contra la API real (manda mensajes de
- * verdad a tu Telegram) y contra la base real de Neon.
- * Uso: pnpm exec tsx --env-file=.env.local scripts/smoke-test-telegram.ts
- */
 import { and, eq } from "drizzle-orm";
+import { todayIso } from "@/lib/today";
+import { AnswerTelegramQueryUseCase } from "@/application/answerTelegramQuery";
+import { resolvePeriodContextUseCase } from "@/infrastructure/container";
+import { DrizzleAccountsReader } from "@/infrastructure/db/readModels/accounts";
+import { DrizzleTransactionsReader } from "@/infrastructure/db/readModels/transactions";
+import { DrizzleDashboardRepository } from "@/infrastructure/db/dashboard";
+import { CaptureMovementUseCase } from "@/application/captureMovement";
+import { CaptureNotificationUseCase } from "@/application/captureNotification";
+import { CorrectCaptureUseCase } from "@/application/correctCapture";
+import { DeleteTransactionUseCase } from "@/application/deleteTransaction";
 import { HandleTelegramMessageUseCase } from "@/application/handleTelegramMessage";
 import { LinkTelegramUseCase } from "@/application/linkTelegram";
 import { RecordTransactionUseCase } from "@/application/recordTransaction";
-import type { TelegramSender } from "@/domain/telegram/ports";
+import { UpdateTransactionUseCase } from "@/application/updateTransaction";
+import type { TelegramButton, TelegramSender } from "@/domain/telegram/ports";
+import { DrizzleCaptureRepository } from "@/infrastructure/db/captures";
 import { db } from "@/infrastructure/db/client";
 import { DrizzleLedgerUnitOfWork } from "@/infrastructure/db/ledger";
 import { accounts } from "@/infrastructure/db/schema/accounts";
+import { categories } from "@/infrastructure/db/schema/classification";
 import { families, users } from "@/infrastructure/db/schema/core";
 import { transactions } from "@/infrastructure/db/schema/transactions";
+import { DrizzleCategoriesReader } from "@/infrastructure/db/readModels/categories";
 import { DrizzleTelegramRepository } from "@/infrastructure/db/telegram";
-import { TelegramApiSender } from "@/infrastructure/telegram/sender";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(`FALLÓ: ${message}`);
 }
 
-// chat_id real, obtenido de getUpdates — los mensajes de este script SÍ llegan a tu Telegram de verdad.
-const REAL_CHAT_ID = "6945796025";
-const FAKE_SECOND_CHAT_ID = "999999999"; // nunca existió en Telegram; solo se usa con un sender falso, nunca llama a la API real
+const CHAT_ID = "900000001";
+const OTHER_CHAT_ID = "900000002";
 
 class RecordingSender implements TelegramSender {
-  sent: { chatId: string; text: string }[] = [];
-  async sendMessage(chatId: string, text: string): Promise<void> {
-    this.sent.push({ chatId, text });
+  sent: { kind: string; text: string; buttons?: TelegramButton[][] }[] = [];
+  async sendMessage(_chatId: string, text: string, buttons?: TelegramButton[][]) {
+    this.sent.push({ kind: "send", text, buttons });
+  }
+  async editMessage(_chatId: string, _messageId: number, text: string, buttons?: TelegramButton[][]) {
+    this.sent.push({ kind: "edit", text, buttons });
+  }
+  async answerCallback(_callbackId: string, text?: string) {
+    this.sent.push({ kind: "answer", text: text ?? "" });
+  }
+  get last() {
+    return this.sent[this.sent.length - 1];
   }
 }
 
 async function main() {
-  console.log("Creando datos de prueba...");
+  console.log("Creando datos de prueba (sin llamar a la API real de Telegram; usa una rama de prueba, nunca producción)...");
   const [family] = await db.insert(families).values({ name: "__smoke_test__", currency: "MXN" }).returning();
-  const [user] = await db
-    .insert(users)
-    .values({ familyId: family.id, email: "smoke-telegram@example.com", passwordHash: "n/a", name: "Rafa" })
-    .returning();
+  const [user] = await db.insert(users).values({ familyId: family.id, email: "smoke-telegram@example.com", passwordHash: "n/a", name: "Rafa" }).returning();
   const [checking] = await db.insert(accounts).values({ familyId: family.id, name: "Checking", type: "checking" }).returning();
   const [cash] = await db.insert(accounts).values({ familyId: family.id, name: "Efectivo", type: "cash" }).returning();
+  const [food] = await db.insert(categories).values({ familyId: family.id, name: "Comida", color: "#000", icon: "tag", classification: "expense" }).returning();
 
   const repo = new DrizzleTelegramRepository();
-  const realSender = new TelegramApiSender();
-  const link = new LinkTelegramUseCase(repo, realSender);
-  const recordTransaction = new RecordTransactionUseCase(new DrizzleLedgerUnitOfWork(db));
-  const handleMessage = new HandleTelegramMessageUseCase(repo, recordTransaction, realSender);
+  const sender = new RecordingSender();
+  const linkCodes = { codeFor: () => "SMOKECODE1", matches: (_userId: number, provided: string | null) => provided === "SMOKECODE1" };
+  const link = new LinkTelegramUseCase(repo, sender, linkCodes);
+  const uow = new DrizzleLedgerUnitOfWork(db);
+  const updateTransaction = new UpdateTransactionUseCase(uow);
+  const capturesRepo = new DrizzleCaptureRepository();
+  const categoriesReader = new DrizzleCategoriesReader();
+  const capture = new CaptureMovementUseCase(new RecordTransactionUseCase(uow), updateTransaction, capturesRepo, categoriesReader);
+  const correct = new CorrectCaptureUseCase(capturesRepo, categoriesReader, uow, updateTransaction, new DeleteTransactionUseCase(uow));
+  const queries = new AnswerTelegramQueryUseCase(new DrizzleAccountsReader(), new DrizzleTransactionsReader(), categoriesReader, resolvePeriodContextUseCase, new DrizzleDashboardRepository());
+  const handler = new HandleTelegramMessageUseCase(repo, capture, new CaptureNotificationUseCase(capture), correct, queries, sender);
 
   try {
-    console.log("1) /start con tu chat_id real — debe vincularte y mandarte un mensaje de verdad a Telegram...");
-    await link.execute(REAL_CHAT_ID);
-    const [linkedUser] = await db.select().from(users).where(eq(users.id, user.id));
-    assert(linkedUser.telegramChatId === REAL_CHAT_ID, "el chat_id debió quedar guardado en el usuario");
-    console.log("   ✓ vinculado — revisa tu Telegram, debería haber llegado un mensaje de confirmación");
+    console.log("1) Vinculando el chat directamente al usuario de prueba (el /link usa al primer usuario de la base, que no es este)...");
+    await db.update(users).set({ telegramChatId: CHAT_ID }).where(eq(users.id, user.id));
 
-    console.log("2) /start otra vez (ya vinculado) — debe avisarte que ya estabas vinculado...");
-    await link.execute(REAL_CHAT_ID);
-    console.log("   ✓ segundo /start manejado sin re-vincular");
+    console.log("2) Un chat distinto es rechazado...");
+    await link.execute(OTHER_CHAT_ID);
+    assert(sender.last.text.includes("otra persona"), `esperaba el rechazo, llegó: "${sender.last.text}"`);
 
-    console.log("3) Un chat DISTINTO intenta vincularse (con sender falso, nunca toca la API real)...");
-    const recording = new RecordingSender();
-    const linkWithFakeSender = new LinkTelegramUseCase(repo, recording);
-    await linkWithFakeSender.execute(FAKE_SECOND_CHAT_ID);
-    assert(recording.sent.length === 1, "debió responder algo al chat falso");
-    assert(recording.sent[0].text.includes("otra persona"), `esperaba el mensaje de rechazo, llegó: "${recording.sent[0].text}"`);
-    const [stillOriginalOwner] = await db.select().from(users).where(eq(users.id, user.id));
-    assert(stillOriginalOwner.telegramChatId === REAL_CHAT_ID, "el chat original no debía perder su vínculo");
-    console.log("   ✓ un segundo chat distinto fue rechazado, el vínculo original no se tocó");
+    console.log('3) "150 tacos" — gasto en la cuenta por defecto, sin categoría: pregunta con botones...');
+    await handler.execute(CHAT_ID, "150 tacos");
+    const [taco] = await db.select().from(transactions).where(and(eq(transactions.accountId, checking.id), eq(transactions.name, "tacos")));
+    assert(taco?.amountCents === -15000 && taco.source === "telegram", "el gasto de tacos debió registrarse como telegram");
+    assert(sender.last.text.includes("¿De qué categoría es?"), "debió preguntar la categoría");
+    const buttons = sender.last.buttons?.flat() ?? [];
+    assert(buttons.some((b) => b.text === "Comida") && buttons.some((b) => b.text.includes("Deshacer")), "debió ofrecer Comida y Deshacer");
 
-    console.log('4) Mensaje real: "150 tacos" — debe registrarse como gasto en la cuenta default (Checking) y avisarte por Telegram...');
-    await handleMessage.execute(REAL_CHAT_ID, "150 tacos");
-    const [tacoTx] = await db.select().from(transactions).where(and(eq(transactions.accountId, checking.id), eq(transactions.name, "tacos")));
-    assert(tacoTx != null, "la transacción de tacos debió crearse");
-    assert(tacoTx.amountCents === -15000, `se esperaba -15000, llegó ${tacoTx.amountCents}`);
-    assert(tacoTx.source === "telegram", `source debía ser "telegram", fue "${tacoTx.source}"`);
-    console.log("   ✓ -$150.00 \"tacos\" registrado en Checking, mensaje de confirmación enviado");
+    console.log("4) Botón de categoría — aplica Comida y confirma...");
+    await handler.handleCallback(CHAT_ID, "cb1", 1, buttons.find((b) => b.text === "Comida")!.data);
+    const [afterCategory] = await db.select().from(transactions).where(eq(transactions.id, taco.id));
+    assert(afterCategory.categoryId === food.id, "la categoría debió quedar en Comida");
+    assert(!(await capturesRepo.isPending(family.id, taco.id)), "ya no debía estar por confirmar");
 
-    console.log('5) Mensaje real: "+200 nomina" — debe registrarse como ingreso...');
-    await handleMessage.execute(REAL_CHAT_ID, "+200 nomina");
-    const [nominaTx] = await db.select().from(transactions).where(and(eq(transactions.accountId, checking.id), eq(transactions.name, "nomina")));
-    assert(nominaTx.amountCents === 20000, `se esperaba +20000, llegó ${nominaTx.amountCents}`);
-    console.log("   ✓ +$200.00 \"nomina\" registrado como ingreso");
+    console.log('5) "+200 nomina #efectivo" — ingreso en la cuenta por el hint...');
+    await handler.execute(CHAT_ID, "+200 nomina #efectivo");
+    const [nomina] = await db.select().from(transactions).where(and(eq(transactions.accountId, cash.id), eq(transactions.name, "nomina")));
+    assert(nomina?.amountCents === 20000, "el ingreso debió ir a Efectivo");
 
-    console.log('6) Mensaje real: "50 dulces #efectivo" — debe resolver la cuenta por el hint, no la default...');
-    await handleMessage.execute(REAL_CHAT_ID, "50 dulces #efectivo");
-    const [dulcesTx] = await db.select().from(transactions).where(and(eq(transactions.accountId, cash.id), eq(transactions.name, "dulces")));
-    assert(dulcesTx != null, "la transacción de dulces debió ir a la cuenta Efectivo, no a Checking");
-    console.log("   ✓ \"#efectivo\" resolvió correctamente a la cuenta Efectivo, no a la default");
+    console.log("6) Notificación bancaria pegada — se entiende con reglas...");
+    await handler.execute(CHAT_ID, "Compra con TDD\nCompra con CUENTA en ANTHROPIC* CLAUDE $349.00 06 octubre 12:44h");
+    const [bank] = await db.select().from(transactions).where(and(eq(transactions.accountId, checking.id), eq(transactions.name, "ANTHROPIC* CLAUDE")));
+    assert(bank?.amountCents === -34900, "la notificación debió registrar -349");
 
-    console.log('7) Mensaje real sin números: "hola buenas" — debe responder el error de formato sin registrar nada...');
-    const beforeCount = (await db.select().from(transactions)).length;
-    await handleMessage.execute(REAL_CHAT_ID, "hola buenas");
-    const afterCount = (await db.select().from(transactions)).length;
-    assert(beforeCount === afterCount, "un mensaje sin formato válido no debía crear ninguna transacción");
-    console.log("   ✓ mensaje no reconocido no creó nada (deberías ver el mensaje de ayuda en Telegram)");
+    console.log("7) Deshacer — borra el movimiento y revierte el saldo...");
+    const undo = sender.last.buttons?.flat().find((b) => b.text.includes("Deshacer"));
+    assert(undo, "debió haber botón Deshacer");
+    await handler.handleCallback(CHAT_ID, "cb2", 2, undo.data);
+    const rest = await db.select().from(transactions).where(eq(transactions.accountId, checking.id));
+    assert(rest.every((t) => t.name !== "ANTHROPIC* CLAUDE"), "el movimiento deshecho no debía existir");
 
-    console.log("\nTODAS LAS VALIDACIONES PASARON ✓ — revisa tu Telegram, deberías ver 6 mensajes del bot.");
+    console.log('8) "30 cafe ayer" — usa la fecha de ayer...');
+    await handler.execute(CHAT_ID, "30 cafe ayer");
+    const [cafe] = await db.select().from(transactions).where(and(eq(transactions.accountId, checking.id), eq(transactions.name, "cafe")));
+    assert(cafe && cafe.date < todayIso(), "el café debió quedar con fecha anterior a hoy");
+
+    console.log("9) /saldo, /ultimos y /resumen — consultas reales a la base...");
+    await handler.execute(CHAT_ID, "/saldo");
+    assert(sender.last.text.includes("Checking") && sender.last.text.includes("Efectivo"), `/saldo debió listar las cuentas: ${sender.last.text}`);
+    await handler.execute(CHAT_ID, "/ultimos 2");
+    assert(sender.last.text.includes("Últimos movimientos"), "/ultimos debió responder movimientos");
+    await handler.execute(CHAT_ID, "/resumen");
+    assert(sender.last.text.includes("Resumen"), `/resumen debió responder: ${sender.last.text}`);
+
+    console.log('10) "hola buenas" — responde la ayuda y no registra nada...');
+    const before = (await db.select().from(transactions).where(eq(transactions.accountId, checking.id))).length;
+    await handler.execute(CHAT_ID, "hola buenas");
+    const after = (await db.select().from(transactions).where(eq(transactions.accountId, checking.id))).length;
+    assert(before === after && sender.last.text.includes("No entendí"), "un mensaje inválido no debía crear nada");
+
+    console.log("\nTODAS LAS VALIDACIONES PASARON ✓");
   } finally {
     console.log("\nLimpiando datos de prueba...");
     await db.delete(transactions).where(eq(transactions.accountId, checking.id));
     await db.delete(transactions).where(eq(transactions.accountId, cash.id));
+    await db.delete(categories).where(eq(categories.familyId, family.id));
     await db.delete(accounts).where(eq(accounts.familyId, family.id));
     await db.delete(users).where(eq(users.familyId, family.id));
     await db.delete(families).where(eq(families.id, family.id));
-    console.log("Limpieza completa, no quedó basura en production.");
+    console.log("Limpieza completa.");
   }
 }
 

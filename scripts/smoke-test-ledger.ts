@@ -1,10 +1,3 @@
-/**
- * Valida RecordTransactionUseCase contra la base real de Neon: crea datos de
- * prueba, registra transacciones, confirma que los agregados quedaron
- * correctos, y borra todo lo que creó. No deja basura en production.
- *
- * Uso: pnpm exec tsx --env-file=.env.local scripts/smoke-test-ledger.ts
- */
 import { eq } from "drizzle-orm";
 import { DuplicateTransactionError, RecordTransactionUseCase } from "@/application/recordTransaction";
 import { db } from "@/infrastructure/db/client";

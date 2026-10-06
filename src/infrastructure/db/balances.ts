@@ -54,3 +54,37 @@ export async function dailyTotalBalanceSeries(
   `);
   return result.rows.map((row) => ({ date: row.date, balanceCents: Number(row.total) }));
 }
+
+export async function sumBalancesAtDates(accountIds: number[], dates: string[]): Promise<number[]> {
+  if (dates.length === 0) return [];
+  if (accountIds.length === 0) return dates.map(() => 0);
+
+  const dateRows = sql.join(dates.map((date, index) => sql`(${index}::int, ${date}::date)`), sql`, `);
+  const result = await db.execute<{ position: number; total: string }>(sql`
+    SELECT d.position, COALESCE(SUM(latest.balance_cents), 0)::bigint AS total
+    FROM (VALUES ${dateRows}) AS d(position, day)
+    CROSS JOIN (SELECT DISTINCT account_id FROM account_balances_daily WHERE account_id IN ${accountIds}) accts
+    LEFT JOIN LATERAL (
+      SELECT balance_cents
+      FROM account_balances_daily
+      WHERE account_id = accts.account_id AND date <= d.day
+      ORDER BY date DESC
+      LIMIT 1
+    ) latest ON true
+    GROUP BY d.position
+  `);
+  const totals = new Map(result.rows.map((row) => [Number(row.position), Number(row.total)]));
+  return dates.map((_, index) => totals.get(index) ?? 0);
+}
+
+export async function earliestBalances(accountIds: number[]): Promise<number[]> {
+  if (accountIds.length === 0) return [];
+  const result = await db.execute<{ account_id: number; balance_cents: string }>(sql`
+    SELECT DISTINCT ON (account_id) account_id, balance_cents
+    FROM account_balances_daily
+    WHERE account_id IN ${accountIds}
+    ORDER BY account_id, date ASC
+  `);
+  const byAccount = new Map(result.rows.map((row) => [Number(row.account_id), Number(row.balance_cents)]));
+  return accountIds.map((id) => byAccount.get(id) ?? 0);
+}

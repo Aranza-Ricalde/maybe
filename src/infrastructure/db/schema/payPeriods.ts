@@ -1,10 +1,11 @@
-import { bigint, bigserial, date, pgTable, uniqueIndex } from "drizzle-orm/pg-core";
+import { bigint, date, pgTable, uniqueIndex } from "drizzle-orm/pg-core";
 import { families } from "./core";
+import { idColumn } from "./columns";
 
 export const payPeriods = pgTable(
   "pay_periods",
   {
-    id: bigserial("id", { mode: "number" }).primaryKey(),
+    id: idColumn(),
     familyId: bigint("family_id", { mode: "number" })
       .notNull()
       .references(() => families.id, { onDelete: "cascade" }),

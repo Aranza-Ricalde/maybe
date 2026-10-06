@@ -1,20 +1,18 @@
-import { bigint, bigserial, date, integer, pgTable, primaryKey, timestamp, text } from "drizzle-orm/pg-core";
+import { bigint, date, index, integer, pgTable, primaryKey, text } from "drizzle-orm/pg-core";
 import { accounts } from "./accounts";
-import { families } from "./core";
+import { idColumn, familyIdColumn, createdAtColumn, updatedAtColumn } from "./columns";
 
 export const goals = pgTable("goals", {
-  id: bigserial("id", { mode: "number" }).primaryKey(),
-  familyId: bigint("family_id", { mode: "number" })
-    .notNull()
-    .references(() => families.id, { onDelete: "restrict" }),
+  id: idColumn(),
+  familyId: familyIdColumn(),
   name: text("name").notNull(),
   targetAmountCents: bigint("target_amount_cents", { mode: "number" }).notNull(),
   targetDate: date("target_date"),
   monthlyContributionCents: bigint("monthly_contribution_cents", { mode: "number" }),
   priority: integer("priority").notNull().default(0),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-});
+  createdAt: createdAtColumn(),
+  updatedAt: updatedAtColumn(),
+}, (table) => [index("goals_family_idx").on(table.familyId)]);
 
 export const goalAccounts = pgTable(
   "goal_accounts",

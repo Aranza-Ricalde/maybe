@@ -13,7 +13,7 @@ export class DrizzleCashflowRepository implements CashflowRepository {
 
   async getActiveRecurringItems(familyId: number): Promise<RecurringItemForProjection[]> {
     const rows = await db
-      .select({ name: recurringItems.name, dayOfMonth: recurringItems.dayOfMonth, estimatedAmountCents: recurringItems.estimatedAmountCents })
+      .select({ id: recurringItems.id, name: recurringItems.name, dayOfMonth: recurringItems.dayOfMonth, estimatedAmountCents: recurringItems.estimatedAmountCents })
       .from(recurringItems)
       .where(and(eq(recurringItems.familyId, familyId), eq(recurringItems.status, "active")));
     return rows;

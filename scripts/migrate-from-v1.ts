@@ -1,17 +1,3 @@
-/**
- * Migración única de datos reales de Maybe v1 (Rails/Postgres, extraído por
- * docker exec + COPY, solo lectura — nunca se tocó v1) a Maybe v2.
- *
- * Por default corre en modo DRY RUN: imprime el plan completo (mapeo de
- * cuentas, saldos calculados, conteos) y los verifica contra el `balance`
- * que Rails ya tenía cacheado en v1, sin escribir nada. Solo escribe con
- * --commit, y TODO dentro de una sola transacción de Postgres (todo o nada
- * — si algo falla a la mitad, no queda nada a medias).
- *
- * Uso:
- *   pnpm exec tsx --env-file=.env.local scripts/migrate-from-v1.ts              # dry run
- *   pnpm exec tsx --env-file=.env.local scripts/migrate-from-v1.ts --commit     # escribe de verdad
- */
 import { readFileSync } from "node:fs";
 import { eq } from "drizzle-orm";
 import type { NeonDatabase } from "drizzle-orm/neon-serverless";
@@ -65,7 +51,7 @@ function mapAccountType(row: Record<string, string>): AccountType {
     case "Depository":
       if (/efectivo|cash/.test(name)) return "cash";
       if (row.subtype === "checking") return "checking";
-      return "savings"; // subtype "savings" o vacío (las cuentas-meta "Ahorro - X")
+      return "savings";
     default:
       throw new Error(
         `Tipo de cuenta "${row.accountable_type}" (cuenta "${row.name}") no tiene equivalente en v2 — ` +
@@ -83,12 +69,6 @@ function mapTransactionKind(v1Kind: string, isLinkedTransfer: boolean): Transact
   return "standard";
 }
 
-/** Todo el trabajo real vive aquí, parametrizado por el cliente de DB — así
- * el modo --commit puede correr esto DENTRO de db.transaction() y el dry
- * run puede correr exactamente la misma lógica de cálculo sin escribir
- * (las llamadas de escritura están guardadas por COMMIT, pero comparten
- * todo el cálculo/verificación con el dry run, para que lo que se valida
- * sea lo mismo que se va a escribir). */
 async function runMigration(exec: DbClient, targetFamily: { id: number; currency: string }) {
   const v1Accounts = readCsv("v1_accounts.csv");
   const v1Categories = readCsv("v1_categories.csv");
@@ -109,7 +89,6 @@ async function runMigration(exec: DbClient, targetFamily: { id: number; currency
   }
   console.log();
 
-  // ---- Categorías: 2 pasadas (raíz primero, luego hijas con el parent_id ya mapeado) ----
   const categoryIdMap = new Map<string, number>();
   for (const row of v1Categories.filter((r) => !nullable(r.parent_id))) {
     if (COMMIT) {
@@ -125,7 +104,7 @@ async function runMigration(exec: DbClient, targetFamily: { id: number; currency
         .returning();
       categoryIdMap.set(row.id, c.id);
     } else {
-      categoryIdMap.set(row.id, -1); // placeholder para el cálculo del dry run
+      categoryIdMap.set(row.id, -1);
     }
   }
   for (const row of v1Categories.filter((r) => nullable(r.parent_id))) {
@@ -149,7 +128,6 @@ async function runMigration(exec: DbClient, targetFamily: { id: number; currency
   }
   console.log(`Categorías: ${v1Categories.length} (${categoryIdMap.size} mapeadas)\n`);
 
-  // ---- Cuentas ----
   const accountIdMap = new Map<string, number>();
   for (const row of v1Accounts) {
     const type = accountTypeById.get(row.id)!;
@@ -164,7 +142,6 @@ async function runMigration(exec: DbClient, targetFamily: { id: number; currency
     }
   }
 
-  // ---- Eventos (transacciones + valuaciones) en orden cronológico, por cuenta ----
   type Event = { kind: "transaction" | "valuation"; row: Record<string, string> };
 
   const eventsByAccount = new Map<string, Event[]>();
@@ -192,9 +169,9 @@ async function runMigration(exec: DbClient, targetFamily: { id: number; currency
   }
 
   const oldTxIdToNewTxId = new Map<string, number>();
-  const balanceSnapshots = new Map<string, number>(); // key "v1AccountId|date" -> running balance
-  const categoryMonthlyDelta = new Map<string, number>(); // key "categoryId|month"
-  const incomeExpenseDelta = new Map<string, { income: number; expense: number }>(); // key "month"
+  const balanceSnapshots = new Map<string, number>();
+  const categoryMonthlyDelta = new Map<string, number>();
+  const incomeExpenseDelta = new Map<string, { income: number; expense: number }>();
 
   console.log("--- Procesando movimientos por cuenta (cronológico) ---");
   let totalTransactions = 0;
@@ -222,7 +199,7 @@ async function runMigration(exec: DbClient, targetFamily: { id: number; currency
         }
       } else {
         const row = event.row;
-        const v2AmountCents = -toCents(row.amount); // v1: positivo=gasto, negativo=ingreso — opuesto de v2
+        const v2AmountCents = -toCents(row.amount);
         runningBalance += v2AmountCents;
         const isLinked = transferLinkedTxIds.has(row.transaction_id);
         const v2Kind = mapTransactionKind(row.kind, isLinked);
@@ -339,7 +316,6 @@ async function runMigration(exec: DbClient, targetFamily: { id: number; currency
           priority: Number(row.priority),
         })
         .returning();
-      // v1 solo permitía una cuenta por meta — v2 soporta varias (ver goal_accounts), esto preserva esa única cuenta.
       const linkedAccountId = nullable(row.account_id) ? (accountIdMap.get(row.account_id) ?? null) : null;
       if (linkedAccountId != null) {
         await exec.insert(goalAccounts).values({ goalId: goal.id, accountId: linkedAccountId });

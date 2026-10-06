@@ -1,13 +1,3 @@
-/**
- * Setup único de la app self-hosted: crea la family + primer usuario. No es
- * un endpoint web — se corre una vez desde la terminal al desplegar.
- *
- * Uso: pnpm exec tsx --env-file=.env.local scripts/bootstrap.ts \
- *   --email tu@correo.com --name "Tu Nombre" [--family-name "Mi familia"] [--currency MXN]
- *
- * La contraseña NUNCA se pasa por flag (quedaría en el historial de la
- * shell) — el script la pide interactivamente, sin mostrarla en pantalla.
- */
 import { parseArgs } from "node:util";
 import { BootstrapFamilyUseCase } from "@/application/bootstrapFamily";
 import { ScryptPasswordHasher } from "@/infrastructure/auth/passwordHasher";
@@ -26,7 +16,6 @@ function promptHiddenPassword(label: string): Promise<string> {
 
     const onData = (char: string) => {
       if (char === "") {
-        // Ctrl+C
         cleanup();
         reject(new Error("Cancelado"));
         return;

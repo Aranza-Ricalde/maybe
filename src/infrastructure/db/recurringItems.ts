@@ -5,7 +5,10 @@ import { recurringItems } from "./schema/budgeting";
 
 export class DrizzleRecurringItemsRepository implements RecurringItemsRepository {
   async getById(id: number): Promise<RecurringItemRecord | null> {
-    const [row] = await db.select({ id: recurringItems.id, familyId: recurringItems.familyId }).from(recurringItems).where(eq(recurringItems.id, id));
+    const [row] = await db
+      .select({ id: recurringItems.id, familyId: recurringItems.familyId, conceptId: recurringItems.conceptId })
+      .from(recurringItems)
+      .where(eq(recurringItems.id, id));
     return row ?? null;
   }
 
@@ -22,9 +25,10 @@ export class DrizzleRecurringItemsRepository implements RecurringItemsRepository
         dayOfMonth: input.dayOfMonth,
         accountId: input.accountId,
         autoDetected: input.autoDetected,
+        budgetInclusion: input.budgetInclusion ?? null,
         status: "active",
       })
-      .returning({ id: recurringItems.id, familyId: recurringItems.familyId });
+      .returning({ id: recurringItems.id, familyId: recurringItems.familyId, conceptId: recurringItems.conceptId });
     return row;
   }
 

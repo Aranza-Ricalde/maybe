@@ -1,7 +1,3 @@
-/**
- * Valida DetectRecurringItemsUseCase contra la base real de Neon.
- * Uso: pnpm exec tsx --env-file=.env.local scripts/smoke-test-recurring.ts
- */
 import { and, eq } from "drizzle-orm";
 import { DetectRecurringItemsUseCase } from "@/application/detectRecurringItems";
 import { db } from "@/infrastructure/db/client";
@@ -16,10 +12,9 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(`FALLÓ: ${message}`);
 }
 
-/** N meses atrás desde hoy, fijado al día 5 (o `day`) — para no hardcodear fechas absolutas. */
 function monthsAgoOnDay(months: number, day = 5): string {
   const d = new Date();
-  d.setUTCDate(1); // evita que un día inválido (ej. 31) se desborde al cambiar de mes
+  d.setUTCDate(1);
   d.setUTCMonth(d.getUTCMonth() - months);
   d.setUTCDate(day);
   return d.toISOString().slice(0, 10);
@@ -44,7 +39,6 @@ async function main() {
       { accountId: account.id, date: monthsAgoOnDay(3, 6), amountCents: -15000, name: "NETFLIX.COM", categoryId: category.id, kind: "standard", source: "manual" },
       { accountId: account.id, date: monthsAgoOnDay(2, 4), amountCents: -15500, name: "NETFLIX.COM", categoryId: category.id, kind: "standard", source: "manual" },
       { accountId: account.id, date: monthsAgoOnDay(1, 5), amountCents: -15000, name: "NETFLIX.COM", categoryId: category.id, kind: "standard", source: "manual" },
-      // ruido: una sola compra grande, no debe detectarse como recurrente
       { accountId: account.id, date: monthsAgoOnDay(2, 20), amountCents: -120000, name: "MUEBLES DEL NORTE", kind: "standard", source: "manual" },
     ]);
 

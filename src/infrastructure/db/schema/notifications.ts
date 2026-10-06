@@ -1,5 +1,6 @@
-import { bigint, bigserial, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { bigint, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { families } from "./core";
+import { idColumn } from "./columns";
 
 export const NOTIFICATION_TYPES = [
   "budget_exceeded",
@@ -12,7 +13,7 @@ export const NOTIFICATION_TYPES = [
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 export const notificationEvents = pgTable("notification_events", {
-  id: bigserial("id", { mode: "number" }).primaryKey(),
+  id: idColumn(),
   familyId: bigint("family_id", { mode: "number" })
     .notNull()
     .references(() => families.id, { onDelete: "cascade" }),

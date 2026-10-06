@@ -1,14 +1,14 @@
-import { bigint, bigserial, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
-import { FLOWS, type Flow } from "@/domain/ledger/rules";
-import { checkEnum } from "./_helpers";
+import { bigint, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
+import type { Flow } from "@/domain/ledger/rules";
 import { categories } from "./classification";
 import { families } from "./core";
 import { providers } from "./providers";
+import { idColumn, createdAtColumn, updatedAtColumn } from "./columns";
 
 export const concepts = pgTable(
   "concepts",
   {
-    id: bigserial("id", { mode: "number" }).primaryKey(),
+    id: idColumn(),
     familyId: bigint("family_id", { mode: "number" })
       .notNull()
       .references(() => families.id, { onDelete: "restrict" }),
@@ -18,11 +18,8 @@ export const concepts = pgTable(
       .references(() => categories.id, { onDelete: "restrict" }),
     providerId: bigint("provider_id", { mode: "number" }).references(() => providers.id, { onDelete: "set null" }),
     flow: text("flow").notNull().$type<Flow>(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: createdAtColumn(),
+    updatedAt: updatedAtColumn(),
   },
-  (table) => [
-    checkEnum("concepts_flow_check", table.flow, FLOWS),
-    uniqueIndex("concepts_family_name_unique").on(table.familyId, table.name),
-  ],
+  (table) => [uniqueIndex("concepts_family_name_unique").on(table.familyId, table.name)],
 );
