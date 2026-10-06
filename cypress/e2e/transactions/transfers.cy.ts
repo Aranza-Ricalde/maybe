@@ -12,7 +12,7 @@ describe("Transacciones: transferencias entre cuentas", () => {
   }
 
   function selectKind(label: string) {
-    cy.contains("span", "Tipo").parent().find("button").click();
+    cy.get('[role="dialog"]').contains("span", "Tipo").parent().find("button").click();
     cy.contains('[role="option"], li', label).click();
   }
 
@@ -20,7 +20,8 @@ describe("Transacciones: transferencias entre cuentas", () => {
     openTransferModal();
 
     cy.get('input[name="amount"]').type("111.11");
-    cy.contains("button", "Registrar").click();
+    cy.get('[role="dialog"]').contains("button", "Registrar").click();
+    cy.get('[role="dialog"]').should("not.exist");
 
     cy.contains("Transferencia enviada", { timeout: 10000 }).should("be.visible");
     cy.contains("Transferencia recibida").should("be.visible");
@@ -43,7 +44,8 @@ describe("Transacciones: transferencias entre cuentas", () => {
     openTransferModal();
     selectKind("Pago de tarjeta de crédito");
     cy.get('input[name="amount"]').type("222.22");
-    cy.contains("button", "Registrar").click();
+    cy.get('[role="dialog"]').contains("button", "Registrar").click();
+    cy.get('[role="dialog"]').should("not.exist");
 
     cy.contains("Pago de tarjeta", { timeout: 10000 }).should("be.visible");
 
@@ -59,7 +61,8 @@ describe("Transacciones: transferencias entre cuentas", () => {
     openTransferModal();
     selectKind("Pago de préstamo");
     cy.get('input[name="amount"]').type("333.33");
-    cy.contains("button", "Registrar").click();
+    cy.get('[role="dialog"]').contains("button", "Registrar").click();
+    cy.get('[role="dialog"]').should("not.exist");
 
     cy.contains("Pago de préstamo", { timeout: 10000 }).should("be.visible");
 
@@ -85,7 +88,7 @@ describe("Transacciones: transferencias entre cuentas", () => {
     cy.contains("span", "Cuenta destino").parent().find("button").click();
     cy.contains('[role="option"], li', "Nu Débito").click();
     cy.get('input[name="amount"]').type("50.00");
-    cy.contains("button", "Registrar").click();
+    cy.get('[role="dialog"]').contains("button", "Registrar").click();
     // La cuenta origen por defecto también es Nu Débito -> el use case debe rechazarlo.
     // No debe crearse ninguna transacción nueva de $50.00 en este escenario inválido.
     cy.wait(500);

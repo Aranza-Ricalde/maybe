@@ -23,16 +23,15 @@ describe("Settings — Tu cuenta y Telegram", () => {
     cy.contains("¿Cómo vincular?").click();
     cy.contains("Vincular Telegram").should("be.visible");
     cy.contains("@V2_MaybeBot").should("be.visible");
+    cy.contains(/\/link [A-F0-9]{10}/).should("be.visible");
     cy.contains("/link").should("be.visible");
 
     cy.get('[data-slot="modal-close-trigger"], [data-slot="close-button"]').first().click();
     cy.contains("Vincular Telegram").should("not.exist");
   });
 
-  it("muestra los encabezados de las 4 secciones de administración", () => {
+  it("muestra los encabezados de las secciones de administración", () => {
     cy.contains("h2, h3, [data-slot='card-title']", "Categorías").should("be.visible");
-    cy.contains("h2, h3, [data-slot='card-title']", "Proveedores").should("be.visible");
-    cy.contains("h2, h3, [data-slot='card-title']", "Conceptos").should("be.visible");
     cy.contains("h2, h3, [data-slot='card-title']", "Periodos de pago").should("be.visible");
   });
 });

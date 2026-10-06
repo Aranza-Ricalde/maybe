@@ -27,11 +27,12 @@ describe("Settings — Periodos de pago", () => {
       });
 
       cy.contains("button", "Crear periodo").click();
-      cy.contains("Nuevo periodo").should("not.exist");
+      cy.get('[data-slot="modal-backdrop"]').should("not.exist");
 
       cy.task("dbQuery", "select count(*) as n from pay_periods").then((afterRows) => {
         expect((afterRows as { n: string }[])[0].n).to.equal("27");
       });
+      cy.get("select").last().select("50");
       cy.contains("Quincena 27").should("be.visible");
     });
   });
@@ -39,7 +40,7 @@ describe("Settings — Periodos de pago", () => {
   it("al abrir el calendario del nuevo periodo y hacer clic en otro día, el encabezado de fechas se actualiza (el picker responde a interacción real)", () => {
     cy.contains("button", "+ Nuevo periodo").click();
     cy.get('input[name="start"]').invoke("val").then((initialStart) => {
-      cy.get('[aria-label="Fechas del periodo"] button[role="button"]:not([disabled])')
+      cy.get('[aria-label^="Fechas del periodo"] td [role="button"]:not([aria-disabled="true"])')
         .first()
         .click();
       cy.get('input[name="start"]').invoke("val").should((newStart) => {
@@ -52,6 +53,7 @@ describe("Settings — Periodos de pago", () => {
   });
 
   it("edita un periodo (sin tocar el calendario) y lo elimina, verificando contra la base en cada paso", () => {
+    cy.get("select").last().select("50");
     cy.contains("tr", "Quincena 27").within(() => {
       cy.get('button[aria-label="Editar Quincena 27"]').click();
     });
@@ -80,7 +82,29 @@ describe("Settings — Periodos de pago", () => {
       const countBefore = (before as { n: string }[])[0].n;
       cy.contains("button", "+ Nuevo periodo").click();
       cy.get('[data-slot="modal-close-trigger"]').click();
-      cy.contains("Nuevo periodo").should("not.exist");
+      cy.get('[data-slot="modal-backdrop"]').should("not.exist");
+      cy.task("dbQuery", "select count(*) as n from pay_periods").then((after) => {
+        expect((after as { n: string }[])[0].n).to.equal(countBefore);
+      });
+    });
+  });
+});
+
+describe("Settings — Periodos de pago: sin traslapes", () => {
+  beforeEach(() => {
+    cy.task("mintAccessToken", 1).then((token) => cy.setCookie("access_token", token as string));
+    cy.visit("/settings");
+  });
+
+  it("un periodo que comparte un día con otro no se crea", () => {
+    cy.task("dbQuery", "select count(*) as n from pay_periods").then((before) => {
+      const countBefore = (before as { n: string }[])[0].n;
+      cy.contains("button", "+ Nuevo periodo").click();
+      cy.get('input[name="start"]').invoke("val").then(() => {
+        cy.get('[aria-label^="Fechas del periodo"] td [role="button"]:not([aria-disabled="true"])').first().click();
+        cy.get('[aria-label^="Fechas del periodo"] td [role="button"]:not([aria-disabled="true"])').first().click();
+      });
+      cy.contains("button", "Crear periodo").click();
       cy.task("dbQuery", "select count(*) as n from pay_periods").then((after) => {
         expect((after as { n: string }[])[0].n).to.equal(countBefore);
       });

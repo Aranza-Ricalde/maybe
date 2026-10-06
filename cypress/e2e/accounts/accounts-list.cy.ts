@@ -43,14 +43,18 @@ describe("/accounts — lista, saldos y explorador", () => {
     });
   });
 
-  it("la tarjeta de crédito (Nu TDC) muestra saldo negativo (deuda) resaltado", () => {
-    cy.contains("tr", "Nu TDC").within(() => {
-      cy.contains("-$").should("exist");
+  it("el signo del saldo de la tarjeta de crédito (Nu TDC) coincide con la base: negativo solo si hay deuda", () => {
+    cy.task("dbQuery", "select balance_cents from account_balances_daily where account_id = (select id from accounts where name = 'Nu TDC') order by date desc limit 1").then((rows) => {
+      const cents = Number((rows as { balance_cents: string }[])[0].balance_cents);
+      cy.contains("tr", "Nu TDC").within(() => {
+        if (cents < 0) cy.contains("-$").should("exist");
+        else cy.contains("-$").should("not.exist");
+      });
     });
   });
 
   it("el link de cuentas archivadas muestra el conteo correcto y abre el modal con Efectivo", () => {
-    cy.contains("button", /Ver cuentas archivadas \(1\)/).click();
+    cy.contains(/Ver cuentas archivadas \(1\)/).click();
     cy.contains("Cuentas archivadas").should("be.visible");
     cy.contains("Se archivaron, no se borraron").should("be.visible");
     cy.contains("li", "Efectivo").within(() => {

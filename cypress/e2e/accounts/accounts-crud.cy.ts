@@ -95,7 +95,7 @@ describe("/accounts — crear, editar, archivar/restaurar", () => {
   });
 
   it("restaura la cuenta archivada 'Efectivo': reaparece activa en la tabla y en la base", () => {
-    cy.contains("button", /Ver cuentas archivadas/).click();
+    cy.contains(/Ver cuentas archivadas/).click();
     cy.contains("li", "Efectivo").within(() => cy.contains("button", "Reactivar").click());
 
     cy.contains("tr", "Efectivo", { timeout: 10000 }).should("be.visible");

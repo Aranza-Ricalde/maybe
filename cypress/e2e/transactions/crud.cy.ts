@@ -15,7 +15,7 @@ describe("Transacciones: crear, editar, eliminar", () => {
     cy.get('input[name="amount"]').type("-123.45");
     cy.contains("span", "Categoría (opcional)").parent().find("button").click();
     cy.contains('[role="option"], li', "Transporte").click();
-    cy.contains("button", "Registrar").click();
+    cy.get('[role="dialog"]').contains("button", "Registrar").click();
 
     cy.contains(name, { timeout: 10000 }).should("be.visible");
 
@@ -32,7 +32,7 @@ describe("Transacciones: crear, editar, eliminar", () => {
     cy.contains("button", "+ Registrar movimiento").click();
     cy.get('input[name="name"]').type(name);
     cy.get('input[name="amount"]').type("777.77");
-    cy.contains("button", "Registrar").click();
+    cy.get('[role="dialog"]').contains("button", "Registrar").click();
 
     cy.contains(name, { timeout: 10000 }).should("be.visible");
     cy.task("dbQuery", `select amount_cents, category_id from transactions where name = '${name}'`).then((rows) => {
@@ -76,7 +76,7 @@ describe("Transacciones: crear, editar, eliminar", () => {
     cy.contains("button", "+ Registrar movimiento").click();
     cy.get('input[name="name"]').type(name);
     cy.get('input[name="amount"]').type("-10.00");
-    cy.contains("button", "Registrar").click();
+    cy.get('[role="dialog"]').contains("button", "Registrar").click();
     cy.contains(name, { timeout: 10000 }).should("be.visible");
 
     cy.contains(name)
