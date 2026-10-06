@@ -91,3 +91,41 @@ La capa `app/` (login, sesión, proxy, cada una de las 8 páginas) se validó co
 - **8 páginas reales**: resumen, cuentas, movimientos, presupuesto, recurrentes, metas, configuración, login — con diseño real (Hero UI + tokens de marca), no HTML sin estilo.
 - **Desplegado en producción** (Vercel) con el webhook de Telegram registrado contra la URL real.
 - **Pendiente**: probar cada formulario con clic real en el navegador; exportar a Excel; chat de IA sobre las finanzas; import de CSV y limpieza de merchants todavía sin UI (solo backend).
+
+## Registrar movimientos desde el teléfono (`POST /api/movements`)
+
+El token se genera en **Configuración → Registrar desde el teléfono** (se muestra una sola vez; en la base solo se guarda su hash SHA-256, y generar uno nuevo invalida el anterior).
+
+```
+POST /api/movements
+Authorization: Bearer mv_...
+Content-Type: application/json
+
+{"account":"Nu Débito","type":"expense","amount":150,"description":"Tacos","date":"2026-10-06","notes":"opcional"}
+```
+
+- Obligatorios: `account` (nombre exacto, sin importar mayúsculas ni acentos), `type` (`expense` | `income`), `amount` (positivo; número o texto con punto o coma) y `description`. Opcionales: `date` (AAAA-MM-DD; por defecto hoy en `America/Mexico_City`) y `notes`.
+- Respuestas: `201` con lo detectado (`categoria`, `comercio`, `por_confirmar`), `400` datos inválidos, `401` token inválido, `404` cuenta inexistente, `409` cuenta ambigua, `422` movimiento inválido, `429` demasiados intentos con token incorrecto (10 en 15 min por IP).
+- **Texto plano:** también acepta la notificación del banco tal cual (`Content-Type: text/plain`), con la cuenta en `?account=` o en el encabezado `X-Account`. Se entiende con reglas (monto, gasto o ingreso, comercio y fecha); si no se entiende, Gemini la extrae; si tampoco, responde `422 notificacion_no_entendida` y no registra nada. El texto original queda en las notas.
+- Detección, en este orden: reglas del sistema (comercio conocido y categoría aprendida) → Gemini, automático cuando existe `GEMINI_API_KEY` (se aplica con confianza alta o media) → sin categoría. Queda **por confirmar** (banner en Movimientos) cuando no hay categoría o Gemini no tuvo confianza alta; una categoría aprendida por reglas o con confianza alta de Gemini no pregunta.
+
+## Registrar desde Telegram
+
+Escribe `150 tacos` (gasto), `+20000 nómina` (ingreso), agrega `#cuenta` para elegir la cuenta, o pega la notificación de tu banco. Usa la misma detección que `/api/movements` (reglas → Gemini → por confirmar) y responde con lo detectado (monto, cuenta, categoría, comercio).
+
+- **Fecha:** al final de la descripción puedes poner `hoy`, `ayer`, `anteayer`, `05/10`, `05/10/2026`, `5 de octubre` o `2026-10-05` (`150 tacos ayer #bbva`). Sin año, una fecha que caería en el futuro se toma del año anterior; una fecha futura o inexistente se rechaza y no registra nada.
+- **Comandos:** `/saldo [cuenta]` (saldos; las deudas y tarjetas aparecen aparte), `/ultimos [n]` (5 por defecto, máximo 15), `/resumen` (ingresos, gastos, balance y las 3 categorías con más gasto del periodo de pago actual) y `/ayuda`. Una cuenta inexistente en `#hint` responde con la lista de tus cuentas.
+- Si no hay categoría, el bot muestra las categorías que más usas (del mismo tipo: gasto o ingreso) como botones. Si Gemini tuvo confianza media, pregunta "¿Es correcta la categoría?" con **Sí / Cambiar / Deshacer**.
+- **Cambiar** lista las categorías más usadas de los últimos 180 días; **Deshacer** borra el movimiento y revierte el saldo. Solo se pueden corregir movimientos registrados por Telegram o por la API, y solo de tu familia.
+- Escoger una categoría desde el bot cuenta como confirmación: el movimiento deja de aparecer como "por confirmar" en Movimientos.
+- `scripts/smoke-test-telegram.ts` valida este flujo contra una rama de prueba con un remitente falso (no llama a la API real de Telegram; no lo corras contra producción).
+
+## Decisiones de diseño deliberadas
+
+Estas decisiones son intencionales; no son deuda técnica.
+
+- **El calendario sincroniza las ocurrencias de recurrentes al renderizar** (`GetCalendarOccurrencesUseCase` → `SyncRecurringOccurrencesUseCase`). La pantalla necesita las ocurrencias ya vinculadas con sus movimientos para pintarse y para que el usuario decida sobre ellas. La sincronización es idempotente, no escribe si no hay cambios, el índice único `recurring_occurrences_item_date_unique` evita duplicados, y se hace periodo por periodo en serie para que dos escrituras sobre periodos contiguos no compitan.
+- **La importación de CSV registra una fila a la vez.** Cada fila pasa por `RecordTransactionUseCase` (validación, detección de duplicados contra lo manual, saldos y agregados) y puede fallar de forma independiente; el resumen reporta cuáles filas fallaron y por qué. Hay un tope de 5,000 filas por importación.
+- **El webhook de Telegram siempre responde 200.** Telegram solo reenvía un mensaje cuando no recibe 200, por lo que la deduplicación por `update_id` en memoria (`processedTelegramUpdates`) es una protección adicional, no la única.
+- **Las listas de valores permitidos viven en el backend, no en la base de datos** (sin `CHECK` ni enums), y se validan en `src/domain/*/rules.ts`.
+- **Los cambios de esquema se aplican con scripts SQL manuales** (`drizzle/manual/`), no con `drizzle-kit push`.

@@ -50,3 +50,6 @@ next-env.d.ts
 /cypress/screenshots/
 /cypress/videos/
 /cypress/downloads/
+
+# Respaldos locales de cambios a datos (no se suben)
+.respaldos/

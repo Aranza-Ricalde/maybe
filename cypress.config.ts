@@ -9,7 +9,7 @@ const WRITE_SQL_PATTERN = /\b(insert|update|delete|truncate|drop|alter|create)\b
 export default defineConfig({
   e2e: {
     baseUrl: "http://localhost:3001",
-    supportFile: false,
+    supportFile: "cypress/support/e2e.ts",
     setupNodeEvents(on) {
       on("task", {
         async mintAccessToken(familyId: number) {
