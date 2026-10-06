@@ -1,0 +1,10 @@
+.git
+.claude
+node_modules
+.next
+.next-*
+*.tsbuildinfo
+cypress/screenshots
+cypress/videos
+.env*
+!.env.example
