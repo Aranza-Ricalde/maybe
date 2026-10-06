@@ -4,6 +4,24 @@ export function formatCurrency(cents: number, currency = "MXN"): string {
   return new Intl.NumberFormat("es-MX", { style: "currency", currency }).format(cents === 0 ? 0 : cents / 100);
 }
 
+export function formatCurrencyCompact(cents: number, currency = "MXN"): string {
+  const whole = cents % 100 === 0;
+  return new Intl.NumberFormat("es-MX", { style: "currency", currency, minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: whole ? 0 : 2 }).format(cents === 0 ? 0 : cents / 100);
+}
+
+export function formatSignedPercent(ratio: number): string {
+  const sign = ratio > 0 ? "+" : ratio < 0 ? "−" : "";
+  return `${sign}${formatPercent(Math.abs(ratio))}`;
+}
+
+export function formatPercent(ratio: number): string {
+  return `${Math.round(ratio * 100)}%`;
+}
+
+export function formatPesos(cents: number, currency = "MXN"): string {
+  return new Intl.NumberFormat("es-MX", { style: "currency", currency, maximumFractionDigits: 0 }).format(Math.round(cents / 100) === 0 ? 0 : cents / 100);
+}
+
 export function centsToInputValue(cents: number | null | undefined): string | undefined {
   return cents != null ? (cents / 100).toFixed(2) : undefined;
 }

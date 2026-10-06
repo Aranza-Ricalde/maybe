@@ -1,3 +1,4 @@
+import type { DebtTerms } from "@/domain/debts/rules";
 import type { AccountType } from "./rules";
 
 export interface AccountRecord {
@@ -21,6 +22,7 @@ export interface UpdateAccountInput {
   name: string;
   type: AccountType;
   creditLimitCents?: number;
+  debtTerms?: DebtTerms;
 }
 
 export interface AccountsRepository {

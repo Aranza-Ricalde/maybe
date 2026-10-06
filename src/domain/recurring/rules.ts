@@ -1,4 +1,4 @@
-import { classifyFlow, type Flow } from "@/domain/ledger/rules";
+import { FLOWS, classifyFlow, type Flow } from "@/domain/ledger/rules";
 
 export interface TransactionForDetection {
   accountId: number;
@@ -34,9 +34,13 @@ function normalizeName(name: string): string {
     .trim();
 }
 
-export function patternSignatureFor(tx: Pick<TransactionForDetection, "accountId" | "merchantId" | "name">): string {
-  const key = tx.merchantId != null ? `merchant:${tx.merchantId}` : `name:${normalizeName(tx.name)}`;
-  return `account:${tx.accountId}|${key}`;
+export function patternSignatureFor(tx: Pick<TransactionForDetection, "merchantId" | "name">): string {
+  return tx.merchantId != null ? `merchant:${tx.merchantId}` : `name:${normalizeName(tx.name)}`;
+}
+
+export function merchantIdFromPatternSignature(patternSignature: string): number | null {
+  const match = /^merchant:(\d+)$/.exec(patternSignature);
+  return match ? Number(match[1]) : null;
 }
 
 function dayOfMonth(isoDate: string): number {
@@ -119,4 +123,40 @@ export function assertValidDayOfMonth(dayOfMonth: number): void {
 
 export function signedEstimatedAmountCents(flow: Flow, magnitudeCents: number): number {
   return flow === "income" ? magnitudeCents : -magnitudeCents;
+}
+
+export const RECURRING_STATUSES = ["active", "paused"] as const;
+export type RecurringStatus = (typeof RECURRING_STATUSES)[number];
+
+export const RECURRING_CANDIDATE_STATUSES = ["pending", "accepted", "dismissed"] as const;
+export type RecurringCandidateStatus = (typeof RECURRING_CANDIDATE_STATUSES)[number];
+
+export const RECURRING_OCCURRENCE_STATUSES = ["pending", "paid", "skipped"] as const;
+export type RecurringOccurrenceStatus = (typeof RECURRING_OCCURRENCE_STATUSES)[number];
+
+export const OCCURRENCE_MATCH_SOURCES = ["auto", "manual"] as const;
+export type OccurrenceMatchSource = (typeof OCCURRENCE_MATCH_SOURCES)[number];
+
+export function assertValidRecurringFlow(flow: string): asserts flow is Flow {
+  if (!FLOWS.includes(flow as Flow)) {
+    throw new InvalidRecurringItemError(`Flujo inválido: "${flow}".`);
+  }
+}
+
+export function assertValidRecurringStatus(status: string): asserts status is RecurringStatus {
+  if (!RECURRING_STATUSES.includes(status as RecurringStatus)) {
+    throw new InvalidRecurringItemError(`Estado de recurrente inválido: "${status}".`);
+  }
+}
+
+export function assertValidOccurrenceStatus(status: string): asserts status is RecurringOccurrenceStatus {
+  if (!RECURRING_OCCURRENCE_STATUSES.includes(status as RecurringOccurrenceStatus)) {
+    throw new InvalidRecurringItemError(`Estado de ocurrencia inválido: "${status}".`);
+  }
+}
+
+export function assertValidOccurrenceMatchSource(source: string): asserts source is OccurrenceMatchSource {
+  if (!OCCURRENCE_MATCH_SOURCES.includes(source as OccurrenceMatchSource)) {
+    throw new InvalidRecurringItemError(`Origen de match inválido: "${source}".`);
+  }
 }

@@ -1,4 +1,6 @@
 import type { Flow } from "@/domain/ledger/rules";
+import type { SpendingNature } from "./nature";
+import type { CategoryParentCandidate } from "./rules";
 
 export interface CategoryRecord {
   id: number;
@@ -11,6 +13,8 @@ export interface NewCategoryInput {
   classification: Flow;
   color: string;
   icon: string;
+  parentId?: number | null;
+  nature?: SpendingNature | null;
 }
 
 export interface UpdateCategoryInput {
@@ -18,11 +22,22 @@ export interface UpdateCategoryInput {
   name: string;
   classification: Flow;
   color: string;
+  parentId?: number | null;
+  nature?: SpendingNature | null;
+}
+
+export interface CategoryHierarchyState extends CategoryParentCandidate {
+  childClassifications: Flow[];
 }
 
 export interface CategoriesRepository {
   getById(id: number): Promise<CategoryRecord | null>;
-  create(input: NewCategoryInput): Promise<void>;
-  update(input: UpdateCategoryInput): Promise<void>;
+  getHierarchyState(id: number): Promise<CategoryHierarchyState | null>;
+  create(input: NewCategoryInput & { parentId: number | null }): Promise<void>;
+  update(input: UpdateCategoryInput & { parentId: number | null }): Promise<void>;
   deleteWithBudgetLines(id: number): Promise<void>;
+}
+
+export interface CategoryUsageRepository {
+  listUsageByProvider(familyId: number, providerId: number, flow: Flow): Promise<{ categoryId: number; count: number }[]>;
 }

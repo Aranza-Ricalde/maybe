@@ -118,3 +118,18 @@ export function nextOccurrenceOnOrAfter(dayOfMonth: number, referenceDate: strin
   const clampedDayNext = Math.min(dayOfMonth, daysInMonth(`${nextMonthIso}-01`));
   return `${nextMonthIso}-${String(clampedDayNext).padStart(2, "0")}`;
 }
+
+export function findOverlappingPeriod<T extends PeriodRange & { id: number }>(periods: T[], candidate: PeriodRange, ignoreId?: number): T | undefined {
+  return periods.find((p) => p.id !== ignoreId && p.start <= candidate.end && candidate.start <= p.end);
+}
+
+export function dayOfMonthOf(isoDate: string): number {
+  return Number(isoDate.slice(8, 10));
+}
+
+export const DEFAULT_PERIOD_LENGTH_DAYS = 15;
+
+export function nextPeriodDefaults(lastPeriodEnd: string | null, today: string): PeriodRange {
+  const start = lastPeriodEnd ? addDays(lastPeriodEnd, 1) : today;
+  return { start, end: addDays(start, DEFAULT_PERIOD_LENGTH_DAYS - 1) };
+}

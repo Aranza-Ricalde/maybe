@@ -1,10 +1,27 @@
-import { resolveDayOfMonthWithinRange } from "@/domain/payPeriod/rules";
+import { daysInMonth } from "@/domain/cashflow/rules";
+import { addDays, resolveDayOfMonthWithinRange } from "@/domain/payPeriod/rules";
+import { countsTowardBudget } from "@/domain/recurring/budgetInclusion";
+import { groupBy } from "@/domain/shared/collections";
 
 export const BUDGET_CADENCES = ["monthly", "biweekly"] as const;
 export type BudgetCadence = (typeof BUDGET_CADENCES)[number];
 
-export function effectiveBudgetTargetCents(cadence: BudgetCadence, budgetedAmountCents: number, periodsInView: number): number {
-  return cadence === "biweekly" ? budgetedAmountCents * periodsInView : budgetedAmountCents;
+export function monthFractionCovered(periods: { start: string; end: string }[]): number {
+  const daysByMonth = new Map<string, Set<string>>();
+  for (const p of periods) {
+    for (let d = p.start; d <= p.end; d = addDays(d, 1)) {
+      const month = d.slice(0, 7);
+      if (!daysByMonth.has(month)) daysByMonth.set(month, new Set());
+      daysByMonth.get(month)!.add(d);
+    }
+  }
+  let fraction = 0;
+  for (const [month, days] of daysByMonth) fraction += days.size / daysInMonth(`${month}-01`);
+  return fraction;
+}
+
+export function effectiveBudgetTargetCents(cadence: BudgetCadence, budgetedAmountCents: number, periods: { start: string; end: string }[]): number {
+  return cadence === "biweekly" ? budgetedAmountCents * periods.length : Math.round(budgetedAmountCents * monthFractionCovered(periods));
 }
 
 export interface RecurringBudgetContributionInput {
@@ -13,6 +30,7 @@ export interface RecurringBudgetContributionInput {
   estimatedAmountCents: number;
   flow: "income" | "expense";
   status: "active" | "paused";
+  budgetInclusion?: string | null;
 }
 
 export function recurringContributionsByCategory(
@@ -22,6 +40,7 @@ export function recurringContributionsByCategory(
   const totals = new Map<number, number>();
   for (const item of recurringItems) {
     if (item.status !== "active" || item.flow !== "expense" || item.categoryId == null) continue;
+    if (!countsTowardBudget(item)) continue;
     for (const period of periods) {
       if (resolveDayOfMonthWithinRange(item.dayOfMonth, period.start, period.end)) {
         totals.set(item.categoryId, (totals.get(item.categoryId) ?? 0) + Math.abs(item.estimatedAmountCents));
@@ -49,12 +68,77 @@ export function composeEffectiveBudgets(
 ): EffectiveBudgetLine[] {
   const byCategory = new Map<number, number>();
   for (const s of settings) {
-    byCategory.set(s.categoryId, effectiveBudgetTargetCents(s.cadence, s.budgetedAmountCents, periods.length));
+    byCategory.set(s.categoryId, effectiveBudgetTargetCents(s.cadence, s.budgetedAmountCents, periods));
   }
   for (const [categoryId, amount] of recurringContributionsByCategory(recurringItems, periods)) {
     byCategory.set(categoryId, (byCategory.get(categoryId) ?? 0) + amount);
   }
   return [...byCategory.entries()].map(([categoryId, targetCents]) => ({ categoryId, targetCents }));
+}
+
+export interface BudgetHierarchyCategory {
+  id: number;
+  parentId: number | null;
+}
+
+export interface BudgetHierarchyInput {
+  categories: BudgetHierarchyCategory[];
+  effectiveTargets: Map<number, number>;
+  manualCategoryIds: Set<number>;
+  actuals: Map<number, number>;
+}
+
+export interface BudgetHierarchyLine {
+  categoryId: number;
+  parentId: number | null;
+  targetCents: number;
+  actualCents: number;
+  childrenAllocatedCents: number;
+  isOverAllocated: boolean;
+  isDerivedFromChildren: boolean;
+}
+
+export function rollUpBudgetHierarchy(input: BudgetHierarchyInput): BudgetHierarchyLine[] {
+  const ids = new Set(input.categories.map((c) => c.id));
+  const isChild = (c: BudgetHierarchyCategory) => c.parentId != null && c.parentId !== c.id && ids.has(c.parentId);
+  const childrenOf = new Map<number, number[]>();
+  for (const [parentId, children] of groupBy(input.categories.filter(isChild), (c) => c.parentId as number)) childrenOf.set(parentId, children.map((c) => c.id));
+  const target = (id: number) => input.effectiveTargets.get(id) ?? 0;
+  const actual = (id: number) => input.actuals.get(id) ?? 0;
+
+  return input.categories.map((c) => {
+    if (isChild(c)) {
+      return {
+        categoryId: c.id,
+        parentId: c.parentId,
+        targetCents: target(c.id),
+        actualCents: actual(c.id),
+        childrenAllocatedCents: 0,
+        isOverAllocated: false,
+        isDerivedFromChildren: false,
+      };
+    }
+
+    const children = childrenOf.get(c.id) ?? [];
+    const childrenAllocatedCents = children.reduce((sum, id) => sum + target(id), 0);
+    const hasOwnCap = input.manualCategoryIds.has(c.id);
+    const isDerivedFromChildren = children.length > 0 && !hasOwnCap && childrenAllocatedCents > 0;
+
+    return {
+      categoryId: c.id,
+      parentId: null,
+      targetCents: hasOwnCap ? target(c.id) : target(c.id) + childrenAllocatedCents,
+      actualCents: actual(c.id) + children.reduce((sum, id) => sum + actual(id), 0),
+      childrenAllocatedCents,
+      isOverAllocated: hasOwnCap && childrenAllocatedCents > target(c.id),
+      isDerivedFromChildren,
+    };
+  });
+}
+
+export function totalBudgetedCents(lines: BudgetHierarchyLine[]): number | null {
+  const roots = lines.filter((l) => l.parentId == null && l.targetCents > 0);
+  return roots.length > 0 ? roots.reduce((sum, l) => sum + l.targetCents, 0) : null;
 }
 
 export interface CategoryBudgetInput {
@@ -69,7 +153,6 @@ export interface CategoryBudgetResult extends CategoryBudgetInput {
   spentCents: number;
   percent: number | null;
   isOverBudget: boolean;
-  /** spentCents - budgetedCents: positivo = por encima del presupuesto, negativo = disponible restante. */
   deviationCents: number;
 }
 
@@ -110,6 +193,12 @@ export function topCategoryBudgets(categories: CategoryBudgetInput[], limit: num
 }
 
 export class InvalidBudgetError extends Error {}
+
+export function assertValidBudgetCadence(cadence: string): asserts cadence is BudgetCadence {
+  if (!BUDGET_CADENCES.includes(cadence as BudgetCadence)) {
+    throw new InvalidBudgetError(`Periodicidad de presupuesto inválida: "${cadence}".`);
+  }
+}
 
 export function assertValidBudgetedAmountCents(amountCents: number): void {
   if (!Number.isFinite(amountCents) || amountCents <= 0) {

@@ -1,5 +1,3 @@
-import { resolveDayOfMonthWithinRange } from "@/domain/payPeriod/rules";
-
 export interface UpcomingCommitment {
   amountCents: number;
 }
@@ -32,13 +30,25 @@ export interface AvailableToSpendCommitmentItem {
   date: string;
 }
 
+export interface OccurrenceForCommitments {
+  name: string;
+  expectedDate: string;
+  expectedAmountCents: number;
+  status: "pending" | "paid" | "skipped";
+}
+
+export function upcomingRecurringCommitments(occurrences: OccurrenceForCommitments[], referenceDate: string): AvailableToSpendCommitmentItem[] {
+  return occurrences
+    .filter((o) => o.status === "pending" && o.expectedDate > referenceDate && o.expectedAmountCents < 0)
+    .map((o) => ({ name: o.name, amountCents: o.expectedAmountCents, date: o.expectedDate }));
+}
+
 export interface ExplainAvailableToSpendInput {
   liquidAccounts: Array<{ name: string; balanceCents: number }>;
-  recurringItems: Array<{ name: string; dayOfMonth: number; estimatedAmountCents: number }>;
+  recurringOccurrences: OccurrenceForCommitments[];
   scheduled: Array<{ name: string; scheduledDate: string; amountCents: number }>;
+  extraCommitments?: AvailableToSpendCommitmentItem[];
   referenceDate: string;
-  periodStart: string;
-  periodEnd: string;
 }
 
 export interface AvailableToSpendExplained {
@@ -52,10 +62,7 @@ export interface AvailableToSpendExplained {
 export function explainAvailableToSpend(input: ExplainAvailableToSpendInput): AvailableToSpendExplained {
   const liquidBalanceCents = input.liquidAccounts.reduce((sum, a) => sum + a.balanceCents, 0);
 
-  const fromRecurring: AvailableToSpendCommitmentItem[] = input.recurringItems
-    .map((r) => ({ ...r, occursOn: resolveDayOfMonthWithinRange(r.dayOfMonth, input.periodStart, input.periodEnd) }))
-    .filter((r): r is typeof r & { occursOn: string } => r.occursOn !== null && r.occursOn > input.referenceDate)
-    .map((r) => ({ name: r.name, amountCents: r.estimatedAmountCents, date: r.occursOn }));
+  const fromRecurring = upcomingRecurringCommitments(input.recurringOccurrences, input.referenceDate);
 
   const fromScheduled: AvailableToSpendCommitmentItem[] = input.scheduled.map((s) => ({
     name: s.name,
@@ -63,7 +70,7 @@ export function explainAvailableToSpend(input: ExplainAvailableToSpendInput): Av
     date: s.scheduledDate,
   }));
 
-  const commitments = [...fromRecurring, ...fromScheduled].sort((a, b) => a.date.localeCompare(b.date));
+  const commitments = [...fromRecurring, ...fromScheduled, ...(input.extraCommitments ?? [])].sort((a, b) => a.date.localeCompare(b.date));
   const commitmentsCents = commitments.reduce((sum, c) => sum + c.amountCents, 0);
 
   return {
@@ -128,7 +135,11 @@ export function financialStatus(input: FinancialStatusInput): FinancialStatusRes
     return { level: "yellow", message: "Vas un poco por delante de tu ritmo habitual de gasto.", detail };
   }
 
-  return { level: "green", message: "Vas dentro de tu presupuesto.", detail };
+  return {
+    level: "green",
+    message: input.budgetedTotalCents != null ? "Vas dentro de tu presupuesto." : "Vas a buen ritmo: gastas menos de lo que ganas.",
+    detail,
+  };
 }
 
 function growthRate(prior: number, current: number): number {
@@ -141,9 +152,9 @@ export interface DebtProgressResult {
   percentPaid: number;
 }
 
-export function debtProgress(currentBalanceCents: number, earliestBalanceCents: number): DebtProgressResult {
-  const currentDebt = Math.abs(currentBalanceCents);
-  const earliestDebt = Math.abs(earliestBalanceCents);
+export function debtProgress(currentDebtCents: number, earliestDebtCents: number): DebtProgressResult {
+  const currentDebt = Math.max(0, currentDebtCents);
+  const earliestDebt = Math.max(0, earliestDebtCents);
   if (earliestDebt <= 0) return { paidCents: 0, percentPaid: 0 };
   const paidCents = Math.max(0, earliestDebt - currentDebt);
   return { paidCents, percentPaid: Math.min(1, paidCents / earliestDebt) };
@@ -192,15 +203,15 @@ export interface RunwayResult {
 
 export function computeRunway(input: RunwayInput): RunwayResult {
   if (input.availableCents <= 0) {
-    return { level: "red", message: "Ya no tienes disponible para lo que resta del mes.", runwayDays: 0 };
+    return { level: "red", message: "Ya no tienes disponible para lo que resta del periodo.", runwayDays: 0 };
   }
   if (input.dailyBurnRateCents <= 0) {
-    return { level: "green", message: "A tu ritmo actual, te alcanza hasta fin de mes.", runwayDays: null };
+    return { level: "green", message: "A tu ritmo actual, te alcanza hasta el fin del periodo.", runwayDays: null };
   }
 
   const runwayDays = Math.floor(input.availableCents / input.dailyBurnRateCents);
   if (runwayDays >= input.daysRemainingInPeriod) {
-    return { level: "green", message: "A tu ritmo actual, te alcanza hasta fin de mes.", runwayDays };
+    return { level: "green", message: "A tu ritmo actual, te alcanza hasta el fin del periodo.", runwayDays };
   }
   const level: RunwayLevel = runwayDays < input.daysRemainingInPeriod / 2 ? "red" : "yellow";
   return { level, message: `A tu ritmo actual, se te acaba en ${runwayDays} día${runwayDays === 1 ? "" : "s"}.`, runwayDays };

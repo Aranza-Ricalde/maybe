@@ -1,5 +1,16 @@
 export function normalizeMerchantPattern(rawDescription: string): string {
   return rawDescription
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toUpperCase()
+    .replace(/\d+/g, "")
+    .replace(/[^A-Z\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+export function legacyMerchantPattern(rawDescription: string): string {
+  return rawDescription
     .toUpperCase()
     .replace(/\d+/g, "")
     .replace(/[^A-Z\s]/g, " ")

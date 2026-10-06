@@ -2,11 +2,11 @@ import { shiftMonth } from "@/domain/dashboard/rules";
 import { endOfMonth } from "@/domain/cashflow/rules";
 import { monthStart } from "@/domain/ledger/rules";
 
-export type EvolutionMetric = "balance" | "income" | "expense" | "savings";
+export type EvolutionMetric = "balance" | "netWorth" | "debt" | "income" | "expense" | "savings";
 export type EvolutionRangeKey = "30d" | "3m" | "6m" | "1y";
 export type Granularity = "daily" | "monthly";
 
-export const EVOLUTION_METRICS: readonly EvolutionMetric[] = ["balance", "income", "expense", "savings"];
+export const EVOLUTION_METRICS: readonly EvolutionMetric[] = ["balance", "netWorth", "debt", "income", "expense", "savings"];
 export const EVOLUTION_RANGES: readonly EvolutionRangeKey[] = ["30d", "3m", "6m", "1y"];
 
 export interface EvolutionPoint {

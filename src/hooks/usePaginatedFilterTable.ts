@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { useDebouncedValue } from "./useDebouncedValue";
 
+interface LoadedPage<TRow> {
+  requestKey: string;
+  rows: TRow[];
+  total: number;
+}
+
 export interface SortState<TField extends string> {
   field: TField;
   direction: "asc" | "desc";
@@ -40,9 +46,7 @@ export function usePaginatedFilterTable<TRow, TFilters, TField extends string>({
   const [sort, setSortState] = useState<SortState<TField>>(initialSort);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(initialPageSize);
-  const [rows, setRows] = useState<TRow[]>([]);
-  const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [loaded, setLoaded] = useState<LoadedPage<TRow> | null>(null);
   const [appliedFilters, setAppliedFilters] = useState(debouncedFilters);
 
   if (debouncedFilters !== appliedFilters) {
@@ -50,33 +54,31 @@ export function usePaginatedFilterTable<TRow, TFilters, TField extends string>({
     setPage(1);
   }
 
+  const requestKey = JSON.stringify([debouncedFilters, sort, page, pageSize, refreshSignal]);
+
   useEffect(() => {
     let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsLoading(true);
     fetchPage(debouncedFilters, sort, page, pageSize).then((result) => {
-      if (cancelled) return;
-      setRows(result.rows);
-      setTotal(result.total);
-      setIsLoading(false);
+      if (!cancelled) setLoaded({ requestKey, ...result });
     });
     return () => {
       cancelled = true;
     };
-  }, [debouncedFilters, sort, page, pageSize, fetchPage, refreshSignal]);
+  }, [requestKey, debouncedFilters, sort, page, pageSize, fetchPage]);
 
   async function refetch() {
-    setIsLoading(true);
     const result = await fetchPage(debouncedFilters, sort, page, pageSize);
-    setRows(result.rows);
-    setTotal(result.total);
-    setIsLoading(false);
+    setLoaded({ requestKey, ...result });
   }
 
   function setSort(next: SortState<TField>) {
     setSortState(next);
     setPage(1);
   }
+
+  const rows = loaded?.rows ?? [];
+  const total = loaded?.total ?? 0;
+  const isLoading = loaded?.requestKey !== requestKey;
 
   return { rows, total, isLoading, page, setPage, pageSize, setPageSize, sort, setSort, refetch };
 }

@@ -1,15 +1,4 @@
-import { resolveDayOfMonthWithinRange } from "@/domain/payPeriod/rules";
-
-export interface CalendarRecurringInput {
-  name: string;
-  flow: "income" | "expense";
-  status: "active" | "paused";
-  dayOfMonth: number;
-  estimatedAmountCents: number;
-  accountId: number | null;
-  categoryId: number | null;
-  conceptId: number | null;
-}
+import { assignBestMatches } from "@/domain/recurring/matching";
 
 export interface CalendarScheduledInput {
   name: string;
@@ -21,100 +10,103 @@ export interface CalendarScheduledInput {
 }
 
 export interface CalendarTransactionInput {
+  id?: number;
   name: string;
   date: string;
   amountCents: number;
   accountId: number;
   categoryId: number | null;
   conceptId: number | null;
+  providerId: number | null;
 }
 
-export type CalendarEntrySource = "recurrente" | "programado";
-export type CalendarEntryStatus = "paid" | "pending" | "overdue";
+export type CalendarEntrySource = "recurrente" | "programado" | "deuda";
+export type CalendarEntryStatus = "paid" | "pending" | "overdue" | "skipped";
+
+export interface CalendarOccurrenceInput {
+  id: number;
+  name: string;
+  flow: "income" | "expense";
+  expectedDate: string;
+  expectedAmountCents: number;
+  status: "pending" | "paid" | "skipped";
+  matchSource: "auto" | "manual" | null;
+  transaction: { id: number; name: string; date: string; amountCents: number } | null;
+}
 
 export interface CalendarEntry {
+  occurrenceId: number | null;
   name: string;
   flow: "income" | "expense";
   source: CalendarEntrySource;
   expectedDate: string;
   expectedAmountCents: number;
   status: CalendarEntryStatus;
+  isManual: boolean;
   actualName: string | null;
   actualDate: string | null;
   actualAmountCents: number | null;
 }
 
-function findMatchingTransactionForRecurring(
-  r: CalendarRecurringInput,
-  periodTransactions: CalendarTransactionInput[],
-): CalendarTransactionInput | null {
-  if (r.conceptId != null) {
-    return periodTransactions.find((t) => t.conceptId === r.conceptId) ?? null;
-  }
-  if (r.accountId != null) {
-    return periodTransactions.find((t) => t.accountId === r.accountId && t.categoryId === r.categoryId) ?? null;
-  }
-  return null;
-}
-
-function findMatchingTransactionForScheduled(
-  s: CalendarScheduledInput,
-  periodTransactions: CalendarTransactionInput[],
-): CalendarTransactionInput | null {
+function scheduledMatchScore(s: { accountId: number | null; categoryId: number | null }, tx: CalendarTransactionInput): number | null {
   if (s.accountId == null) return null;
-  return periodTransactions.find((t) => t.accountId === s.accountId && t.categoryId === s.categoryId) ?? null;
+  return tx.accountId === s.accountId && tx.categoryId === s.categoryId ? 1 : null;
 }
 
-function buildEntry(
-  name: string,
-  flow: "income" | "expense",
-  source: CalendarEntrySource,
-  expectedDate: string,
-  expectedAmountCents: number,
-  match: CalendarTransactionInput | null,
-  today: string,
-): CalendarEntry {
-  const status: CalendarEntryStatus = match ? "paid" : expectedDate < today ? "overdue" : "pending";
+function pendingOrOverdue(expectedDate: string, today: string): CalendarEntryStatus {
+  return expectedDate < today ? "overdue" : "pending";
+}
+
+function fromOccurrence(o: CalendarOccurrenceInput, today: string): CalendarEntry {
+  const status: CalendarEntryStatus = o.status === "paid" ? "paid" : o.status === "skipped" ? "skipped" : pendingOrOverdue(o.expectedDate, today);
   return {
-    name,
-    flow,
-    source,
-    expectedDate,
-    expectedAmountCents,
+    occurrenceId: o.id,
+    name: o.name,
+    flow: o.flow,
+    source: "recurrente",
+    expectedDate: o.expectedDate,
+    expectedAmountCents: o.expectedAmountCents,
     status,
-    actualName: match?.name ?? null,
-    actualDate: match?.date ?? null,
-    actualAmountCents: match?.amountCents ?? null,
+    isManual: o.matchSource === "manual",
+    actualName: o.transaction?.name ?? null,
+    actualDate: o.transaction?.date ?? null,
+    actualAmountCents: o.transaction?.amountCents ?? null,
   };
 }
 
-/**
- * Entradas REAL vs ESPERADO para el periodo visible (principios.md #21), fusionando recurrentes
- * y pagos programados en una sola vista: a diferencia de un simple "próximos pagos", aquí se
- * listan TODOS los del periodo (pasados y futuros, pagados o no) — nunca se oculta uno ya
- * pagado, y se expone la transacción real que lo cubrió.
- */
 export function financialCalendarEntries(
-  recurring: CalendarRecurringInput[],
+  occurrences: CalendarOccurrenceInput[],
   scheduled: CalendarScheduledInput[],
   periodTransactions: CalendarTransactionInput[],
   today: string,
   periodStart: string,
   periodEnd: string,
 ): CalendarEntry[] {
-  const fromRecurring: CalendarEntry[] = recurring
-    .filter((r) => r.status === "active")
-    .map((r) => ({ r, expectedDate: resolveDayOfMonthWithinRange(r.dayOfMonth, periodStart, periodEnd) }))
-    .filter((x): x is { r: CalendarRecurringInput; expectedDate: string } => x.expectedDate != null)
-    .map(({ r, expectedDate }) =>
-      buildEntry(r.name, r.flow, "recurrente", expectedDate, r.estimatedAmountCents, findMatchingTransactionForRecurring(r, periodTransactions), today),
-    );
+  const fromRecurring = occurrences.map((o) => fromOccurrence(o, today));
 
-  const fromScheduled: CalendarEntry[] = scheduled
+  const claimedTransactionIds = new Set(occurrences.flatMap((o) => (o.transaction ? [o.transaction.id] : [])));
+  const usedTransactions = new Set(periodTransactions.filter((t) => t.id != null && claimedTransactionIds.has(t.id)));
+
+  const scheduledOccurrences = scheduled
     .filter((s) => s.status === "planned" && s.amountCents < 0 && s.scheduledDate >= periodStart && s.scheduledDate <= periodEnd)
-    .map((s) =>
-      buildEntry(s.name, "expense", "programado", s.scheduledDate, s.amountCents, findMatchingTransactionForScheduled(s, periodTransactions), today),
-    );
+    .map((s) => ({ s, expectedDate: s.scheduledDate }));
+  const scheduledMatches = assignBestMatches(scheduledOccurrences, periodTransactions, (o, tx) => scheduledMatchScore(o.s, tx), usedTransactions);
+  const fromScheduled: CalendarEntry[] = scheduledOccurrences.map((o) => {
+    const match = scheduledMatches.get(o)?.tx ?? null;
+    return {
+      occurrenceId: null,
+      name: o.s.name,
+      flow: "expense",
+      source: "programado",
+      expectedDate: o.expectedDate,
+      expectedAmountCents: o.s.amountCents,
+      status: match ? "paid" : pendingOrOverdue(o.expectedDate, today),
+      isManual: false,
+      actualName: match?.name ?? null,
+      actualDate: match?.date ?? null,
+      actualAmountCents: match?.amountCents ?? null,
+    };
+  });
 
   return [...fromRecurring, ...fromScheduled].sort((a, b) => a.expectedDate.localeCompare(b.expectedDate));
 }
@@ -122,19 +114,22 @@ export function financialCalendarEntries(
 export interface GroupedCalendarEntries {
   pending: CalendarEntry[];
   paid: CalendarEntry[];
+  skipped: CalendarEntry[];
 }
 
-/**
- * Separa lo que falta por pagar (atrasado primero, luego pendiente por fecha) de lo ya pagado,
- * para que "qué me falta" nunca quede enterrado entre lo histórico — sin perder la vista completa.
- */
 export function groupCalendarEntriesByStatus(entries: CalendarEntry[]): GroupedCalendarEntries {
   const pending = entries
-    .filter((e) => e.status !== "paid")
+    .filter((e) => e.status === "pending" || e.status === "overdue")
     .sort((a, b) => {
       if (a.status !== b.status) return a.status === "overdue" ? -1 : 1;
       return a.expectedDate.localeCompare(b.expectedDate);
     });
-  const paid = entries.filter((e) => e.status === "paid").sort((a, b) => a.expectedDate.localeCompare(b.expectedDate));
-  return { pending, paid };
+  const byDate = (a: CalendarEntry, b: CalendarEntry) => a.expectedDate.localeCompare(b.expectedDate);
+  const paid = entries.filter((e) => e.status === "paid").sort(byDate);
+  const skipped = entries.filter((e) => e.status === "skipped").sort(byDate);
+  return { pending, paid, skipped };
+}
+
+export function sortCalendarEntries(entries: CalendarEntry[]): CalendarEntry[] {
+  return [...entries].sort((a, b) => a.expectedDate.localeCompare(b.expectedDate));
 }

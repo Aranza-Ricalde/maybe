@@ -1,7 +1,8 @@
 import type { LedgerUnitOfWork } from "@/domain/ledger/ports";
 import type { NewTransactionInput, TransactionRecord } from "@/domain/ledger/ports";
-import { DUPLICATE_MATCH_WINDOW_DAYS, InvalidTransactionError, assertValidAmountCents, assertValidIsoDate, classifyFlow } from "@/domain/ledger/rules";
+import { DUPLICATE_MATCH_WINDOW_DAYS, assertValidAmountCents, assertValidIsoDate, assertValidTransactionKind, assertValidTransactionName, assertValidTransactionSource, assertValidTransactionStatus, classifyFlow } from "@/domain/ledger/rules";
 import { applyTransactionDelta } from "./applyTransactionDelta";
+import { requireActiveAccount } from "./requireActiveAccount";
 
 export class DuplicateTransactionError extends Error {
   constructor(public readonly candidates: TransactionRecord[]) {
@@ -19,18 +20,13 @@ export class RecordTransactionUseCase {
   async execute(input: NewTransactionInput, options: RecordTransactionOptions = {}): Promise<TransactionRecord> {
     assertValidAmountCents(input.amountCents);
     assertValidIsoDate(input.date);
-    if (!input.name.trim()) {
-      throw new InvalidTransactionError("name no puede estar vacío");
-    }
+    assertValidTransactionName(input.name);
+    assertValidTransactionKind(input.kind ?? "standard");
+    assertValidTransactionStatus(input.status ?? "posted");
+    assertValidTransactionSource(input.source);
 
     return this.uow.run(async (ops) => {
-      const account = await ops.getAccount(input.accountId);
-      if (!account) {
-        throw new InvalidTransactionError(`la cuenta ${input.accountId} no existe`);
-      }
-      if (!account.isActive) {
-        throw new InvalidTransactionError(`la cuenta ${input.accountId} está inactiva`);
-      }
+      const account = await requireActiveAccount(ops, input.accountId);
 
       if (input.source === "csv_import" && !options.skipDuplicateCheck) {
         const candidates = await ops.findPossibleDuplicates(

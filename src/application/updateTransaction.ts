@@ -1,6 +1,7 @@
 import type { LedgerUnitOfWork, TransactionEditInput, TransactionRecord } from "@/domain/ledger/ports";
-import { InvalidTransactionError, assertValidAmountCents, assertValidIsoDate, classifyFlow } from "@/domain/ledger/rules";
-import { applyTransactionDelta } from "./applyTransactionDelta";
+import { InvalidTransactionError, assertValidAmountCents, assertValidIsoDate, assertValidTransactionName, classifyFlow } from "@/domain/ledger/rules";
+import { applyTransactionDelta, reverseTransaction } from "./applyTransactionDelta";
+import { requireActiveAccount } from "./requireActiveAccount";
 
 export interface UpdateTransactionInput extends TransactionEditInput {
   id: number;
@@ -12,9 +13,7 @@ export class UpdateTransactionUseCase {
   async execute(input: UpdateTransactionInput): Promise<TransactionRecord> {
     assertValidAmountCents(input.amountCents);
     assertValidIsoDate(input.date);
-    if (!input.name.trim()) {
-      throw new InvalidTransactionError("name no puede estar vacío");
-    }
+    assertValidTransactionName(input.name);
 
     return this.uow.run(async (ops) => {
       const existing = await ops.getTransaction(input.id);
@@ -22,26 +21,9 @@ export class UpdateTransactionUseCase {
         throw new InvalidTransactionError(`la transacción ${input.id} no existe`);
       }
 
-      const newAccount = await ops.getAccount(input.accountId);
-      if (!newAccount) {
-        throw new InvalidTransactionError(`la cuenta ${input.accountId} no existe`);
-      }
-      if (!newAccount.isActive) {
-        throw new InvalidTransactionError(`la cuenta ${input.accountId} está inactiva`);
-      }
+      const newAccount = await requireActiveAccount(ops, input.accountId);
 
-      const oldAccount = await ops.getAccount(existing.accountId);
-      if (oldAccount) {
-        await applyTransactionDelta(ops, {
-          familyId: oldAccount.familyId,
-          accountId: existing.accountId,
-          date: existing.date,
-          amountCents: -existing.amountCents,
-          categoryId: existing.categoryId ?? null,
-          kind: existing.kind,
-          flow: classifyFlow(existing.amountCents),
-        });
-      }
+      await reverseTransaction(ops, existing);
 
       await applyTransactionDelta(ops, {
         familyId: newAccount.familyId,

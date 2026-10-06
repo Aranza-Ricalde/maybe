@@ -1,4 +1,9 @@
+export const IMPORT_STATUSES = ["pending", "completed", "failed"] as const;
+export type ImportStatus = (typeof IMPORT_STATUSES)[number];
+
 export class CsvRowError extends Error {}
+
+export const MAX_CSV_ROWS = 5000;
 
 export function parseCsv(text: string): { headers: string[]; rows: Record<string, string>[] } {
   const rawRows: string[][] = [];

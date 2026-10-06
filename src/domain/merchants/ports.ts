@@ -1,3 +1,5 @@
+import type { MerchantHistoryEntry } from "./resolver";
+
 export interface MerchantPatternRecord {
   id: number;
   familyId: number;
@@ -7,7 +9,9 @@ export interface MerchantPatternRecord {
 }
 
 export interface MerchantPatternRepository {
+  findById(id: number): Promise<MerchantPatternRecord | null>;
   findByPattern(familyId: number, rawPattern: string): Promise<MerchantPatternRecord | null>;
+  listHistory(familyId: number): Promise<MerchantHistoryEntry[]>;
   create(familyId: number, rawPattern: string, cleanName: string, providerId: number | null): Promise<MerchantPatternRecord>;
 }
 

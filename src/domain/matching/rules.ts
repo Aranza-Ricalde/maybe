@@ -1,8 +1,11 @@
+export const CONCEPT_MATCH_SUGGESTION_STATUSES = ["pending", "confirmed", "rejected"] as const;
+export type ConceptMatchSuggestionStatus = (typeof CONCEPT_MATCH_SUGGESTION_STATUSES)[number];
+
 export type MatchConfidence = "strong" | "medium" | "weak" | "none";
 
 export interface ConceptMatchCandidate {
   conceptId: number;
-  categoryId: number;
+  categoryId: number | null;
   providerId: number | null;
   habitualAccountId: number | null;
   expectedAmountCents: number | null;

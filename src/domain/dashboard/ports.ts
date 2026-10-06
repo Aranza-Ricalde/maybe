@@ -31,16 +31,28 @@ export interface DailyFlowPoint {
   expenseCents: number;
 }
 
-export interface DashboardRepository {
+export interface AccountSnapshotReader {
   getLiquidAccounts(familyId: number, asOfDate: string): Promise<AccountBalance[]>;
   getSavingsAccounts(familyId: number, asOfDate: string): Promise<AccountBalance[]>;
   getAssetAccounts(familyId: number, asOfDate: string): Promise<AccountBalance[]>;
   getCreditCardAccounts(familyId: number, asOfDate: string): Promise<CreditCardAccount[]>;
   getOtherLiabilityAccounts(familyId: number, asOfDate: string): Promise<AccountBalance[]>;
-  getEarliestBalance(accountId: number): Promise<number>;
+}
+
+export interface BalanceReader {
+  getEarliestBalances(accountIds: number[]): Promise<number[]>;
+  getPaymentsInto(accountIds: number[], fromDate: string, toDateInclusive: string): Promise<number>;
+  getOpeningBalancesAfter(accountIds: number[], date: string): Promise<number>;
   getBalanceAt(accountIds: number[], date: string): Promise<number>;
-  getFlowForDateRange(familyId: number, fromDate: string, toDateInclusive: string): Promise<MonthlyFlow>;
+  getBalancesAtDates(accountIds: number[], dates: string[]): Promise<number[]>;
+  getBalancesByAccount(accountIds: number[], date: string): Promise<Map<number, number>>;
   getDailyBalanceSeries(accountIds: number[], fromDate: string, toDateInclusive: string): Promise<DailyBalancePoint[]>;
+}
+
+export interface FlowReader {
+  getFlowForDateRange(familyId: number, fromDate: string, toDateInclusive: string): Promise<MonthlyFlow>;
   getMonthlyFlowRange(familyId: number, fromMonthInclusive: string, toMonthInclusive: string): Promise<MonthlyFlowPoint[]>;
   getDailyFlow(familyId: number, fromDate: string, toDateInclusive: string): Promise<DailyFlowPoint[]>;
 }
+
+export interface DashboardRepository extends AccountSnapshotReader, BalanceReader, FlowReader {}

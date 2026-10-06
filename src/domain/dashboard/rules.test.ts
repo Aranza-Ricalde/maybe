@@ -10,6 +10,7 @@ import {
   financialStatus,
   goalProgress,
   shiftMonth,
+  upcomingRecurringCommitments,
 } from "./rules";
 
 test("availableToSpend: resta compromisos conocidos, sin estimación estadística", () => {
@@ -33,56 +34,69 @@ test("explainAvailableToSpend: reconcilia exactamente con availableToSpend usand
     { name: "Cuenta Nómina", balanceCents: 800_000 },
     { name: "Efectivo", balanceCents: 50_000 },
   ];
-  const recurringItems = [
-    { name: "Renta", dayOfMonth: 15, estimatedAmountCents: -600_000 },
-    { name: "Ya pasó", dayOfMonth: 3, estimatedAmountCents: -100_000 },
-    { name: "Nómina", dayOfMonth: 20, estimatedAmountCents: 2_000_000 },
+  const recurringOccurrences = [
+    { name: "Renta", expectedDate: "2026-10-15", expectedAmountCents: -600_000, status: "pending" as const },
+    { name: "Ya pasó", expectedDate: "2026-10-03", expectedAmountCents: -100_000, status: "pending" as const },
+    { name: "Nómina", expectedDate: "2026-10-20", expectedAmountCents: 2_000_000, status: "pending" as const },
   ];
   const scheduled = [{ name: "Dentista", scheduledDate: "2026-10-12", amountCents: -230_000 }];
 
-  const explained = explainAvailableToSpend({
-    liquidAccounts,
-    recurringItems,
-    scheduled,
-    referenceDate: "2026-10-05",
-    periodStart: "2026-10-01",
-    periodEnd: "2026-10-30",
-  });
+  const explained = explainAvailableToSpend({ liquidAccounts, recurringOccurrences, scheduled, referenceDate: "2026-10-05" });
 
   const viaAvailableToSpend = availableToSpend({
     liquidBalanceCents: 850_000,
-    upcomingCommitments: [{ amountCents: -600_000 }, { amountCents: 2_000_000 }, { amountCents: -230_000 }],
+    upcomingCommitments: [{ amountCents: -600_000 }, { amountCents: -230_000 }],
     daysRemainingInPeriod: 25,
   });
 
   assert.equal(explained.liquidBalanceCents, 850_000);
-  assert.equal(explained.commitmentsCents, 1_170_000);
+  // El ingreso esperado (Nómina) NO cuenta como dinero disponible hasta que llega.
+  assert.equal(explained.commitmentsCents, -830_000);
   assert.equal(explained.availableCents, viaAvailableToSpend.availableCents);
-  assert.equal(explained.commitments.length, 3);
+  assert.equal(explained.commitments.length, 2);
   assert.equal(explained.commitments[0].name, "Dentista");
   assert.equal(explained.commitments[0].date, "2026-10-12");
   assert.equal(explained.commitments[1].name, "Renta");
-  assert.equal(explained.commitments[2].name, "Nómina");
 });
 
-test("explainAvailableToSpend: un periodo que cruza de mes ubica cada recurrente en su fecha real, no en el mes de hoy", () => {
+test("upcomingRecurringCommitments: un recurrente ya pagado (aunque sea antes de tiempo) o omitido no vuelve a restar", () => {
+  const commitments = upcomingRecurringCommitments(
+    [
+      { name: "Pendiente", expectedDate: "2026-10-20", expectedAmountCents: -100, status: "pending" },
+      { name: "Pagado antes de tiempo", expectedDate: "2026-10-20", expectedAmountCents: -200, status: "paid" },
+      { name: "Omitido", expectedDate: "2026-10-20", expectedAmountCents: -300, status: "skipped" },
+    ],
+    "2026-10-05",
+  );
+  assert.deepEqual(commitments.map((c) => c.name), ["Pendiente"]);
+});
+
+test("upcomingRecurringCommitments: lo que vence hoy o ya venció se asume reflejado en el saldo real", () => {
+  const commitments = upcomingRecurringCommitments(
+    [
+      { name: "Hoy", expectedDate: "2026-10-05", expectedAmountCents: -100, status: "pending" },
+      { name: "Ayer", expectedDate: "2026-10-04", expectedAmountCents: -100, status: "pending" },
+      { name: "Mañana", expectedDate: "2026-10-06", expectedAmountCents: -100, status: "pending" },
+    ],
+    "2026-10-05",
+  );
+  assert.deepEqual(commitments.map((c) => c.name), ["Mañana"]);
+});
+
+test("explainAvailableToSpend: un periodo que cruza de mes respeta la fecha real de cada ocurrencia", () => {
   const explained = explainAvailableToSpend({
     liquidAccounts: [{ name: "Cuenta Nómina", balanceCents: 1_000_000 }],
-    recurringItems: [
-      { name: "Basura (fin de septiembre)", dayOfMonth: 30, estimatedAmountCents: -25_000 },
-      { name: "Renta (inicio de octubre)", dayOfMonth: 5, estimatedAmountCents: -600_000 },
+    recurringOccurrences: [
+      { name: "Basura (fin de septiembre)", expectedDate: "2026-09-30", expectedAmountCents: -25_000, status: "pending" },
+      { name: "Renta (inicio de octubre)", expectedDate: "2026-10-05", expectedAmountCents: -600_000, status: "pending" },
     ],
     scheduled: [],
     referenceDate: "2026-09-29",
-    periodStart: "2026-09-29",
-    periodEnd: "2026-10-13",
   });
 
   assert.equal(explained.commitments.length, 2);
-  const basura = explained.commitments.find((c) => c.name.startsWith("Basura"));
-  const renta = explained.commitments.find((c) => c.name.startsWith("Renta"));
-  assert.equal(basura?.date, "2026-09-30");
-  assert.equal(renta?.date, "2026-10-05");
+  assert.equal(explained.commitments.find((c) => c.name.startsWith("Basura"))?.date, "2026-09-30");
+  assert.equal(explained.commitments.find((c) => c.name.startsWith("Renta"))?.date, "2026-10-05");
 });
 
 test("financialStatus: verde cuando el gasto va igual o por debajo del tiempo transcurrido", () => {
@@ -211,13 +225,28 @@ test("computeRunway: se acaba en menos de la mitad del tiempo restante -> rojo",
 });
 
 test("debtProgress: calcula cuánto se ha pagado desde el saldo más antiguo conocido", () => {
-  const result = debtProgress(-6_000_000, -10_000_000);
+  const result = debtProgress(6_000_000, 10_000_000);
   assert.equal(result.paidCents, 4_000_000);
   assert.equal(result.percentPaid, 0.4);
 });
 
 test("debtProgress: sin saldo antiguo de referencia, no inventa un porcentaje", () => {
-  assert.deepEqual(debtProgress(-5000, 0), { paidCents: 0, percentPaid: 0 });
+  assert.deepEqual(debtProgress(5000, 0), { paidCents: 0, percentPaid: 0 });
+});
+
+test("debtProgress: un saldo a favor no cuenta como deuda (se recibe ya en cero)", () => {
+  assert.deepEqual(debtProgress(0, 1_000_000), { paidCents: 1_000_000, percentPaid: 1 });
+});
+
+test("explainAvailableToSpend: los compromisos extra (pago mínimo de deuda) restan de lo disponible", () => {
+  const explained = explainAvailableToSpend({
+    liquidAccounts: [{ name: "Nómina", balanceCents: 1_000_000 }],
+    recurringOccurrences: [],
+    scheduled: [],
+    extraCommitments: [{ name: "Pago mínimo · hey Banco", amountCents: -300_000, date: "2026-10-12" }],
+    referenceDate: "2026-10-06",
+  });
+  assert.equal(explained.availableCents, 700_000);
 });
 
 test("goalProgress: porcentaje normal, bajo el objetivo", () => {

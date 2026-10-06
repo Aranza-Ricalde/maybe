@@ -4,10 +4,12 @@ import type { Flow } from "@/domain/ledger/rules";
 import {
   assertValidDayOfMonth,
   assertValidEstimatedAmount,
+  assertValidRecurringFlow,
   assertValidRecurringItemName,
   InvalidRecurringItemError,
   signedEstimatedAmountCents,
 } from "@/domain/recurring/rules";
+import { ensureConcept } from "./ensureConcept";
 
 export interface UpdateRecurringItemRequest {
   id: number;
@@ -16,7 +18,6 @@ export interface UpdateRecurringItemRequest {
   estimatedAmount: number;
   dayOfMonth: number;
   categoryId: number | null;
-  conceptId: number | null;
   accountId: number | null;
 }
 
@@ -29,30 +30,41 @@ export class UpdateRecurringItemUseCase {
   async execute(input: UpdateRecurringItemRequest): Promise<void> {
     assertValidEstimatedAmount(input.estimatedAmount);
     assertValidDayOfMonth(input.dayOfMonth);
+    assertValidRecurringItemName(input.name);
+    assertValidRecurringFlow(input.flow);
 
-    let name = input.name;
-    let categoryId = input.categoryId;
-    let flow = input.flow;
+    const current = await this.repo.getById(input.id);
+    if (!current) throw new InvalidRecurringItemError(`el recurrente ${input.id} no existe`);
 
-    if (input.conceptId != null) {
-      const concept = await this.conceptsRepo.getById(input.conceptId);
-      if (!concept) throw new InvalidRecurringItemError(`el concepto ${input.conceptId} no existe`);
-      name = concept.name;
-      categoryId = concept.categoryId;
-      flow = concept.flow;
-    }
-    assertValidRecurringItemName(name);
+    const conceptId = await this.conceptFollowingItem(current.familyId, current.conceptId, input);
 
     const magnitudeCents = Math.round(input.estimatedAmount * 100);
     await this.repo.update({
       id: input.id,
-      name,
-      flow,
-      estimatedAmountCents: signedEstimatedAmountCents(flow, magnitudeCents),
+      name: input.name,
+      flow: input.flow,
+      estimatedAmountCents: signedEstimatedAmountCents(input.flow, magnitudeCents),
       dayOfMonth: input.dayOfMonth,
-      categoryId,
-      conceptId: input.conceptId,
+      categoryId: input.categoryId,
+      conceptId,
       accountId: input.accountId,
     });
+  }
+
+  private async conceptFollowingItem(familyId: number, currentConceptId: number | null, input: UpdateRecurringItemRequest): Promise<number | null> {
+    if (input.categoryId == null) return null;
+
+    const current = currentConceptId != null ? await this.conceptsRepo.getById(currentConceptId) : null;
+    if (!current || current.familyId !== familyId) {
+      return (await ensureConcept(this.conceptsRepo, { familyId, name: input.name, categoryId: input.categoryId, flow: input.flow })).id;
+    }
+
+    const sameName = await this.conceptsRepo.findByName(familyId, input.name);
+    if (sameName && sameName.id !== current.id) return sameName.id;
+
+    if (current.name !== input.name || current.categoryId !== input.categoryId) {
+      await this.conceptsRepo.update({ id: current.id, name: input.name, categoryId: input.categoryId, providerId: current.providerId });
+    }
+    return current.id;
   }
 }

@@ -1,12 +1,19 @@
 import { classifyFlow } from "@/domain/ledger/rules";
 import type { ConceptsRepository } from "@/domain/concepts/ports";
-import type { RecurringCandidateRepository, RecurringItemsRepository } from "@/domain/recurring/ports";
+import type { MerchantPatternRepository } from "@/domain/merchants/ports";
+import { isIdentifiableMerchant } from "@/domain/merchants/resolver";
+import { inclusionForNewItem } from "@/domain/recurring/budgetInclusion";
+import type { RecurringBudgetRepository, RecurringCandidateRepository, RecurringItemsRepository } from "@/domain/recurring/ports";
+import { merchantIdFromPatternSignature } from "@/domain/recurring/rules";
+import { ensureConcept } from "./ensureConcept";
 
 export class AcceptRecurringCandidateUseCase {
   constructor(
     private readonly candidatesRepo: RecurringCandidateRepository,
     private readonly recurringItemsRepo: RecurringItemsRepository,
     private readonly conceptsRepo: ConceptsRepository,
+    private readonly merchantsRepo: MerchantPatternRepository,
+    private readonly budgetRepo?: RecurringBudgetRepository,
   ) {}
 
   async execute(candidateId: number, todayDayOfMonth: number): Promise<void> {
@@ -15,20 +22,15 @@ export class AcceptRecurringCandidateUseCase {
 
     const flow = classifyFlow(candidate.suggestedAmountCents);
 
-    // Solo podemos crear un concepto real si tenemos categoría (concepts.categoryId es obligatorio).
-    // Sin ella, el recurrente se crea sin conceptId y sigue cayendo en el match legado por cuenta+categoría.
     let conceptId: number | null = null;
     if (candidate.suggestedCategoryId != null) {
-      const existingConcept = await this.conceptsRepo.findByName(candidate.familyId, candidate.suggestedName);
-      const concept =
-        existingConcept ??
-        (await this.conceptsRepo.create({
-          familyId: candidate.familyId,
-          name: candidate.suggestedName,
-          categoryId: candidate.suggestedCategoryId,
-          providerId: null,
-          flow,
-        }));
+      const concept = await ensureConcept(this.conceptsRepo, {
+        familyId: candidate.familyId,
+        name: candidate.suggestedName,
+        categoryId: candidate.suggestedCategoryId,
+        flow,
+        providerId: await this.detectedProviderId(candidate.patternSignature),
+      });
       conceptId = concept.id;
     }
 
@@ -42,8 +44,16 @@ export class AcceptRecurringCandidateUseCase {
       dayOfMonth: todayDayOfMonth,
       accountId: candidate.accountId,
       autoDetected: true,
+      budgetInclusion: this.budgetRepo ? inclusionForNewItem(await this.budgetRepo.getPolicy(candidate.familyId)) : null,
     });
 
     await this.candidatesRepo.markAccepted(candidateId, item.id);
+  }
+
+  private async detectedProviderId(patternSignature: string): Promise<number | null> {
+    const merchantId = merchantIdFromPatternSignature(patternSignature);
+    if (merchantId == null) return null;
+    const merchant = await this.merchantsRepo.findById(merchantId);
+    return merchant && isIdentifiableMerchant(merchant.cleanName) ? merchant.providerId : null;
   }
 }

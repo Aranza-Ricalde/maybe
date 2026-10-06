@@ -1,4 +1,8 @@
+export const SCHEDULED_TRANSACTION_STATUSES = ["planned", "confirmed", "cancelled"] as const;
+export type ScheduledTransactionStatus = (typeof SCHEDULED_TRANSACTION_STATUSES)[number];
+
 export interface RecurringItemForProjection {
+  id?: number;
   name: string;
   dayOfMonth: number;
   estimatedAmountCents: number;

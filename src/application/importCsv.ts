@@ -1,10 +1,18 @@
+import type { TransactionConceptResolver } from "@/domain/matching/ports";
 import type { ImportMappingRepository, ImportRepository } from "@/domain/csvImport/ports";
-import { type ColumnMapping, bankSignature, mapRowToTransaction, parseCsv } from "@/domain/csvImport/rules";
+import { MAX_CSV_ROWS, type ColumnMapping, bankSignature, mapRowToTransaction, parseCsv } from "@/domain/csvImport/rules";
 import { DuplicateTransactionError, type RecordTransactionUseCase } from "./recordTransaction";
+import { resolveConceptQuietly } from "./resolveConceptQuietly";
 
 export class MissingColumnMappingError extends Error {
   constructor(public readonly headers: string[]) {
     super(`No hay un mapeo de columnas guardado para este banco. Encabezados: ${headers.join(", ")}`);
+  }
+}
+
+export class CsvTooLargeError extends Error {
+  constructor(rows: number) {
+    super(`El archivo tiene ${rows} filas; el máximo por importación es ${MAX_CSV_ROWS}.`);
   }
 }
 
@@ -29,10 +37,14 @@ export class ImportCsvUseCase {
     private readonly recordTransaction: RecordTransactionUseCase,
     private readonly importRepo: ImportRepository,
     private readonly mappingRepo: ImportMappingRepository,
+    private readonly conceptResolver?: TransactionConceptResolver,
   ) {}
 
   async execute(input: ImportCsvInput): Promise<ImportCsvSummary> {
     const { headers, rows } = parseCsv(input.csvText);
+    if (rows.length > MAX_CSV_ROWS) {
+      throw new CsvTooLargeError(rows.length);
+    }
     const signature = bankSignature(headers);
 
     const mapping = input.mapping ?? (await this.mappingRepo.findMapping(input.familyId, signature));
@@ -52,7 +64,7 @@ export class ImportCsvUseCase {
     for (const [index, row] of rows.entries()) {
       try {
         const parsed = mapRowToTransaction(row, mapping);
-        await this.recordTransaction.execute({
+        const transaction = await this.recordTransaction.execute({
           accountId: input.accountId,
           date: parsed.date,
           amountCents: parsed.amountCents,
@@ -63,6 +75,7 @@ export class ImportCsvUseCase {
           importId: importRecord.id,
         });
         imported++;
+        await resolveConceptQuietly(this.conceptResolver, transaction.id, input.familyId, "csv");
       } catch (err) {
         if (err instanceof DuplicateTransactionError) {
           duplicatesSkipped++;
@@ -76,4 +89,5 @@ export class ImportCsvUseCase {
 
     return { importId: importRecord.id, totalRows: rows.length, imported, duplicatesSkipped, errors };
   }
+
 }

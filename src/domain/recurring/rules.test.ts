@@ -40,18 +40,18 @@ test("signedEstimatedAmountCents: income se queda positivo, expense se vuelve ne
 
 test("patternSignatureFor usa el merchant si existe, si no el nombre normalizado", () => {
   assert.equal(
-    patternSignatureFor({ accountId: 1, merchantId: 42, name: "no importa" }),
-    "account:1|merchant:42",
+    patternSignatureFor({ merchantId: 42, name: "no importa" }),
+    "merchant:42",
   );
   assert.equal(
-    patternSignatureFor({ accountId: 1, merchantId: null, name: "NETFLIX.COM 8832" }),
-    "account:1|name:netflix com",
+    patternSignatureFor({ merchantId: null, name: "NETFLIX.COM 8832" }),
+    "name:netflix com",
   );
 });
 
 test("patternSignatureFor normaliza folios numéricos distintos al mismo patrón", () => {
-  const a = patternSignatureFor({ accountId: 7, merchantId: null, name: "SP *UBER *TRIP 883219 MEXICO CITY MX" });
-  const b = patternSignatureFor({ accountId: 7, merchantId: null, name: "SP *UBER *TRIP 991044 MEXICO CITY MX" });
+  const a = patternSignatureFor({ merchantId: null, name: "SP *UBER *TRIP 883219 MEXICO CITY MX" });
+  const b = patternSignatureFor({ merchantId: null, name: "SP *UBER *TRIP 991044 MEXICO CITY MX" });
   assert.equal(a, b);
 });
 
@@ -137,7 +137,19 @@ test("detectRecurringGroups: la categoría sugerida es la de la ocurrencia más 
   assert.equal(group.suggestedCategoryId, 2);
 });
 
-test("detectRecurringGroups: cuentas distintas con el mismo nombre no se mezclan", () => {
+test("detectRecurringGroups: el mismo pago desde cuentas distintas es UN recurrente; la cuenta habitual es la más reciente", () => {
+  const txs = [
+    tx({ date: "2026-03-05", amountCents: -15000, accountId: 1 }),
+    tx({ date: "2026-04-05", amountCents: -15000, accountId: 1 }),
+    tx({ date: "2026-05-05", amountCents: -15000, accountId: 2 }),
+  ];
+  const groups = detectRecurringGroups(txs);
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].accountId, 2);
+  assert.equal(groups[0].occurrences, 3);
+});
+
+test("detectRecurringGroups: mismo nombre con montos incompatibles entre cuentas no se detecta (no adivina)", () => {
   const txs = [
     tx({ date: "2026-03-05", amountCents: -15000, accountId: 1 }),
     tx({ date: "2026-04-05", amountCents: -15000, accountId: 1 }),
@@ -145,7 +157,38 @@ test("detectRecurringGroups: cuentas distintas con el mismo nombre no se mezclan
     tx({ date: "2026-03-06", amountCents: -9000, accountId: 2 }),
     tx({ date: "2026-04-06", amountCents: -9000, accountId: 2 }),
   ];
-  const groups = detectRecurringGroups(txs);
-  assert.equal(groups.length, 1);
-  assert.equal(groups[0].accountId, 1);
+  assert.equal(detectRecurringGroups(txs).length, 0);
+});
+
+import {
+  merchantIdFromPatternSignature,
+  OCCURRENCE_MATCH_SOURCES,
+  RECURRING_OCCURRENCE_STATUSES,
+  assertValidOccurrenceMatchSource,
+  assertValidOccurrenceStatus,
+  assertValidRecurringFlow,
+  assertValidRecurringStatus,
+} from "./rules";
+
+test("assertValidRecurringFlow y Status: aceptan los valores conocidos y rechazan otros", () => {
+  assert.doesNotThrow(() => assertValidRecurringFlow("expense"));
+  assert.throws(() => assertValidRecurringFlow("otro"), InvalidRecurringItemError);
+  assert.doesNotThrow(() => assertValidRecurringStatus("active"));
+  assert.doesNotThrow(() => assertValidRecurringStatus("paused"));
+  assert.throws(() => assertValidRecurringStatus("archived"), InvalidRecurringItemError);
+});
+
+test("ocurrencias: estados y origen de match solo desde el dominio, agregar uno es cambiar la constante", () => {
+  assert.deepEqual([...RECURRING_OCCURRENCE_STATUSES], ["pending", "paid", "skipped"]);
+  assert.deepEqual([...OCCURRENCE_MATCH_SOURCES], ["auto", "manual"]);
+  for (const s of RECURRING_OCCURRENCE_STATUSES) assert.doesNotThrow(() => assertValidOccurrenceStatus(s));
+  for (const s of OCCURRENCE_MATCH_SOURCES) assert.doesNotThrow(() => assertValidOccurrenceMatchSource(s));
+  assert.throws(() => assertValidOccurrenceStatus("late"), InvalidRecurringItemError);
+  assert.throws(() => assertValidOccurrenceMatchSource("ia"), InvalidRecurringItemError);
+});
+
+test("merchantIdFromPatternSignature: extrae el patrón de comercio solo de firmas 'merchant:N'", () => {
+  assert.equal(merchantIdFromPatternSignature("merchant:42"), 42);
+  assert.equal(merchantIdFromPatternSignature("name:netflix com"), null);
+  assert.equal(merchantIdFromPatternSignature("account:1|merchant:42"), null);
 });

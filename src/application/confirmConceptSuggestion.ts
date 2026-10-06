@@ -1,5 +1,6 @@
 import type { ConceptsRepository } from "@/domain/concepts/ports";
 import type { ConceptMatchingRepository } from "@/domain/matching/ports";
+import type { LearnConceptProviderUseCase } from "./learnConceptProvider";
 import type { UpdateTransactionUseCase } from "./updateTransaction";
 
 export class ConfirmConceptSuggestionUseCase {
@@ -7,6 +8,7 @@ export class ConfirmConceptSuggestionUseCase {
     private readonly matchingRepo: ConceptMatchingRepository,
     private readonly conceptsRepo: ConceptsRepository,
     private readonly updateTransactionUseCase: UpdateTransactionUseCase,
+    private readonly learnConceptProvider?: LearnConceptProviderUseCase,
   ) {}
 
   async execute(suggestionId: number): Promise<void> {
@@ -29,6 +31,7 @@ export class ConfirmConceptSuggestionUseCase {
       conceptId: concept.id,
     });
 
+    await this.learnConceptProvider?.execute(concept.id, suggestion.transactionId);
     await this.matchingRepo.deleteSuggestion(suggestionId);
   }
 }

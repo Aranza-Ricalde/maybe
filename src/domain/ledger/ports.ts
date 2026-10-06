@@ -1,6 +1,6 @@
-import type { TransactionKind } from "./rules";
+import type { TransactionKind, TransactionSource } from "./rules";
 
-export type TransactionSource = "manual" | "csv_import" | "telegram";
+export type { TransactionSource };
 export type TransactionStatus = "posted" | "pending";
 
 export interface AccountSummary {
@@ -46,6 +46,7 @@ export interface LedgerOperations {
   insertTransaction(input: NewTransactionInput): Promise<TransactionRecord>;
   updateTransactionRow(id: number, fields: TransactionEditInput): Promise<TransactionRecord>;
   deleteTransactionRow(id: number): Promise<void>;
+  updateTransactionKind(id: number, kind: TransactionKind): Promise<void>;
   applyAccountBalanceDelta(accountId: number, date: string, deltaCents: number): Promise<void>;
   applyCategoryMonthlyDelta(familyId: number, categoryId: number, month: string, deltaCents: number): Promise<void>;
   applyIncomeExpenseMonthlyDelta(
@@ -61,6 +62,8 @@ export interface LedgerOperations {
     windowDays: number,
   ): Promise<TransactionRecord[]>;
   linkTransfer(outflowTransactionId: number, inflowTransactionId: number): Promise<void>;
+  findTransferPartner(transactionId: number): Promise<number | null>;
+  unlinkTransfer(transactionId: number): Promise<void>;
 }
 
 export interface LedgerUnitOfWork {

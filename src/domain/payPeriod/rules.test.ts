@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  findOverlappingPeriod,
   addDays,
   defaultPayDate,
   findPeriodIndexContaining,
@@ -118,4 +119,11 @@ test("nextOccurrenceOnOrAfter: nunca desaparece aunque caiga fuera de una quince
 test("addDays: cruza correctamente el límite de mes", () => {
   assert.equal(addDays("2026-09-30", 1), "2026-10-01");
   assert.equal(addDays("2026-10-01", -1), "2026-09-30");
+});
+
+test("findOverlappingPeriod: detecta un día compartido y respeta periodos contiguos", () => {
+  const periods = [{ id: 1, start: "2026-09-29", end: "2026-10-13" }];
+  assert.equal(findOverlappingPeriod(periods, { start: "2026-10-13", end: "2026-10-29" })?.id, 1);
+  assert.equal(findOverlappingPeriod(periods, { start: "2026-10-14", end: "2026-10-29" }), undefined);
+  assert.equal(findOverlappingPeriod(periods, { start: "2026-09-29", end: "2026-10-13" }, 1), undefined);
 });

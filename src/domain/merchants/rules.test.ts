@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { normalizeMerchantPattern, sanitizeCleanName } from "./rules";
+import { legacyMerchantPattern, normalizeMerchantPattern, sanitizeCleanName } from "./rules";
 
 test("normalizeMerchantPattern: mayúsculas, sin números, espacios colapsados", () => {
   assert.equal(normalizeMerchantPattern("SP *UBER *TRIP 883219 MEXICO CITY MX"), "SP UBER TRIP MEXICO CITY MX");
@@ -10,6 +10,17 @@ test("normalizeMerchantPattern: dos folios numéricos distintos dan el mismo pat
   const a = normalizeMerchantPattern("SP *UBER *TRIP 883219 MEXICO CITY MX");
   const b = normalizeMerchantPattern("SP *UBER *TRIP 991044 MEXICO CITY MX");
   assert.equal(a, b);
+});
+
+test("normalizeMerchantPattern: los acentos no mutilan la palabra ni separan variantes", () => {
+  assert.equal(normalizeMerchantPattern("Nómina Quincenal"), "NOMINA QUINCENAL");
+  assert.equal(normalizeMerchantPattern("Nómina Quincenal"), normalizeMerchantPattern("NOMINA QUINCENAL"));
+  assert.equal(normalizeMerchantPattern("NU MÉXICO"), normalizeMerchantPattern("Nu Mexico"));
+});
+
+test("legacyMerchantPattern: conserva la llave anterior para encontrar patrones ya guardados", () => {
+  assert.equal(legacyMerchantPattern("Nómina Quincenal"), "N MINA QUINCENAL");
+  assert.equal(legacyMerchantPattern("SP *UBER *TRIP 883219 MEXICO CITY MX"), "SP UBER TRIP MEXICO CITY MX");
 });
 
 test("sanitizeCleanName: quita comillas envolventes y espacios", () => {
