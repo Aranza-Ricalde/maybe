@@ -20,8 +20,8 @@ export function RecurringBudgetInclusionCell({ itemId, isRelevant, budgetInclusi
       fields={{ recurringItemId: itemId }}
       stateField={{ name: FIELD.decision, onValue: "include", offValue: "exclude" }}
       action={action}
-      ariaLabel={counts ? "Sacar del presupuesto" : "Incluir en el presupuesto"}
-      label={budgetInclusion == null ? "Cuenta (sin decidir)" : counts ? "Cuenta" : "No cuenta"}
+      ariaLabel={counts ? "Dejar de usar como presupuesto de su categoría" : "Usar como presupuesto de su categoría"}
+      label={budgetInclusion == null ? "Sin decidir" : counts ? "Sí lo usa" : "No lo usa"}
     />
   );
 }

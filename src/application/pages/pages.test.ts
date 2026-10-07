@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { AccountsReader, PlanningReader } from "@/domain/readModels/ports";
 import type { GetAccountBalanceHistoryUseCase } from "../getAccountBalanceHistory";
+import type { GetEmergencyFundUseCase } from "../getEmergencyFund";
 import type { GetGoalProjectionsUseCase } from "../getGoalProjections";
 import { GetAccountsPageUseCase } from "./getAccountsPage";
 import { GetGoalsPageUseCase } from "./getGoalsPage";
@@ -35,9 +36,11 @@ test("página de metas: liga cuentas por meta y reutiliza las proyecciones", asy
   } as unknown as PlanningReader;
   const projections = { execute: async () => [{ goalId: 1, currentCents: 40_000, projection: null, message: "ritmo" }] } as unknown as GetGoalProjectionsUseCase;
 
-  const page = await new GetGoalsPageUseCase(planning, accountsReader, projections).execute(1, TODAY);
+  const emergencyFund = { execute: async () => ({ coverageMonths: 2.5, source: "savings" }) } as unknown as GetEmergencyFundUseCase;
+  const page = await new GetGoalsPageUseCase(planning, accountsReader, projections, emergencyFund).execute(1, TODAY);
 
   assert.equal(page.rows[0].currentCents, 40_000);
   assert.deepEqual(page.rows[0].linkedAccountNames, ["Cuenta Nómina"]);
   assert.equal(page.rows[0].projection, "ritmo");
+  assert.equal(page.emergencyFund.coverageMonths, 2.5);
 });

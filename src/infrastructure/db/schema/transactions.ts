@@ -1,5 +1,6 @@
-import { bigint, date, index, pgTable, primaryKey, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { bigint, boolean, date, index, pgTable, primaryKey, text, uniqueIndex } from "drizzle-orm/pg-core";
 import type { TransactionKind, TransactionSource, TransactionStatus, ValuationSource } from "@/domain/ledger/rules";
+import { sql } from "drizzle-orm";
 import { accounts } from "./accounts";
 import { categories, merchantPatterns, tags } from "./classification";
 import { concepts } from "./concepts";
@@ -27,12 +28,16 @@ export const transactions = pgTable(
     status: text("status").notNull().default("posted").$type<TransactionStatus>(),
     source: text("source").notNull().$type<TransactionSource>(),
     importId: bigint("import_id", { mode: "number" }).references(() => imports.id, { onDelete: "set null" }),
+    importHash: text("import_hash"),
+    reconciled: boolean("reconciled").notNull().default(false),
+    postedDate: date("posted_date"),
     createdAt: createdAtColumn(),
     updatedAt: updatedAtColumn(),
   },
   (table) => [
     index("transactions_account_date_idx").on(table.accountId, table.date),
     index("transactions_category_date_idx").on(table.categoryId, table.date),
+    uniqueIndex("transactions_account_import_hash_unique").on(table.accountId, table.importHash).where(sql`${table.importHash} is not null`),
   ],
 );
 

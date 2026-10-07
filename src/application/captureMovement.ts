@@ -1,10 +1,9 @@
 import type { CaptureRepository, CategoryClassifier } from "@/domain/captures/ports";
-import { CaptureAccountAmbiguousError, type CaptureSource, CaptureAccountNotFoundError, guessNeedsConfirmation, isApplicableGuess, normalizeAccountName, signedAmountCents, type CaptureType } from "@/domain/captures/rules";
-import { classifyFlow } from "@/domain/ledger/rules";
+import { CaptureAccountAmbiguousError, type CaptureSource, CaptureAccountNotFoundError, guessNeedsConfirmation, normalizeAccountName, signedAmountCents, type CaptureType } from "@/domain/captures/rules";
 import type { TransactionConceptResolver } from "@/domain/matching/ports";
 import type { CategoriesReader } from "@/domain/readModels/ports";
-import { logFailure } from "@/lib/log";
 import { todayIso } from "@/lib/today";
+import { guessCategory } from "./guessCategory";
 import type { RecordTransactionUseCase } from "./recordTransaction";
 import { resolveConceptQuietly } from "./resolveConceptQuietly";
 import type { UpdateTransactionUseCase } from "./updateTransaction";
@@ -54,7 +53,7 @@ export class CaptureMovementUseCase {
     let needsConfirmation = outcome?.categoryId == null;
 
     if (outcome?.categoryId == null) {
-      const guessed = await this.guessCategory(input.familyId, input.description, amountCents);
+      const guessed = await guessCategory(this.classifier, this.categories, input.familyId, input.description, amountCents);
       if (guessed) {
         await this.updateTransaction.execute({ id: recorded.id, accountId: account.id, date, amountCents, name: input.description, categoryId: guessed.categoryId });
         outcome = await this.captures.outcomeOf(recorded.id);
@@ -89,19 +88,5 @@ export class CaptureMovementUseCase {
     if (matches.length === 0) throw new CaptureAccountNotFoundError(`No existe una cuenta activa llamada "${reference.name}".`);
     if (matches.length > 1) throw new CaptureAccountAmbiguousError(`Hay más de una cuenta llamada "${reference.name}".`);
     return matches[0];
-  }
-
-  private async guessCategory(familyId: number, description: string, amountCents: number) {
-    if (!this.classifier) return null;
-    try {
-      const flow = classifyFlow(amountCents);
-      const categories = (await this.categories.list(familyId)).filter((category) => category.classification === flow).map(({ id, name }) => ({ id, name }));
-      if (categories.length === 0) return null;
-      const guess = await this.classifier.classify({ description, amountCents, categories });
-      return guess && isApplicableGuess(guess.confidence) && categories.some((category) => category.id === guess.categoryId) ? guess : null;
-    } catch (error) {
-      logFailure("clasificación con IA falló", error);
-      return null;
-    }
   }
 }

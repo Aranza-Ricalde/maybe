@@ -37,27 +37,27 @@ export function RecurringBudgetDecisionBanner({ pending, action }: RecurringBudg
         <form key={item.id} action={action} className="flex flex-wrap items-center gap-2">
           <input type="hidden" name={FIELD.recurringItemId} value={item.id} />
           <PendingSubmitButton name={FIELD.decision} value="include">
-            Sí, cuenta
+            Sí, usarlo
           </PendingSubmitButton>
           <PendingSubmitButton name={FIELD.decision} value="exclude" variant="ghost">
-            No cuenta
+            No usarlo
           </PendingSubmitButton>
         </form>
       }
       details={
         <>
           <p>
-            Si cuenta, suma {formatPesos(Math.abs(item.amountCents))} al mes al presupuesto de {item.categoryName}; si no, lo sigues viendo como recurrente pero no aparta dinero. Mientras no decidas, cuenta como siempre.
+            Si lo usas, {formatPesos(Math.abs(item.amountCents))} al mes sirven de presupuesto de {item.categoryName} mientras no definas uno manual (el que tú pongas siempre manda); si no, lo sigues viendo como recurrente pero no aparta dinero. Mientras no decidas, se usa como siempre.
           </p>
           <form action={action} className="flex flex-wrap items-center gap-2 pt-1">
             <input type="hidden" name={FIELD.recurringItemId} value={item.id} />
             <input type="hidden" name={FIELD.rememberForAll} value="on" />
             <span>Para este, los demás y los recurrentes nuevos:</span>
             <PendingSubmitButton name={FIELD.decision} value="include" variant="ghost">
-              Todos cuentan, no volver a preguntar
+              Usarlos todos, no volver a preguntar
             </PendingSubmitButton>
             <PendingSubmitButton name={FIELD.decision} value="exclude" variant="ghost">
-              Ninguno cuenta, no volver a preguntar
+              No usar ninguno, no volver a preguntar
             </PendingSubmitButton>
           </form>
         </>
@@ -68,7 +68,7 @@ export function RecurringBudgetDecisionBanner({ pending, action }: RecurringBudg
         <span className="text-muted">
           ({formatPesos(Math.abs(item.amountCents))} · {item.categoryName})
         </span>{" "}
-        cuenta en tu presupuesto?
+        sirve de presupuesto de su categoría?
       </p>
       <p className="mt-0.5 text-xs text-muted">Recurrente {pending.length > 1 ? `· quedan ${pending.length - 1} más por decidir` : "· el último por decidir"}</p>
     </ReviewAlert>

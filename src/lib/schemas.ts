@@ -1,11 +1,15 @@
 import { z } from "zod";
+import { MAX_CATEGORY_DESCRIPTION_LENGTH } from "@/domain/categories/descriptions";
+import { PERIOD_VIEWS } from "@/domain/payPeriod/periodView";
 import { ACCOUNT_TYPES } from "@/domain/accounts/rules";
 import { BUDGET_CADENCES } from "@/domain/budget/rules";
 import { DEFAULT_CATEGORY_COLOR } from "@/domain/categories/palette";
 import { InvalidSpendingNatureError, parseSpendingNatureFormValue } from "@/domain/categories/nature";
 import { NO_PARENT_FORM_VALUE } from "@/domain/categories/rules";
-import { EVOLUTION_METRICS, EVOLUTION_RANGES } from "@/domain/evolution/rules";
+import { EVOLUTION_RANGES } from "@/domain/evolution/rules";
 import { FLOWS, MAX_AMOUNT_CENTS, MAX_TRANSACTION_NAME_LENGTH } from "@/domain/ledger/rules";
+import { SPENDING_NATURES } from "@/domain/categories/nature";
+import { MAX_SUBSCRIPTION_GROUP_NAME_LENGTH } from "@/domain/spendingAnalysis/subscriptions";
 import { CAPTURE_TYPES, MAX_CAPTURE_DESCRIPTION_LENGTH, MAX_CAPTURE_NOTES_LENGTH } from "@/domain/captures/rules";
 import { pesosToCents } from "@/domain/shared/money";
 import { FIELD, FORM_VALUE } from "./formFields";
@@ -71,7 +75,6 @@ export const transactionSortArg = z.object({ field: z.enum(["date", "amount", "n
 export const pageArgs = z.object({ page: pageField, pageSize: pageSizeField });
 export const transactionsPageArgs = z.object({ filters: transactionFiltersArg, sort: transactionSortArg }).extend(pageArgs.shape);
 export const accountPageArgs = z.object({ accountId: idField, fromDate: isoDateField, toDate: isoDateField }).extend(pageArgs.shape);
-export const evolutionSeriesArgs = z.object({ metric: z.enum(EVOLUTION_METRICS), range: z.enum(EVOLUTION_RANGES) });
 export const balanceHistoryArgs = z.object({ accountId: idField, range: z.enum(EVOLUTION_RANGES) });
 
 const accountBaseForm = {
@@ -179,20 +182,22 @@ const categoryFormShape = {
   [FIELD.color]: z.string().trim().max(20).optional(),
   [FIELD.parentId]: parentIdField,
   [FIELD.nature]: natureField,
+  [FIELD.description]: optionalText(MAX_CATEGORY_DESCRIPTION_LENGTH).optional(),
 };
 
-const categoryDetails = (form: { name: string; classification: (typeof FLOWS)[number]; color?: string; parentId: number | null | undefined; nature: ReturnType<typeof parseSpendingNatureFormValue> | undefined }) => ({
+const categoryDetails = (form: { name: string; classification: (typeof FLOWS)[number]; color?: string; parentId: number | null | undefined; nature: ReturnType<typeof parseSpendingNatureFormValue> | undefined; description?: string | null }) => ({
   name: form.name,
   classification: form.classification,
   color: form.color || DEFAULT_CATEGORY_COLOR,
   parentId: form.parentId,
   nature: form.nature,
+  description: form.description,
 });
 
-export const categoryForm = z.object(categoryFormShape).transform((form) => categoryDetails({ ...form, parentId: form[FIELD.parentId], nature: form[FIELD.nature] }));
+export const categoryForm = z.object(categoryFormShape).transform((form) => categoryDetails({ ...form, parentId: form[FIELD.parentId], nature: form[FIELD.nature], description: form[FIELD.description] }));
 export const categoryUpdateForm = z
   .object({ ...categoryFormShape, [FIELD.id]: idField })
-  .transform((form) => ({ id: form[FIELD.id], ...categoryDetails({ ...form, parentId: form[FIELD.parentId], nature: form[FIELD.nature] }) }));
+  .transform((form) => ({ id: form[FIELD.id], ...categoryDetails({ ...form, parentId: form[FIELD.parentId], nature: form[FIELD.nature], description: form[FIELD.description] }) }));
 
 export const occurrenceDecisionForm = z.object({ [FIELD.occurrenceId]: idField, [FIELD.decision]: z.string().max(40) });
 export const linkPaymentForm = z.object({ [FIELD.occurrenceId]: idField, [FIELD.transactionId]: idField });
@@ -225,3 +230,39 @@ export const capturePayload = z
   .transform(({ account, type, amount, description, date, notes }) => ({ accountName: account, movement: { type, amountCents: pesosToCents(amount), description, date, notes: notes ?? undefined } }));
 
 export const confirmCaptureForm = z.object({ [FIELD.transactionId]: idField, [FIELD.categoryId]: optionalIdField });
+
+export const mergeSubscriptionsForm = z.object({
+  [FIELD.members]: z.preprocess(toArray, z.array(requiredText(MAX_NAME)).min(2).max(20)),
+  [FIELD.name]: requiredText(MAX_SUBSCRIPTION_GROUP_NAME_LENGTH),
+});
+
+const optionalPositiveId = z.preprocess((value) => (value === "" || value == null ? null : value), idField.nullable());
+
+export const explorerArgs = z
+  .object({
+    from: isoDateField,
+    to: isoDateField,
+    accountId: optionalPositiveId,
+    categoryId: optionalPositiveId,
+    merchant: z.preprocess((value) => (value === "" || value == null ? null : value), z.string().trim().min(1).max(100).nullable()),
+    nature: z.preprocess((value) => (value === "" || value == null ? null : value), z.enum(SPENDING_NATURES).nullable()),
+  })
+  .strict();
+
+const MAX_STATEMENT_DECISIONS = 2_000;
+const statementRowId = z.number().int().positive();
+
+export const statementDecisionsPayload = z
+  .array(
+    z.object({
+      index: z.number().int().min(0),
+      action: z.enum(["import", "link", "skip"]),
+      typeOverride: z.enum(["expense", "income", "internal_transfer", "card_payment"]).optional(),
+      categoryId: statementRowId.nullable().optional(),
+      linkTransactionId: statementRowId.optional(),
+      pairWithTransactionId: statementRowId.optional(),
+    }),
+  )
+  .max(MAX_STATEMENT_DECISIONS);
+
+export const periodViewForm = z.object({ view: z.enum(PERIOD_VIEWS) });

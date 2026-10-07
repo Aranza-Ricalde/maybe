@@ -92,6 +92,13 @@ La capa `app/` (login, sesión, proxy, cada una de las 8 páginas) se validó co
 - **Desplegado en producción** (Vercel) con el webhook de Telegram registrado contra la URL real.
 - **Pendiente**: probar cada formulario con clic real en el navegador; exportar a Excel; chat de IA sobre las finanzas; import de CSV y limpieza de merchants todavía sin UI (solo backend).
 
+## Explorador de gastos y pantallas
+
+- **Explorador interactivo** (Resumen y Gasto por categoría): una gráfica con vistas Ingresos y gastos, Por categoría, Por comercio y Saldo, y filtros combinables: periodo (actual, 30 días, 3, 6 o 12 meses, o fechas), cuenta, categoría, comercio y tipo de gasto (esencial o discrecional). Un clic en una categoría o comercio aplica el filtro; arriba muestra cuánto cambió el gasto contra el periodo anterior de la misma duración y qué categorías lo explican. Se calcula en `GetExplorerUseCase` (dominio puro en `src/domain/explorer`).
+- **Presupuesto:** el monto manual siempre manda; un recurrente solo sirve de presupuesto de su categoría (si lo aceptas con "Como presupuesto") cuando no hay uno manual. La tabla agrupa por categoría padre, con subcategorías colapsadas por defecto, barras de progreso y las categorías que se pasaron resaltadas.
+- **Suscripciones:** cada servicio muestra su cobro mensual típico (mediana de los meses con cobro). Puedes fusionar nombres distintos del mismo servicio; la regla queda en `subscription_aliases` y aplica a cobros futuros.
+- **Proyección:** la base de ingresos usa tu nómina recurrente más la mediana de lo variable; los gastos, lo recurrente más el promedio de lo variable. Los supuestos se muestran en la propia página. Sin ingresos recurrentes cae al promedio simple.
+
 ## Registrar movimientos desde el teléfono (`POST /api/movements`)
 
 El token se genera en **Configuración → Registrar desde el teléfono** (se muestra una sola vez; en la base solo se guarda su hash SHA-256, y generar uno nuevo invalida el anterior).
@@ -115,8 +122,10 @@ Escribe `150 tacos` (gasto), `+20000 nómina` (ingreso), agrega `#cuenta` para e
 
 - **Fecha:** al final de la descripción puedes poner `hoy`, `ayer`, `anteayer`, `05/10`, `05/10/2026`, `5 de octubre` o `2026-10-05` (`150 tacos ayer #bbva`). Sin año, una fecha que caería en el futuro se toma del año anterior; una fecha futura o inexistente se rechaza y no registra nada.
 - **Comandos:** `/saldo [cuenta]` (saldos; las deudas y tarjetas aparecen aparte), `/ultimos [n]` (5 por defecto, máximo 15), `/resumen` (ingresos, gastos, balance y las 3 categorías con más gasto del periodo de pago actual) y `/ayuda`. Una cuenta inexistente en `#hint` responde con la lista de tus cuentas.
-- Si no hay categoría, el bot muestra las categorías que más usas (del mismo tipo: gasto o ingreso) como botones. Si Gemini tuvo confianza media, pregunta "¿Es correcta la categoría?" con **Sí / Cambiar / Deshacer**.
-- **Cambiar** lista las categorías más usadas de los últimos 180 días; **Deshacer** borra el movimiento y revierte el saldo. Solo se pueden corregir movimientos registrados por Telegram o por la API, y solo de tu familia.
+- **Cuenta:** si pones `#cuenta`, se usa esa; si el texto nombra una sola cuenta con certeza (una palabra distintiva de su nombre; "cuenta" o "tarjeta" no cuentan), se usa esa. En cualquier otro caso el bot **pregunta con botones** (la última cuenta usada por Telegram aparece primero con ⭐) y guarda un borrador de 6 horas en `telegram_drafts`; no registra nada hasta que eliges, y **Cancelar** lo descarta.
+- **Categoría:** primero la identifica el sistema (comercio aprendido y luego Gemini). Si no hay confianza, muestra las categorías que más usas (de gasto o de ingreso, según el movimiento) y **📚 Ver todas** abre el menú completo: categorías padre (paginadas, 8 por página) y, al entrar a una, sus subcategorías, con **✅ «Padre» (general)** para quedarte en el nivel padre y **⬅️ Categorías** para volver.
+- Si Gemini tuvo confianza media, pregunta "¿Es correcta la categoría?" con **Sí / Cambiar / Deshacer**.
+- **Cambiar** lista las categorías más usadas de los últimos 180 días (y **Ver todas**); **Deshacer** borra el movimiento y revierte el saldo. Solo se pueden corregir movimientos registrados por Telegram o por la API, y solo de tu familia.
 - Escoger una categoría desde el bot cuenta como confirmación: el movimiento deja de aparecer como "por confirmar" en Movimientos.
 - `scripts/smoke-test-telegram.ts` valida este flujo contra una rama de prueba con un remitente falso (no llama a la API real de Telegram; no lo corras contra producción).
 

@@ -7,6 +7,14 @@ import { logFailure } from "@/lib/log";
 import { todayIso } from "@/lib/today";
 import type { CaptureMovementInput, CaptureMovementResult, CaptureMovementUseCase } from "./captureMovement";
 
+export interface InterpretedMovement {
+  type: "expense" | "income";
+  amountCents: number;
+  description: string;
+  date?: string;
+  notes?: string;
+}
+
 export class UnreadableNotificationError extends InvalidCaptureError {}
 
 export class CaptureNotificationUseCase {
@@ -15,10 +23,15 @@ export class CaptureNotificationUseCase {
     private readonly extractor?: NotificationExtractor,
   ) {}
 
-  async execute(familyId: number, account: CaptureMovementInput["account"], text: string, source?: CaptureMovementInput["source"]): Promise<CaptureMovementResult> {
+  async interpret(text: string): Promise<InterpretedMovement | null> {
     const parsed = parseBankNotification(text, todayIso()) ?? (await this.extractWithAi(text));
-    if (!parsed) throw new UnreadableNotificationError("No pude entender la notificación.");
-    return this.capture.execute({ familyId, account, source, ...parsed, description: parsed.description.slice(0, MAX_CAPTURE_DESCRIPTION_LENGTH), notes: text.slice(0, MAX_CAPTURE_NOTES_LENGTH) });
+    return parsed ? { ...parsed, description: parsed.description.slice(0, MAX_CAPTURE_DESCRIPTION_LENGTH), notes: text.slice(0, MAX_CAPTURE_NOTES_LENGTH) } : null;
+  }
+
+  async execute(familyId: number, account: CaptureMovementInput["account"], text: string, source?: CaptureMovementInput["source"]): Promise<CaptureMovementResult> {
+    const movement = await this.interpret(text);
+    if (!movement) throw new UnreadableNotificationError("No pude entender la notificación.");
+    return this.capture.execute({ familyId, account, source, ...movement });
   }
 
   private async extractWithAi(text: string) {

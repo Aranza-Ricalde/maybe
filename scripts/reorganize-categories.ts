@@ -36,7 +36,7 @@ function budgetOf(
   recurring: { categoryId: number | null; dayOfMonth: number; estimatedAmountCents: number; flow: "income" | "expense"; status: "active" | "paused" }[],
   period: { start: string; end: string },
 ) {
-  const effective = composeEffectiveBudgets(settings, recurring, [period]);
+  const effective = composeEffectiveBudgets(settings, recurring, [{ ...period, monthShare: 1 }]);
   const lines = rollUpBudgetHierarchy({
     categories: cats,
     effectiveTargets: new Map(effective.map((b) => [b.categoryId, b.targetCents])),

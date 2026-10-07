@@ -9,7 +9,7 @@ import { setMinimumBalance } from "./actions";
 
 export default async function ProjectionPage() {
   const user = await requireUser();
-  const { basisMonths, base, cash } = await getProjectionPageUseCase.execute(user.familyId, todayIso());
+  const { basisMonths, assumptions, base, cash } = await getProjectionPageUseCase.execute(user.familyId, todayIso());
 
   return (
     <>
@@ -19,7 +19,7 @@ export default async function ProjectionPage() {
       {basisMonths.length === 0 ? (
         <EmptyState title="Todavía no hay con qué proyectar" description="Necesitas al menos un mes completo con movimientos para estimar tus promedios." />
       ) : (
-        <ProjectionSimulator base={base} basisMonths={basisMonths} />
+        <ProjectionSimulator base={base} basisMonths={basisMonths} assumptions={assumptions} />
       )}
     </>
   );

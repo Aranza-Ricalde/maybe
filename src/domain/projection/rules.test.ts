@@ -123,3 +123,59 @@ test("recortes e ingresos nuevos sí mueven el patrimonio; pagar deuda o ahorrar
   assert.equal(alloc.finalScenarioNetWorthCents, alloc.finalBaselineNetWorthCents);
   assert.equal(alloc.differenceCents, -2_000_00 * 4); // pero el saldo líquido sí baja
 });
+
+import { deriveMonthlyBase, remainingMonthFraction } from "./rules";
+
+const MESES_REALES = [
+  { incomeCents: 4_706_623, expenseCents: -2_046_809 },
+  { incomeCents: 7_431_754, expenseCents: -4_226_608 },
+  { incomeCents: 4_303_733, expenseCents: -3_204_511 },
+];
+
+test("sin ingresos recurrentes la base es el promedio simple de los meses (como antes)", () => {
+  const base = deriveMonthlyBase(MESES_REALES, 0, -734_900);
+  assert.equal(base.assumptions.method, "average");
+  assert.equal(base.incomeCents, Math.round((4_706_623 + 7_431_754 + 4_303_733) / 3));
+  assert.equal(base.expenseCents, Math.round((2_046_809 + 4_226_608 + 3_204_511) / 3));
+});
+
+test("con nómina recurrente: ingreso = nómina + mediana de lo variable (un ingreso extraordinario no infla la base)", () => {
+  const nomina = 4_095_000;
+  const base = deriveMonthlyBase(MESES_REALES, nomina, -734_900);
+  assert.equal(base.assumptions.method, "recurring");
+  assert.equal(base.assumptions.variableIncomeCents, 611_623);
+  assert.equal(base.incomeCents, nomina + 611_623);
+});
+
+test("con recurrentes, el gasto = gastos fijos + promedio de lo variable (no cuenta dos veces lo fijo)", () => {
+  const fijos = 734_900;
+  const base = deriveMonthlyBase(MESES_REALES, 4_095_000, -fijos);
+  const variable = Math.round(((2_046_809 - fijos) + (4_226_608 - fijos) + (3_204_511 - fijos)) / 3);
+  assert.equal(base.assumptions.variableExpenseCents, variable);
+  assert.equal(base.expenseCents, fijos + variable);
+});
+
+test("un mes cuyo ingreso no llega ni a la nómina aporta 0 de variable, nunca negativo", () => {
+  const base = deriveMonthlyBase([{ incomeCents: 1_000, expenseCents: -500 }], 4_000, -2_000);
+  assert.equal(base.assumptions.variableIncomeCents, 0);
+  assert.equal(base.assumptions.variableExpenseCents, 0);
+});
+
+test("sin meses con datos la base es cero y no revienta", () => {
+  assert.deepEqual([deriveMonthlyBase([], 0, 0).incomeCents, deriveMonthlyBase([], 0, 0).expenseCents], [0, 0]);
+});
+
+test("remainingMonthFraction: lo que falta del mes en curso", () => {
+  assert.equal(remainingMonthFraction("2026-10-06"), 25 / 31);
+  assert.equal(remainingMonthFraction("2026-10-31"), 0);
+  assert.equal(remainingMonthFraction("2026-02-14"), 14 / 28);
+});
+
+test("projectBalance suma el resto del mes en curso al saldo de partida: el primer mes proyectado ya incluye esos días", () => {
+  const base = { currentMonth: "2026-10-01", currentMonthRemainingFraction: 0.5, startBalanceCents: 100_000, startNetWorthCents: 100_000, monthlyIncomeCents: 50_000, monthlyExpenseCents: 30_000, categories: [] };
+  const withRemainder = projectBalance(base, [], 2);
+  const withoutRemainder = projectBalance({ ...base, currentMonthRemainingFraction: 0 }, [], 2);
+  assert.equal(withRemainder.months[0].baselineBalanceCents - withoutRemainder.months[0].baselineBalanceCents, 10_000);
+  assert.equal(withRemainder.months[1].baselineBalanceCents - withoutRemainder.months[1].baselineBalanceCents, 10_000);
+  assert.equal(withRemainder.baselineMonthlyNetCents, 20_000);
+});

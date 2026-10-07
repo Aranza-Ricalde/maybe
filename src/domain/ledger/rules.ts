@@ -4,7 +4,7 @@ export type TransactionKind = (typeof TRANSACTION_KINDS)[number];
 export const TRANSACTION_STATUSES = ["posted", "pending"] as const;
 export type TransactionStatus = (typeof TRANSACTION_STATUSES)[number];
 
-export const TRANSACTION_SOURCES = ["manual", "csv_import", "telegram", "api"] as const;
+export const TRANSACTION_SOURCES = ["manual", "csv_import", "telegram", "api", "statement_import"] as const;
 export type TransactionSource = (typeof TRANSACTION_SOURCES)[number];
 
 export const VALUATION_SOURCES = ["manual", "csv_import"] as const;

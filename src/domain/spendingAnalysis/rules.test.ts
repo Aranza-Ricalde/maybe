@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { InsightExpense } from "@/domain/insights/rules";
-import { rankMerchants, smallExpenseSummary, subscriptionCategoryIds, subscriptionSummary, type MerchantSpendRow } from "./rules";
+import { rankMerchants, smallExpenseSummary, type MerchantSpendRow } from "./rules";
 
 const TODAY = "2026-10-12";
 const e = (id: number, date: string, amountCents: number, categoryName: string | null, name = "x"): InsightExpense => ({ id, date, name, amountCents, accountId: 1, categoryId: categoryName ? id : null, categoryName });
@@ -45,41 +45,32 @@ test("con muchas categorías, las menores se agrupan en 'Otros' sin perder diner
   assert.equal(result.groups.reduce((s, g) => s + g.totalCents, 0), result.totalCents);
 });
 
-const row = (merchant: string, totalCents: number, count = 1, categoryId: number | null = 1): MerchantSpendRow => ({ merchant, categoryId, totalCents, count });
+const row = (merchant: string, totalCents: number, count = 1, categoryId: number | null = 1, identified = true, month = "2026-09"): MerchantSpendRow => ({ merchant, identified, categoryId, month, totalCents, count });
 
 test("los comercios se ordenan por lo que consumen y un comercio suma todas sus categorías", () => {
-  const ranked = rankMerchants([row("Uber", 10_000, 3, 1), row("Uber", 5_000, 1, 2), row("Oxxo", 12_000, 4), row("Netflix", 20_000, 3)]);
+  const { ranked } = rankMerchants([row("Uber", 10_000, 3, 1), row("Uber", 5_000, 1, 2), row("Oxxo", 12_000, 4), row("Netflix", 20_000, 3)]);
   assert.deepEqual(ranked.map((m) => [m.merchant, m.totalCents, m.count]), [["Netflix", 20_000, 3], ["Uber", 15_000, 4], ["Oxxo", 12_000, 4]]);
   assert.equal(Math.round(ranked[0].shareOfSpend * 100), 43);
-  assert.equal(rankMerchants([row("a", 1), row("b", 2), row("c", 3)], 2).length, 2);
+  assert.equal(rankMerchants([row("a", 1), row("b", 2), row("c", 3)], 2).ranked.length, 2);
 });
 
-test("lo que no es un comercio (rieles de pago, palabras genéricas, sin identificar) no entra, pero cuenta en el total", () => {
-  const ranked = rankMerchants([row("SPEI", 50_000), row("Transferencia", 40_000), row("Renta", 90_000), row("Sin identificar", 10_000), row("Oxxo", 10_000)]);
-  assert.deepEqual(ranked.map((m) => m.merchant), ["Oxxo"]);
-  assert.equal(ranked[0].shareOfSpend, 10_000 / 200_000);
-});
-
-test("las suscripciones son las categorías con ese nombre y sus subcategorías", () => {
-  const ids = subscriptionCategoryIds([
-    { id: 1, name: "Ocio", parentId: null },
-    { id: 2, name: "Suscripciones y streaming", parentId: 1 },
-    { id: 3, name: "Música", parentId: 2 },
-    { id: 4, name: "Salidas", parentId: 1 },
-    { id: 5, name: "SUSCRIPCIONES", parentId: null },
+test("solo cuentan los comercios identificados: personas, descripciones libres, rieles de pago y palabras genéricas van a 'sin comercio'", () => {
+  const { ranked, unidentified } = rankMerchants([
+    row("Uber", 20_000, 2),
+    row("Saúl Gabriel Ceballos", 600_000, 1, 1, false),
+    row("Reparacion auto", 574_000, 1, 1, false),
+    row("Amazon Calavera auto", 208_000, 1, 1, false),
+    row("SPEI", 50_000),
+    row("Renta", 90_000),
+    row("Sin identificar", 10_000, 1, 1, false),
   ]);
-  assert.deepEqual([...ids].sort(), [2, 3, 5]);
+  assert.deepEqual(ranked.map((m) => m.merchant), ["Uber"]);
+  assert.equal(unidentified?.totalCents, 600_000 + 574_000 + 208_000 + 50_000 + 90_000 + 10_000);
+  assert.equal(unidentified?.count, 6);
+  assert.equal(Math.round(((ranked[0].shareOfSpend + (unidentified?.shareOfSpend ?? 0)) * 100)), 100);
 });
 
-test("el costo de suscripciones es mensual promedio, por servicio, y anual", () => {
-  const ids = new Set([2, 3]);
-  const summary = subscriptionSummary([row("Netflix", 59_700, 3, 2), row("Spotify", 38_700, 3, 3), row("Oxxo", 90_000, 5, 9)], ids, 3)!;
-  assert.deepEqual(summary.services, [{ merchant: "Netflix", monthlyCents: 19_900 }, { merchant: "Spotify", monthlyCents: 12_900 }]);
-  assert.equal(summary.monthlyCents, 32_800);
-  assert.equal(summary.yearlyCents, 32_800 * 12);
-});
-
-test("sin gasto en suscripciones o sin meses, no hay resumen", () => {
-  assert.equal(subscriptionSummary([row("Oxxo", 100, 1, 9)], new Set([2]), 3), null);
-  assert.equal(subscriptionSummary([row("Netflix", 100, 1, 2)], new Set([2]), 0), null);
+test("sin movimientos sin identificar, no hay renglón de 'sin comercio'", () => {
+  assert.equal(rankMerchants([row("Uber", 100)]).unidentified, null);
+  assert.deepEqual(rankMerchants([]), { ranked: [], unidentified: null });
 });

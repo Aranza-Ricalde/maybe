@@ -1,5 +1,7 @@
 import { InvalidSpokenDateError, extractTrailingDate } from "./dateWords";
 
+export const DRAFT_TTL_HOURS = 6;
+
 export class TelegramParseError extends Error {}
 export class TelegramDateError extends TelegramParseError {}
 

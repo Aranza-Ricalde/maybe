@@ -20,9 +20,11 @@ import { DrizzleLedgerUnitOfWork } from "@/infrastructure/db/ledger";
 import { accounts } from "@/infrastructure/db/schema/accounts";
 import { categories } from "@/infrastructure/db/schema/classification";
 import { families, users } from "@/infrastructure/db/schema/core";
+import { telegramDrafts } from "@/infrastructure/db/schema/telegram";
 import { transactions } from "@/infrastructure/db/schema/transactions";
 import { DrizzleCategoriesReader } from "@/infrastructure/db/readModels/categories";
 import { DrizzleTelegramRepository } from "@/infrastructure/db/telegram";
+import { DrizzleTelegramDraftRepository } from "@/infrastructure/db/telegramDrafts";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(`FALLÓ: ${message}`);
@@ -66,7 +68,7 @@ async function main() {
   const capture = new CaptureMovementUseCase(new RecordTransactionUseCase(uow), updateTransaction, capturesRepo, categoriesReader);
   const correct = new CorrectCaptureUseCase(capturesRepo, categoriesReader, uow, updateTransaction, new DeleteTransactionUseCase(uow));
   const queries = new AnswerTelegramQueryUseCase(new DrizzleAccountsReader(), new DrizzleTransactionsReader(), categoriesReader, resolvePeriodContextUseCase, new DrizzleDashboardRepository());
-  const handler = new HandleTelegramMessageUseCase(repo, capture, new CaptureNotificationUseCase(capture), correct, queries, sender);
+  const handler = new HandleTelegramMessageUseCase(repo, capture, new CaptureNotificationUseCase(capture), correct, queries, new DrizzleTelegramDraftRepository(), sender);
 
   try {
     console.log("1) Vinculando el chat directamente al usuario de prueba (el /link usa al primer usuario de la base, que no es este)...");
@@ -76,13 +78,20 @@ async function main() {
     await link.execute(OTHER_CHAT_ID);
     assert(sender.last.text.includes("otra persona"), `esperaba el rechazo, llegó: "${sender.last.text}"`);
 
-    console.log('3) "150 tacos" — gasto en la cuenta por defecto, sin categoría: pregunta con botones...');
+    console.log('3) "150 tacos" sin pista de cuenta — el bot pregunta la cuenta con botones y no registra nada todavía...');
     await handler.execute(CHAT_ID, "150 tacos");
+    assert(sender.last.text.includes("¿En qué cuenta lo registro?"), `debió preguntar la cuenta: ${sender.last.text}`);
+    assert((await db.select().from(transactions).where(eq(transactions.accountId, checking.id))).length === 0, "no debía registrarse antes de elegir la cuenta");
+    const pickChecking = sender.last.buttons?.flat().find((b) => b.text.includes("Checking"));
+    assert(pickChecking, "debió ofrecer la cuenta Checking");
+    await handler.handleCallback(CHAT_ID, "cb0", 1, pickChecking.data);
     const [taco] = await db.select().from(transactions).where(and(eq(transactions.accountId, checking.id), eq(transactions.name, "tacos")));
     assert(taco?.amountCents === -15000 && taco.source === "telegram", "el gasto de tacos debió registrarse como telegram");
-    assert(sender.last.text.includes("¿De qué categoría es?"), "debió preguntar la categoría");
-    const buttons = sender.last.buttons?.flat() ?? [];
-    assert(buttons.some((b) => b.text === "Comida") && buttons.some((b) => b.text.includes("Deshacer")), "debió ofrecer Comida y Deshacer");
+    assert(sender.last.kind === "answer", "el último paso debió ser contestar el botón");
+    const card = sender.sent.filter((m) => m.kind === "edit").at(-1);
+    assert(card && card.text.includes("¿De qué categoría es?"), "debió preguntar la categoría tras elegir la cuenta");
+    const buttons = card.buttons?.flat() ?? [];
+    assert(buttons.some((b) => b.text === "Comida") && buttons.some((b) => b.text.includes("Ver todas")) && buttons.some((b) => b.text.includes("Deshacer")), "debió ofrecer Comida, Ver todas y Deshacer");
 
     console.log("4) Botón de categoría — aplica Comida y confirma...");
     await handler.handleCallback(CHAT_ID, "cb1", 1, buttons.find((b) => b.text === "Comida")!.data);
@@ -96,12 +105,12 @@ async function main() {
     assert(nomina?.amountCents === 20000, "el ingreso debió ir a Efectivo");
 
     console.log("6) Notificación bancaria pegada — se entiende con reglas...");
-    await handler.execute(CHAT_ID, "Compra con TDD\nCompra con CUENTA en ANTHROPIC* CLAUDE $349.00 06 octubre 12:44h");
+    await handler.execute(CHAT_ID, "Compra con TDD\nCompra con CUENTA en ANTHROPIC* CLAUDE $349.00 06 octubre 12:44h #checking");
     const [bank] = await db.select().from(transactions).where(and(eq(transactions.accountId, checking.id), eq(transactions.name, "ANTHROPIC* CLAUDE")));
     assert(bank?.amountCents === -34900, "la notificación debió registrar -349");
 
     console.log("7) Deshacer — borra el movimiento y revierte el saldo...");
-    const undo = sender.last.buttons?.flat().find((b) => b.text.includes("Deshacer"));
+    const undo = sender.sent.filter((m) => m.buttons).at(-1)?.buttons?.flat().find((b) => b.text.includes("Deshacer"));
     assert(undo, "debió haber botón Deshacer");
     await handler.handleCallback(CHAT_ID, "cb2", 2, undo.data);
     const rest = await db.select().from(transactions).where(eq(transactions.accountId, checking.id));
@@ -109,6 +118,9 @@ async function main() {
 
     console.log('8) "30 cafe ayer" — usa la fecha de ayer...');
     await handler.execute(CHAT_ID, "30 cafe ayer");
+    const pickAgain = sender.last.buttons?.flat().find((b) => b.text.includes("Checking"));
+    assert(pickAgain, "debió preguntar la cuenta");
+    await handler.handleCallback(CHAT_ID, "cb9", 9, pickAgain.data);
     const [cafe] = await db.select().from(transactions).where(and(eq(transactions.accountId, checking.id), eq(transactions.name, "cafe")));
     assert(cafe && cafe.date < todayIso(), "el café debió quedar con fecha anterior a hoy");
 
@@ -129,6 +141,7 @@ async function main() {
     console.log("\nTODAS LAS VALIDACIONES PASARON ✓");
   } finally {
     console.log("\nLimpiando datos de prueba...");
+    await db.delete(telegramDrafts).where(eq(telegramDrafts.familyId, family.id));
     await db.delete(transactions).where(eq(transactions.accountId, checking.id));
     await db.delete(transactions).where(eq(transactions.accountId, cash.id));
     await db.delete(categories).where(eq(categories.familyId, family.id));

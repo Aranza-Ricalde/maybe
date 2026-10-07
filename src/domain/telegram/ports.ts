@@ -15,7 +15,23 @@ export interface TelegramRepository {
   findFirstUser(): Promise<TelegramLinkedUser | null>;
   linkChatId(userId: number, chatId: string): Promise<void>;
   resolveAccount(familyId: number, hint: string | undefined): Promise<ResolvedAccount | null>;
-  listAccountNames(familyId: number): Promise<string[]>;
+  listAccounts(familyId: number): Promise<ResolvedAccount[]>;
+  lastUsedAccountId(familyId: number): Promise<number | null>;
+}
+
+export interface MovementDraft {
+  chatId: string;
+  familyId: number;
+  type: "expense" | "income";
+  amountCents: number;
+  description: string;
+  date?: string;
+  notes?: string;
+}
+
+export interface TelegramDraftRepository {
+  create(draft: MovementDraft): Promise<number>;
+  take(chatId: string, id: number): Promise<MovementDraft | null>;
 }
 
 export interface TelegramLinkCodes {

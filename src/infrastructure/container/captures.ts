@@ -5,6 +5,7 @@ import { HandleTelegramMessageUseCase } from "@/application/handleTelegramMessag
 import { AnswerTelegramQueryUseCase } from "@/application/answerTelegramQuery";
 import { ConfirmCaptureUseCase } from "@/application/confirmCapture";
 import { DrizzleApiTokenRepository } from "../db/apiTokens";
+import { DrizzleTelegramDraftRepository } from "../db/telegramDrafts";
 import { DrizzleCaptureRepository } from "../db/captures";
 import { db } from "../db/client";
 import { DrizzleLedgerUnitOfWork } from "../db/ledger";
@@ -34,4 +35,4 @@ export const captureNotificationUseCase = new CaptureNotificationUseCase(capture
 export const confirmCaptureUseCase = new ConfirmCaptureUseCase(captureRepo, new DrizzleLedgerUnitOfWork(db), updateTransactionUseCase);
 
 const correctCaptureUseCase = new CorrectCaptureUseCase(captureRepo, categoriesReader, new DrizzleLedgerUnitOfWork(db), updateTransactionUseCase, deleteTransactionUseCase);
-export const handleTelegramMessageUseCase = new HandleTelegramMessageUseCase(telegramRepo, captureMovementUseCase, captureNotificationUseCase, correctCaptureUseCase, new AnswerTelegramQueryUseCase(accountsReader, transactionsReader, categoriesReader, resolvePeriodContextUseCase, dashboardRepo), telegramSender);
+export const handleTelegramMessageUseCase = new HandleTelegramMessageUseCase(telegramRepo, captureMovementUseCase, captureNotificationUseCase, correctCaptureUseCase, new AnswerTelegramQueryUseCase(accountsReader, transactionsReader, categoriesReader, resolvePeriodContextUseCase, dashboardRepo), new DrizzleTelegramDraftRepository(), telegramSender);

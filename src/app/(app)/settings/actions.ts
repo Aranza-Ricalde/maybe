@@ -6,8 +6,8 @@ import { ownsCategory, ownsPayPeriod } from "@/app/lib/ownership";
 import { REVALIDATE, revalidateRoutes } from "@/app/lib/revalidation";
 import { InvalidPayPeriodError } from "@/application/createPayPeriod";
 import { DEFAULT_CATEGORY_ICON, InvalidCategoryError } from "@/domain/categories/rules";
-import { createCategoryUseCase, issueApiTokenUseCase, createPayPeriodUseCase, deleteCategoryUseCase, deletePayPeriodUseCase, updateCategoryUseCase, updatePayPeriodUseCase } from "@/infrastructure/container";
-import { categoryForm, categoryUpdateForm, idForm, periodForm, periodUpdateForm } from "@/lib/schemas";
+import { createCategoryUseCase, issueApiTokenUseCase, createPayPeriodUseCase, deleteCategoryUseCase, deletePayPeriodUseCase, setPeriodViewUseCase, updateCategoryUseCase, updatePayMonthUseCase, updatePayPeriodUseCase } from "@/infrastructure/container";
+import { categoryForm, categoryUpdateForm, idForm, periodForm, periodUpdateForm, periodViewForm } from "@/lib/schemas";
 
 export async function createCategory(formData: FormData) {
   return runFormAction(formData, {
@@ -54,6 +54,24 @@ export async function updatePeriod(formData: FormData) {
     run: (input) => updatePayPeriodUseCase.execute(input.id, input.start, input.end),
     revalidate: REVALIDATE.payPeriods,
     tolerate: [InvalidPayPeriodError],
+  });
+}
+
+export async function updatePayMonth(formData: FormData) {
+  return runFormAction(formData, {
+    schema: periodUpdateForm,
+    owns: [ownsPayPeriod((input) => input.id)],
+    run: (input, user) => updatePayMonthUseCase.execute(user.familyId, input.id, input.start, input.end),
+    revalidate: REVALIDATE.payPeriods,
+    tolerate: [InvalidPayPeriodError],
+  });
+}
+
+export async function setPeriodView(formData: FormData) {
+  return runFormAction(formData, {
+    schema: periodViewForm,
+    run: (input, user) => setPeriodViewUseCase.execute(user.familyId, input.view),
+    revalidate: REVALIDATE.periodView,
   });
 }
 

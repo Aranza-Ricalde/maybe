@@ -7,6 +7,7 @@ export const ROUTES = {
   recurring: "/recurring",
   projection: "/projection",
   goals: "/goals",
+  import: "/import",
   settings: "/settings",
   login: "/login",
   apiLogin: "/api/login",

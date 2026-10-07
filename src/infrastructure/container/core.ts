@@ -1,3 +1,10 @@
+import { SetPeriodViewUseCase } from "@/application/setPeriodView";
+import { UpdatePayMonthUseCase } from "@/application/updatePayMonth";
+import { GetExplorerUseCase } from "@/application/getExplorer";
+import { DrizzleExplorerRepository } from "../db/explorer";
+import { categoriesReader } from "./readers";
+import { MergeSubscriptionsUseCase } from "@/application/mergeSubscriptions";
+import { DrizzleSubscriptionGroupsRepository } from "../db/subscriptionGroups";
 import { ResolvePeriodContextUseCase } from "@/application/pages/resolvePeriodContext";
 import { AcceptRecurringCandidateUseCase } from "@/application/acceptRecurringCandidate";
 import { ArchiveOrDeleteAccountUseCase } from "@/application/archiveOrDeleteAccount";
@@ -25,14 +32,11 @@ import { SetMinimumBalanceUseCase } from "@/application/setMinimumBalance";
 import { GetCashProjectionUseCase } from "@/application/getCashProjection";
 import { GetDebtCalendarUseCase } from "@/application/getDebtCalendar";
 import { GetDebtOverviewUseCase } from "@/application/getDebtOverview";
-import { GetWeeklyFlowUseCase } from "@/application/getWeeklyFlow";
-import { GetTrendsUseCase } from "@/application/getTrends";
 import { GetGoalProjectionsUseCase } from "@/application/getGoalProjections";
 import { GetSpendingAnalysisUseCase } from "@/application/getSpendingAnalysis";
 import { GetInsightsUseCase } from "@/application/getInsights";
 import { GetEmergencyFundUseCase } from "@/application/getEmergencyFund";
 import { GetProjectionBaseUseCase } from "@/application/getProjectionBase";
-import { GetFinancialEvolutionUseCase } from "@/application/getFinancialEvolution";
 import { ImportCsvUseCase } from "@/application/importCsv";
 import { LearnConceptProviderUseCase } from "@/application/learnConceptProvider";
 import { LinkTelegramUseCase } from "@/application/linkTelegram";
@@ -171,25 +175,26 @@ export const projectCashflowUseCase = new ProjectCashflowUseCase(cashflowRepo);
 export const getDashboardSummaryUseCase = new GetDashboardSummaryUseCase(dashboardRepo, cashflowRepo);
 const payPeriodsRepo = new DrizzlePayPeriodsRepository();
 export const listPayPeriodsUseCase = new ListPayPeriodsUseCase(payPeriodsRepo);
-export const resolvePeriodContextUseCase = new ResolvePeriodContextUseCase(listPayPeriodsUseCase);
+export const familySettingsRepo = new DrizzleFamilySettingsRepository();
+export const resolvePeriodContextUseCase = new ResolvePeriodContextUseCase(listPayPeriodsUseCase, familySettingsRepo);
+export const setPeriodViewUseCase = new SetPeriodViewUseCase(familySettingsRepo);
+export const updatePayMonthUseCase = new UpdatePayMonthUseCase(payPeriodsRepo);
 export const createPayPeriodUseCase = new CreatePayPeriodUseCase(payPeriodsRepo);
 export const updatePayPeriodUseCase = new UpdatePayPeriodUseCase(payPeriodsRepo);
 export const deletePayPeriodUseCase = new DeletePayPeriodUseCase(payPeriodsRepo);
 const insightsRepo = new DrizzleInsightsRepository();
-const familySettingsRepo = new DrizzleFamilySettingsRepository();
 export const getCashProjectionUseCase = new GetCashProjectionUseCase(cashflowRepo, dashboardRepo, recurringOccurrencesRepo, familySettingsRepo);
 export const setMinimumBalanceUseCase = new SetMinimumBalanceUseCase(familySettingsRepo);
 const debtsRepo = new DrizzleDebtsRepository();
 export const getDebtOverviewUseCase = new GetDebtOverviewUseCase(debtsRepo);
 export const getDebtCalendarUseCase = new GetDebtCalendarUseCase(debtsRepo);
-export const getWeeklyFlowUseCase = new GetWeeklyFlowUseCase(dashboardRepo);
-export const getTrendsUseCase = new GetTrendsUseCase(dashboardRepo);
 export const getGoalProjectionsUseCase = new GetGoalProjectionsUseCase(dashboardRepo);
-export const getSpendingAnalysisUseCase = new GetSpendingAnalysisUseCase(insightsRepo, new DrizzleSpendingAnalysisRepository(), new DrizzleCategoryStatsRepository());
+const subscriptionGroupsRepo = new DrizzleSubscriptionGroupsRepository();
+export const getSpendingAnalysisUseCase = new GetSpendingAnalysisUseCase(insightsRepo, new DrizzleSpendingAnalysisRepository(), new DrizzleCategoryStatsRepository(), subscriptionGroupsRepo);
+export const mergeSubscriptionsUseCase = new MergeSubscriptionsUseCase(subscriptionGroupsRepo);
 export const getInsightsUseCase = new GetInsightsUseCase(insightsRepo, getCategoryStatsUseCase, getTransferSuggestionsUseCase);
 export const getEmergencyFundUseCase = new GetEmergencyFundUseCase(dashboardRepo, getCategoryStatsUseCase, new DrizzleEmergencyFundGoalRepository());
-export const getProjectionBaseUseCase = new GetProjectionBaseUseCase(dashboardRepo, getCategoryStatsUseCase);
-export const getFinancialEvolutionUseCase = new GetFinancialEvolutionUseCase(dashboardRepo);
+export const getProjectionBaseUseCase = new GetProjectionBaseUseCase(dashboardRepo, getCategoryStatsUseCase, cashflowRepo);
 export const getAccountBalanceHistoryUseCase = new GetAccountBalanceHistoryUseCase(dashboardRepo);
 export const cleanMerchantNameUseCase = new CleanMerchantNameUseCase(
   merchantPatternRepo,
@@ -222,3 +227,5 @@ export const linkTelegramUseCase = new LinkTelegramUseCase(telegramRepo, telegra
 export const loginAttemptLimiter: AttemptLimiter = new DrizzleAttemptLimiter();
 
 export { processedTelegramUpdates } from "../telegram/processedUpdates";
+
+export const getExplorerUseCase = new GetExplorerUseCase(new DrizzleExplorerRepository(), categoriesReader, dashboardRepo);

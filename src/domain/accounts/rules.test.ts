@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { ACCOUNT_TYPE_LABELS } from "@/lib/format";
 import {
+  ACCOUNT_TYPES,
   assertValidAccountName,
   assertValidAccountType,
   decideAccountRemoval,
@@ -77,4 +79,15 @@ test("mergeAccountDetails: sin creditLimitCents deja los detalles existentes int
 test("mergeAccountDetails: con creditLimitCents lo mezcla sobre los detalles existentes", () => {
   assert.deepEqual(mergeAccountDetails({ foo: "bar" }, 50000), { foo: "bar", creditLimitCents: 50000 });
   assert.deepEqual(mergeAccountDetails(null, 50000), { creditLimitCents: 50000 });
+});
+
+test("Tarjeta de débito es un tipo de cuenta válido, de activo (no de pasivo) y con etiqueta", () => {
+  assert.ok(ACCOUNT_TYPES.includes("debit_card"));
+  assert.doesNotThrow(() => assertValidAccountType("debit_card"));
+  assert.equal(isLiabilityAccountType("debit_card"), false);
+  assert.equal(ACCOUNT_TYPE_LABELS.debit_card, "Tarjeta de débito");
+});
+
+test("todos los tipos de cuenta tienen etiqueta en español", () => {
+  for (const type of ACCOUNT_TYPES) assert.ok(ACCOUNT_TYPE_LABELS[type], `falta la etiqueta de ${type}`);
 });

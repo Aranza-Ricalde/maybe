@@ -1,8 +1,9 @@
-import { and, asc, eq, ilike, isNotNull } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, isNotNull } from "drizzle-orm";
 import type { ResolvedAccount, TelegramLinkedUser, TelegramRepository } from "@/domain/telegram/ports";
 import { db } from "./client";
 import { accounts } from "./schema/accounts";
 import { users } from "./schema/core";
+import { transactions } from "./schema/transactions";
 
 const escapeLike = (text: string) => text.replace(/[\\%_]/g, "\\$&");
 
@@ -30,9 +31,19 @@ export class DrizzleTelegramRepository implements TelegramRepository {
     await db.update(users).set({ telegramChatId: chatId }).where(eq(users.id, userId));
   }
 
-  async listAccountNames(familyId: number): Promise<string[]> {
-    const rows = await db.select({ name: accounts.name }).from(accounts).where(and(eq(accounts.familyId, familyId), eq(accounts.isActive, true))).orderBy(asc(accounts.id));
-    return rows.map((row) => row.name);
+  async listAccounts(familyId: number): Promise<ResolvedAccount[]> {
+    return db.select({ id: accounts.id, name: accounts.name }).from(accounts).where(and(eq(accounts.familyId, familyId), eq(accounts.isActive, true))).orderBy(asc(accounts.id));
+  }
+
+  async lastUsedAccountId(familyId: number): Promise<number | null> {
+    const [row] = await db
+      .select({ accountId: transactions.accountId })
+      .from(transactions)
+      .innerJoin(accounts, eq(accounts.id, transactions.accountId))
+      .where(and(eq(accounts.familyId, familyId), eq(accounts.isActive, true), eq(transactions.source, "telegram")))
+      .orderBy(desc(transactions.id))
+      .limit(1);
+    return row?.accountId ?? null;
   }
 
   async resolveAccount(familyId: number, hint: string | undefined): Promise<ResolvedAccount | null> {

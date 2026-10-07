@@ -21,7 +21,7 @@ export function singleSuggestion(tx: DetectionTransaction, account: DetectionAcc
   } else if (markers.savings) {
     score = 70;
     reasons.push(outflow ? "Parece dinero que apartas para ahorro (la cuenta destino no está registrada)" : "Parece un depósito a tu cuenta de ahorro (el origen no está registrado)");
-    if (!outflow && account && !["savings", "checking"].includes(account.type)) score = 0;
+    if (!outflow && account && !["savings", "checking", "debit_card"].includes(account.type)) score = 0;
   } else if (markers.generic && institution && outflow && markers.debt) {
     score = SINGLE_MEDIUM_SCORE;
     reasons.push(`Parece un pago de deuda o préstamo por transferencia a ${institution}`);

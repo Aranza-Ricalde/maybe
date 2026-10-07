@@ -94,7 +94,7 @@ export function DataTable<T extends object>({
                 >
                   {col.sortable
                     ? ({ sortDirection }) => <Table.SortableColumnHeader sortDirection={sortDirection}>{col.header}</Table.SortableColumnHeader>
-                    : col.header}
+                    : col.align === "right" ? <div className="flex w-full justify-end">{col.header}</div> : col.header}
                 </Table.Column>
               ))}
             </Table.Header>
@@ -102,9 +102,7 @@ export function DataTable<T extends object>({
               {(row) => (
                 <Table.Row id={getRowId(row)}>
                   {columns.map((col) => (
-                    <Table.Cell key={col.key} className={col.align === "right" ? "text-right" : undefined}>
-                      {col.cell(row)}
-                    </Table.Cell>
+                    <Table.Cell key={col.key}>{col.align === "right" ? <div className="flex w-full justify-end text-right tabular-nums">{col.cell(row)}</div> : col.cell(row)}</Table.Cell>
                   ))}
                 </Table.Row>
               )}

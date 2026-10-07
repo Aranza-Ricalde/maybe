@@ -1,5 +1,6 @@
 import { Card } from "@heroui/react";
 import { EyebrowLabel } from "@/components/atoms/EyebrowLabel";
+import type { DiscretionaryActions } from "@/domain/categoryStats/opportunities";
 import type { NatureStatRow } from "@/domain/categoryStats/rules";
 import { formatPercent, formatPesos } from "@/lib/format";
 
@@ -9,7 +10,7 @@ const BAR_COLOR: Record<string, string> = {
   none: "bg-separator",
 };
 
-export function NatureBreakdownCard({ natures }: { natures: NatureStatRow[] }) {
+export function NatureBreakdownCard({ natures, actions }: { natures: NatureStatRow[]; actions: DiscretionaryActions | null }) {
   const classified = natures.some((n) => n.nature != null);
   if (natures.length === 0) return null;
 
@@ -41,6 +42,24 @@ export function NatureBreakdownCard({ natures }: { natures: NatureStatRow[] }) {
             </li>
           ))}
         </ul>
+        {actions && (
+          <div className="rounded-lg border border-separator p-3" data-testid="discretionary-actions">
+            <p className="text-sm font-medium">
+              Si recortas {actions.cutPercent} % de lo discrecional ahorrarías {formatPesos(actions.monthlySavingCents)} al mes ({formatPesos(actions.yearlySavingCents)} al año).
+            </p>
+            {actions.opportunities.length > 0 && (
+              <p className="mt-1 text-xs text-muted">
+                Donde más puedes recortar:{" "}
+                {actions.opportunities.map((o, index) => (
+                  <span key={o.categoryId}>
+                    {index > 0 && " · "}
+                    <span className="font-medium text-foreground">{o.name}</span> {formatPesos(o.discretionaryMonthlyCents)}/mes
+                  </span>
+                ))}
+              </p>
+            )}
+          </div>
+        )}
       </Card.Content>
     </Card>
   );

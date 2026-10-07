@@ -65,6 +65,28 @@ describe("/accounts — crear, editar, archivar/restaurar", () => {
     cy.contains("button", "Sí, eliminar").click();
   });
 
+  it("crea una cuenta de tipo tarjeta de débito: queda con ese tipo, se muestra con su etiqueta y no es un pasivo", () => {
+    const name = `E2E Débito ${Date.now()}`;
+
+    cy.contains("button", "+ Nueva cuenta").click();
+    cy.get('input[name="name"]').type(name);
+    cy.get('[aria-label="Tipo"], [role="combobox"]').first().click();
+    cy.contains('[role="option"], li', "Tarjeta de débito").click();
+    cy.contains("button", "Crear cuenta").click();
+
+    cy.contains("tr", name).should("be.visible").within(() => {
+      cy.contains("Tarjeta de débito").should("be.visible");
+      cy.contains("$0.00").should("be.visible");
+    });
+    cy.task("dbQuery", `select type from accounts where name = '${name}'`).then((rows) => {
+      expect((rows as { type: string }[])[0].type).to.equal("debit_card");
+    });
+
+    cy.contains("tr", name).within(() => cy.get('button[aria-label^="Eliminar"]').click());
+    cy.contains("button", "Sí, eliminar").click();
+    cy.contains("tr", name).should("not.exist");
+  });
+
   it("edita el nombre de una cuenta existente y lo refleja en la base", () => {
     const name = `E2E Editar ${Date.now()}`;
     const renamed = `${name} (editada)`;

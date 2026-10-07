@@ -23,6 +23,9 @@ export interface NewTransactionInput {
   status?: TransactionStatus;
   source: TransactionSource;
   importId?: number | null;
+  importHash?: string | null;
+  postedDate?: string | null;
+  reconciled?: boolean;
 }
 
 export interface TransactionRecord extends NewTransactionInput {

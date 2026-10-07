@@ -61,6 +61,7 @@ export function paymentDaysRemainingLabel(days: number): string {
 
 export const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   checking: "Cuenta de cheques",
+  debit_card: "Tarjeta de débito",
   savings: "Ahorro",
   credit_card: "Tarjeta de crédito",
   cash: "Efectivo",

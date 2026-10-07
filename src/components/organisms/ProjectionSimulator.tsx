@@ -1,14 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
-import { projectBalance, type ProjectionBase } from "@/domain/projection/rules";
+import { projectBalance, type ProjectionAssumptions, type ProjectionBase } from "@/domain/projection/rules";
 import { useScenarioBuilder } from "@/hooks/useScenarioBuilder";
 import { formatMonthYearShort } from "@/lib/format";
 import { ProjectionBalanceChart } from "./ProjectionBalanceChart";
 import { ProjectionScenarioForm } from "./ProjectionScenarioForm";
-import { ProjectionSummaryCards } from "./ProjectionSummaryCards";
+import { ProjectionSummary } from "./ProjectionSummary";
 
-export function ProjectionSimulator({ base, basisMonths }: { base: ProjectionBase; basisMonths: string[] }) {
+export function ProjectionSimulator({ base, basisMonths, assumptions }: { base: ProjectionBase; basisMonths: string[]; assumptions: ProjectionAssumptions }) {
   const builder = useScenarioBuilder(String(base.categories[0]?.id ?? ""));
   const result = useMemo(() => projectBalance(base, builder.scenario), [base, builder.scenario]);
   const hasScenario = builder.entries.length > 0;
@@ -20,7 +20,7 @@ export function ProjectionSimulator({ base, basisMonths }: { base: ProjectionBas
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
-      <ProjectionSummaryCards base={base} result={result} hasScenario={hasScenario} />
+      <ProjectionSummary base={base} result={result} hasScenario={hasScenario} assumptions={assumptions} basisMonthsLabel={`Base: ${basisMonths.length} ${basisMonths.length === 1 ? "mes completo" : "meses completos"} (${basisMonths.map(formatMonthYearShort).join(", ")}).`} />
       <ProjectionBalanceChart data={data} basisMonths={basisMonths} hasScenario={hasScenario} />
       <ProjectionScenarioForm base={base} builder={builder} result={result} />
     </div>

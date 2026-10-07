@@ -5,9 +5,11 @@ import type { FamilyCategory } from "@/domain/readModels/types";
 import type { FakeLedger } from "./fakeLedger.testkit";
 
 export const CATEGORIES: FamilyCategory[] = [
-  { id: 10, parentId: null, name: "Comida", color: "", icon: "", classification: "expense", spendingNature: null },
-  { id: 11, parentId: null, name: "Transporte", color: "", icon: "", classification: "expense", spendingNature: null },
-  { id: 20, parentId: null, name: "Nómina", color: "", icon: "", classification: "income", spendingNature: null },
+  { id: 10, parentId: null, name: "Comida", color: "", icon: "", classification: "expense", spendingNature: null, description: null },
+  { id: 11, parentId: null, name: "Transporte", color: "", icon: "", classification: "expense", spendingNature: null, description: null },
+  { id: 12, parentId: null, name: "Vivienda", color: "", icon: "", classification: "expense", spendingNature: null, description: null },
+  { id: 13, parentId: 12, name: "Renta", color: "", icon: "", classification: "expense", spendingNature: null, description: null },
+  { id: 20, parentId: null, name: "Nómina", color: "", icon: "", classification: "income", spendingNature: null, description: null },
 ];
 
 export const fakeCategoriesReader = { list: async () => CATEGORIES } as unknown as CategoriesReader;

@@ -10,8 +10,20 @@ export interface ProjectionCategory {
   discretionaryShare: number;
 }
 
+export type ProjectionBaseMethod = "recurring" | "average";
+
+export interface ProjectionAssumptions {
+  method: ProjectionBaseMethod;
+  recurringIncomeCents: number;
+  recurringExpenseCents: number;
+  variableIncomeCents: number;
+  variableExpenseCents: number;
+  basisMonths: number;
+}
+
 export interface ProjectionBase {
   currentMonth: string;
+  currentMonthRemainingFraction?: number;
   startBalanceCents: number;
   startNetWorthCents: number;
   monthlyIncomeCents: number;
@@ -115,10 +127,11 @@ export function projectBalance(base: ProjectionBase, adjustments: ScenarioAdjust
     }, 0);
   const effectOf = (monthIndex: number): number => wealthEffectOf(monthIndex) - allocatedIn(monthIndex, "debt") - allocatedIn(monthIndex, "savings");
 
-  let baseline = base.startBalanceCents;
-  let scenario = base.startBalanceCents;
-  let baselineWealth = base.startNetWorthCents;
-  let scenarioWealth = base.startNetWorthCents;
+  const remainder = Math.round(baselineNet * Math.min(1, Math.max(0, base.currentMonthRemainingFraction ?? 0)));
+  let baseline = base.startBalanceCents + remainder;
+  let scenario = base.startBalanceCents + remainder;
+  let baselineWealth = base.startNetWorthCents + remainder;
+  let scenarioWealth = base.startNetWorthCents + remainder;
   const months: ProjectionMonth[] = [];
   for (let i = 1; i <= monthsCount; i++) {
     const effect = effectOf(i);
@@ -150,4 +163,47 @@ export function projectBalance(base: ProjectionBase, adjustments: ScenarioAdjust
     allocatedToDebtCents: months.reduce((sum, _m, i) => sum + allocatedIn(i + 1, "debt"), 0),
     allocatedToSavingsCents: months.reduce((sum, _m, i) => sum + allocatedIn(i + 1, "savings"), 0),
   };
+}
+
+export interface MonthlyFlowSample {
+  incomeCents: number;
+  expenseCents: number;
+}
+
+const average = (values: number[]) => (values.length > 0 ? Math.round(values.reduce((a, b) => a + b, 0) / values.length) : 0);
+
+function median(values: number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1 ? sorted[middle] : Math.round((sorted[middle - 1] + sorted[middle]) / 2);
+}
+
+export function deriveMonthlyBase(months: MonthlyFlowSample[], recurringIncomeCents: number, recurringExpenseCents: number): { incomeCents: number; expenseCents: number; assumptions: ProjectionAssumptions } {
+  const incomes = months.map((m) => Math.abs(m.incomeCents));
+  const expenses = months.map((m) => Math.abs(m.expenseCents));
+  const recurringIncome = Math.max(0, recurringIncomeCents);
+  const recurringExpense = Math.abs(recurringExpenseCents);
+
+  if (recurringIncome === 0) {
+    return {
+      incomeCents: average(incomes),
+      expenseCents: average(expenses),
+      assumptions: { method: "average", recurringIncomeCents: 0, recurringExpenseCents: recurringExpense, variableIncomeCents: average(incomes), variableExpenseCents: average(expenses), basisMonths: months.length },
+    };
+  }
+
+  const variableIncome = median(incomes.map((income) => Math.max(0, income - recurringIncome)));
+  const variableExpense = average(expenses.map((expense) => Math.max(0, expense - recurringExpense)));
+  return {
+    incomeCents: recurringIncome + variableIncome,
+    expenseCents: recurringExpense + variableExpense,
+    assumptions: { method: "recurring", recurringIncomeCents: recurringIncome, recurringExpenseCents: recurringExpense, variableIncomeCents: variableIncome, variableExpenseCents: variableExpense, basisMonths: months.length },
+  };
+}
+
+export function remainingMonthFraction(today: string): number {
+  const [year, month, day] = today.split("-").map(Number);
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return (daysInMonth - day) / daysInMonth;
 }

@@ -21,6 +21,7 @@ export interface FamilyCategory {
   icon: string;
   classification: Flow;
   spendingNature: SpendingNature | null;
+  description: string | null;
 }
 
 export interface FamilyGoal {

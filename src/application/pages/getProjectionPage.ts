@@ -8,7 +8,7 @@ export class GetProjectionPageUseCase {
   ) {}
 
   async execute(familyId: number, today: string) {
-    const [{ basisMonths, ...base }, cash] = await Promise.all([this.projectionBase.execute(familyId, today), this.cashProjection.execute(familyId, today)]);
-    return { basisMonths, base, cash };
+    const [{ basisMonths, assumptions, ...base }, cash] = await Promise.all([this.projectionBase.execute(familyId, today), this.cashProjection.execute(familyId, today)]);
+    return { basisMonths, assumptions, base, cash };
   }
 }

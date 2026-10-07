@@ -7,9 +7,6 @@ export const SMALL_EXPENSE_MAX_CENTS = 15_000;
 export const MAX_SMALL_GROUPS = 6;
 export const MAX_MERCHANTS = 8;
 export const MERCHANT_MONTHS = 3;
-export const SUBSCRIPTION_CATEGORY_NAMES = ["suscripciones", "suscripciones y streaming", "streaming"];
-
-const normalize = (name: string) => name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
 
 export interface SmallExpenseGroup {
   name: string;
@@ -65,7 +62,9 @@ export function smallExpenseSummary(expenses: InsightExpense[], today: string): 
 
 export interface MerchantSpendRow {
   merchant: string;
+  identified: boolean;
   categoryId: number | null;
+  month: string;
   totalCents: number;
   count: number;
 }
@@ -77,48 +76,35 @@ export interface MerchantRank {
   shareOfSpend: number;
 }
 
-export function rankMerchants(rows: MerchantSpendRow[], limit: number = MAX_MERCHANTS): MerchantRank[] {
+export interface UnidentifiedSpend {
+  totalCents: number;
+  count: number;
+  shareOfSpend: number;
+}
+
+export interface MerchantRanking {
+  ranked: MerchantRank[];
+  unidentified: UnidentifiedSpend | null;
+}
+
+export function rankMerchants(rows: MerchantSpendRow[], limit: number = MAX_MERCHANTS): MerchantRanking {
+  const total = rows.reduce((sum, r) => sum + r.totalCents, 0);
+  const isMerchant = (r: MerchantSpendRow) => r.identified && isIdentifiableMerchant(r.merchant);
+
   const byMerchant = new Map<string, { totalCents: number; count: number }>();
-  for (const r of rows) {
+  for (const r of rows.filter(isMerchant)) {
     const cur = byMerchant.get(r.merchant) ?? { totalCents: 0, count: 0 };
     cur.totalCents += r.totalCents;
     cur.count += r.count;
     byMerchant.set(r.merchant, cur);
   }
-  const total = [...byMerchant.values()].reduce((s, m) => s + m.totalCents, 0);
-  return [...byMerchant.entries()]
-    .filter(([merchant]) => isIdentifiableMerchant(merchant))
+  const ranked = [...byMerchant.entries()]
     .map(([merchant, v]) => ({ merchant, ...v, shareOfSpend: total > 0 ? v.totalCents / total : 0 }))
     .sort((a, b) => b.totalCents - a.totalCents || a.merchant.localeCompare(b.merchant))
     .slice(0, limit);
-}
 
-export interface SubscriptionCategory {
-  id: number;
-  name: string;
-  parentId: number | null;
-}
-
-export function subscriptionCategoryIds(categories: SubscriptionCategory[]): Set<number> {
-  const roots = new Set(categories.filter((c) => SUBSCRIPTION_CATEGORY_NAMES.includes(normalize(c.name))).map((c) => c.id));
-  return new Set(categories.filter((c) => roots.has(c.id) || (c.parentId != null && roots.has(c.parentId))).map((c) => c.id));
-}
-
-export interface SubscriptionSummary {
-  monthlyCents: number;
-  yearlyCents: number;
-  services: Array<{ merchant: string; monthlyCents: number }>;
-}
-
-export function subscriptionSummary(rows: MerchantSpendRow[], subscriptionIds: Set<number>, monthsCount: number): SubscriptionSummary | null {
-  if (monthsCount <= 0) return null;
-  const mine = rows.filter((r) => r.categoryId != null && subscriptionIds.has(r.categoryId));
-  if (mine.length === 0) return null;
-  const byMerchant = new Map<string, number>();
-  for (const r of mine) byMerchant.set(r.merchant, (byMerchant.get(r.merchant) ?? 0) + r.totalCents);
-  const services = [...byMerchant.entries()]
-    .map(([merchant, total]) => ({ merchant, monthlyCents: Math.round(total / monthsCount) }))
-    .sort((a, b) => b.monthlyCents - a.monthlyCents);
-  const monthlyCents = services.reduce((s, x) => s + x.monthlyCents, 0);
-  return { monthlyCents, yearlyCents: monthlyCents * 12, services };
+  const rest = rows.filter((r) => !isMerchant(r));
+  const restTotal = rest.reduce((sum, r) => sum + r.totalCents, 0);
+  const unidentified = rest.length > 0 ? { totalCents: restTotal, count: rest.reduce((sum, r) => sum + r.count, 0), shareOfSpend: total > 0 ? restTotal / total : 0 } : null;
+  return { ranked, unidentified };
 }

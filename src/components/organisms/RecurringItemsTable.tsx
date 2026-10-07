@@ -66,7 +66,7 @@ export function RecurringItemsTable({ rows, accounts, categories, updateAction, 
     },
     {
       key: "budget",
-      header: "Presupuesto",
+      header: "Como presupuesto",
       cell: (item) => (
         <RecurringBudgetInclusionCell itemId={item.id} isRelevant={isBudgetRelevant(item)} budgetInclusion={item.budgetInclusion} action={budgetDecisionAction} />
       ),

@@ -29,7 +29,7 @@ export function BudgetLineModal({ categoryId, categoryName, cadence, budgetedAmo
         name={FIELD.amount}
         type="number"
         step="0.01"
-        min="0"
+        min="0.01"
         placeholder="0.00"
         defaultValue={budgetedAmountCents > 0 ? String(budgetedAmountCents / 100) : undefined}
         isRequired

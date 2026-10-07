@@ -14,9 +14,9 @@ import { activeAccountsOf, balancesOfActiveAccounts, type AccountRow } from "./a
 import { balancesAsOfByAccount, dailyTotalBalanceSeries, earliestBalances, sumBalanceAsOf, sumBalancesAtDates } from "./balances";
 import { db } from "./client";
 
-const LIQUID_TYPES: AccountType[] = ["checking", "cash"];
+const LIQUID_TYPES: AccountType[] = ["checking", "debit_card", "cash"];
 const SAVINGS_TYPES: AccountType[] = ["savings"];
-const ASSET_TYPES: AccountType[] = ["checking", "savings", "cash", "property", "vehicle", "other_asset"];
+const ASSET_TYPES: AccountType[] = ["checking", "debit_card", "savings", "cash", "property", "vehicle", "other_asset"];
 const OTHER_LIABILITY_TYPES: AccountType[] = ["loan", "other_liability"];
 
 interface CreditCardDetails {

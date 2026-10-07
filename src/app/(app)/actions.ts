@@ -1,20 +1,20 @@
 "use server";
 
 import { runFormAction, runQuery } from "@/app/lib/actionRunner";
-import { ownsConceptSuggestion } from "@/app/lib/ownership";
+import { ownsAccount, ownsCategory, ownsConceptSuggestion } from "@/app/lib/ownership";
 import { REVALIDATE } from "@/app/lib/revalidation";
-import type { EvolutionMetric, EvolutionRangeKey } from "@/domain/evolution/rules";
+import { InvalidExplorerFiltersError, type ExplorerResult } from "@/domain/explorer/rules";
 import { InvalidOccurrenceDecisionError, assertValidOccurrenceDecision } from "@/domain/recurring/occurrences";
 import { InvalidOccurrenceLinkError } from "@/domain/recurring/paymentCandidates";
 import {
   confirmConceptSuggestionUseCase,
-  getFinancialEvolutionUseCase,
+  getExplorerUseCase,
   linkOccurrenceTransactionUseCase,
   listOccurrencePaymentCandidatesUseCase,
   rejectConceptSuggestionUseCase,
   resolveRecurringOccurrenceUseCase,
 } from "@/infrastructure/container";
-import { evolutionSeriesArgs, idForm, linkPaymentForm, occurrenceArgs, occurrenceDecisionForm } from "@/lib/schemas";
+import { explorerArgs, idForm, linkPaymentForm, occurrenceArgs, occurrenceDecisionForm } from "@/lib/schemas";
 import { todayIso } from "@/lib/today";
 
 export async function confirmConceptSuggestionAction(formData: FormData) {
@@ -71,10 +71,18 @@ export async function listPaymentCandidatesAction(occurrenceId: number) {
   });
 }
 
-export async function loadEvolutionSeriesAction(metric: EvolutionMetric, range: EvolutionRangeKey) {
-  return runQuery({ metric, range }, {
-    schema: evolutionSeriesArgs,
-    run: (input, user) => getFinancialEvolutionUseCase.execute(user.familyId, input.metric, input.range, todayIso()),
-    whenInvalid: [],
+export async function loadExplorerAction(args: unknown): Promise<ExplorerResult | null> {
+  return runQuery(args, {
+    schema: explorerArgs,
+    owns: [ownsAccount((input) => input.accountId), ownsCategory((input) => input.categoryId)],
+    run: async (input, user) => {
+      try {
+        return await getExplorerUseCase.execute(user.familyId, input, todayIso());
+      } catch (error) {
+        if (error instanceof InvalidExplorerFiltersError) return null;
+        throw error;
+      }
+    },
+    whenInvalid: null,
   });
 }

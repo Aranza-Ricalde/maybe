@@ -18,6 +18,7 @@ const NAV_ITEMS: { href: string; label: string; icon: ReactNode }[] = [
   { href: ROUTES.recurring, label: "Recurrentes", icon: <RepeatIcon /> },
   { href: ROUTES.projection, label: "Proyección", icon: <TrendIcon /> },
   { href: ROUTES.goals, label: "Metas", icon: <FlagIcon /> },
+  { href: ROUTES.import, label: "Importar estados", icon: <ListIcon /> },
   { href: ROUTES.settings, label: "Configuración", icon: <GearIcon /> },
 ];
 

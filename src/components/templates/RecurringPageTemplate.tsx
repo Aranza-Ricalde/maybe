@@ -52,6 +52,10 @@ export function RecurringPageTemplate({
 
       <RecurringCandidatesCard candidates={candidates} acceptAction={acceptCandidateAction} dismissAction={dismissCandidateAction} />
 
+      <p className="text-xs text-muted">
+        <span className="font-medium text-foreground">Como presupuesto:</span> si está activo, el monto del recurrente sirve de presupuesto de su categoría. Si defines un presupuesto manual para esa categoría, el tuyo manda y el recurrente solo queda como referencia.
+      </p>
+
       <RecurringItemsTable
         rows={rows}
         accounts={accounts}

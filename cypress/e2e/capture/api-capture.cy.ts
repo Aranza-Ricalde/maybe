@@ -2,6 +2,10 @@ const API = "/api/movements";
 const bearer = (token: string) => ({ Authorization: `Bearer ${token}` });
 
 describe("Registro por API — token, endpoint y confirmación", () => {
+  after(() => {
+    cy.task("cleanupApiCapture");
+  });
+
   beforeEach(() => {
     cy.task("mintAccessToken", 1).then((token) => cy.setCookie("access_token", token as string));
   });

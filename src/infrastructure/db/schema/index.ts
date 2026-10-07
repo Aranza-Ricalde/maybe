@@ -17,3 +17,4 @@ export * from "./occurrences";
 export * from "./reviews";
 export * from "./settings";
 export * from "./security";
+export * from "./telegram";

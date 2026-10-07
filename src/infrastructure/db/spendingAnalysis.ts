@@ -12,10 +12,14 @@ const UNIDENTIFIED_PROVIDER = "Sin identificar";
 export class DrizzleSpendingAnalysisRepository implements SpendingAnalysisRepository {
   async listMerchantSpend(familyId: number, fromDate: string, toDate: string): Promise<MerchantSpendRow[]> {
     const merchant = sql<string>`coalesce(nullif(${providers.name}, ${UNIDENTIFIED_PROVIDER}), ${transactions.name})`;
+    const identified = sql<boolean>`(${providers.name} is not null and ${providers.name} <> ${UNIDENTIFIED_PROVIDER})`;
+    const month = sql<string>`to_char(${transactions.date}, 'YYYY-MM')`;
     const rows = await db
       .select({
         merchant,
+        identified,
         categoryId: transactions.categoryId,
+        month,
         totalCents: sql<number>`-sum(${transactions.amountCents})`.mapWith(Number),
         count: sql<number>`count(*)`.mapWith(Number),
       })
@@ -24,7 +28,7 @@ export class DrizzleSpendingAnalysisRepository implements SpendingAnalysisReposi
       .leftJoin(merchantPatterns, eq(merchantPatterns.id, transactions.merchantId))
       .leftJoin(providers, eq(providers.id, merchantPatterns.providerId))
       .where(and(eq(accounts.familyId, familyId), eq(transactions.kind, "standard"), lt(transactions.amountCents, 0), gte(transactions.date, fromDate), lte(transactions.date, toDate)))
-      .groupBy(sql`1`, transactions.categoryId);
+      .groupBy(sql`1`, sql`2`, transactions.categoryId, sql`4`);
     return rows;
   }
 

@@ -3,6 +3,7 @@ import { InvalidCaptureError } from "@/domain/captures/rules";
 import type { LedgerUnitOfWork } from "@/domain/ledger/ports";
 import { classifyFlow } from "@/domain/ledger/rules";
 import type { CategoriesReader } from "@/domain/readModels/ports";
+import { buildCategoryMenu, type CategoryMenu } from "@/domain/telegram/categoryMenu";
 import type { DeleteTransactionUseCase } from "./deleteTransaction";
 import type { UpdateTransactionUseCase } from "./updateTransaction";
 
@@ -44,6 +45,12 @@ export class CorrectCaptureUseCase {
     const view = await this.find(familyId, transactionId);
     await this.deleteTransaction.execute(transactionId);
     return view;
+  }
+
+  async categoryMenu(familyId: number, transactionId: number, parentId: number, page: number): Promise<{ view: CapturedTransactionView; menu: CategoryMenu }> {
+    const view = await this.find(familyId, transactionId);
+    const categories = await this.categories.list(familyId);
+    return { view, menu: buildCategoryMenu(categories, classifyFlow(view.amountCents), parentId, page) };
   }
 
   async suggestedCategories(familyId: number, transactionId: number, limit: number) {

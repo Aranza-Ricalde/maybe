@@ -7,7 +7,7 @@ export class FakeLedger implements LedgerUnitOfWork, LedgerOperations {
   readonly categoryTotals = new Map<string, number>();
   readonly incomeExpense = new Map<string, { income: number; expense: number }>();
   readonly transfers: Array<[number, number]> = [];
-  private nextId = 1;
+  protected nextId = 1;
 
   addAccount(id: number, options: { familyId?: number; isActive?: boolean } = {}): this {
     this.accounts.set(id, { id, familyId: options.familyId ?? 1, isActive: options.isActive ?? true });

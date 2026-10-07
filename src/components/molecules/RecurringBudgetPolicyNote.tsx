@@ -6,7 +6,7 @@ export function RecurringBudgetPolicyNote({ policy, resetAction }: { policy: Bud
   return (
     <form action={resetAction} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
       <span>
-        Los recurrentes nuevos {policy === "always_include" ? "cuentan" : "no cuentan"} en tu presupuesto sin preguntarte.
+        Los recurrentes nuevos {policy === "always_include" ? "se usan" : "no se usan"} como presupuesto de su categoría sin preguntarte.
       </span>
       <Button type="submit" size="sm" variant="ghost">
         Volver a preguntar

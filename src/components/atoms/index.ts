@@ -8,3 +8,4 @@ export { Input, type InputProps } from "./Input";
 export { InlinePrefixLabel, Label, type LabelProps } from "./Label";
 export { Select, type SelectProps } from "./Select";
 export { Text, type TextProps, type TextSize, type TextTone } from "./Text";
+export { Alert, type AlertProps, type AlertStatus } from "./Alert";

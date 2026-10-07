@@ -1,4 +1,5 @@
 import { encodeCallback } from "./callbacks";
+import { ROOT_PARENT, type CategoryMenu } from "./categoryMenu";
 import type { TelegramButton } from "./ports";
 
 export const CATEGORY_BUTTONS_LIMIT = 8;
@@ -27,21 +28,66 @@ export function captureCardText(card: CaptureCardData, footer?: string): string 
   return lines.join("\n");
 }
 
-const undoButton = (transactionId: number): TelegramButton => ({ text: "↩️ Deshacer", data: encodeCallback({ action: "undo", transactionId }) });
+const undoButton = (transactionId: number): TelegramButton => ({ text: "↩️ Deshacer", data: encodeCallback({ action: "undo", id: transactionId }) });
 
-export function categoryButtons(transactionId: number, categories: Array<{ id: number; name: string }>): TelegramButton[][] {
-  const buttons = categories.map((category) => ({ text: category.name, data: encodeCallback({ action: "cat", transactionId, categoryId: category.id }) }));
+const chunkRows = (buttons: TelegramButton[]): TelegramButton[][] => {
   const rows: TelegramButton[][] = [];
   for (let index = 0; index < buttons.length; index += BUTTONS_PER_ROW) rows.push(buttons.slice(index, index + BUTTONS_PER_ROW));
-  return [...rows, [undoButton(transactionId)]];
+  return rows;
+};
+
+export function categoryButtons(transactionId: number, categories: Array<{ id: number; name: string }>): TelegramButton[][] {
+  const buttons = categories.map((category) => ({ text: category.name, data: encodeCallback({ action: "cat", id: transactionId, arg: category.id }) }));
+  const showAll: TelegramButton = { text: "📚 Ver todas", data: encodeCallback({ action: "nav", id: transactionId, arg: ROOT_PARENT, page: 0 }) };
+  return [...chunkRows(buttons), [showAll, undoButton(transactionId)]];
+}
+
+export function categoryMenuButtons(transactionId: number, menu: CategoryMenu): TelegramButton[][] {
+  const { parent, items, page, pages } = menu;
+  const nav = (arg: number, toPage: number) => encodeCallback({ action: "nav", id: transactionId, arg, page: toPage });
+  const itemButtons = items.map((item) =>
+    item.opensChildren
+      ? { text: `📁 ${item.label}`, data: nav(item.categoryId, 0) }
+      : { text: item.label, data: encodeCallback({ action: "cat", id: transactionId, arg: item.categoryId }) },
+  );
+  const parentId = parent?.id ?? ROOT_PARENT;
+  const pager: TelegramButton[] = [
+    ...(page > 0 ? [{ text: "◀️", data: nav(parentId, page - 1) }] : []),
+    ...(pages > 1 ? [{ text: `${page + 1}/${pages}`, data: nav(parentId, page) }] : []),
+    ...(page < pages - 1 ? [{ text: "▶️", data: nav(parentId, page + 1) }] : []),
+  ];
+  const useParent: TelegramButton[][] = parent ? [[{ text: `✅ ${parent.name} (general)`, data: encodeCallback({ action: "cat", id: transactionId, arg: parent.id }) }]] : [];
+  const back: TelegramButton = parent ? { text: "⬅️ Categorías", data: nav(ROOT_PARENT, 0) } : { text: "⬅️ Atrás", data: encodeCallback({ action: "change", id: transactionId }) };
+  return [...useParent, ...chunkRows(itemButtons), ...(pager.length > 0 ? [pager] : []), [back, undoButton(transactionId)]];
+}
+
+export function categoryMenuTitle(menu: CategoryMenu): string {
+  const where = menu.parent ? `Subcategorías de ${menu.parent.name}` : "Todas las categorías";
+  return menu.pages > 1 ? `${where} (página ${menu.page + 1} de ${menu.pages}):` : `${where}:`;
 }
 
 export function captureCardButtons(card: CaptureCardData, topCategories: Array<{ id: number; name: string }>): TelegramButton[][] {
   const { transactionId } = card;
   if (card.needsConfirmation && card.categoryId == null) return categoryButtons(transactionId, topCategories.slice(0, CONFIRM_BUTTONS_LIMIT));
-  const change: TelegramButton = { text: "📂 Cambiar", data: encodeCallback({ action: "change", transactionId }) };
-  if (card.needsConfirmation) return [[{ text: "✅ Sí", data: encodeCallback({ action: "ok", transactionId }) }, change, undoButton(transactionId)]];
+  const change: TelegramButton = { text: "📂 Cambiar", data: encodeCallback({ action: "change", id: transactionId }) };
+  if (card.needsConfirmation) return [[{ text: "✅ Sí", data: encodeCallback({ action: "ok", id: transactionId }) }, change, undoButton(transactionId)]];
   return [[change, undoButton(transactionId)]];
+}
+
+export interface DraftSummary {
+  amountCents: number;
+  description: string;
+}
+
+export function accountQuestionText(draft: DraftSummary): string {
+  const sign = draft.amountCents < 0 ? "−" : "+";
+  return `${draft.amountCents < 0 ? "💸" : "💰"} ${sign}${pesos(draft.amountCents)} · ${draft.description}\n\n🏦 ¿En qué cuenta lo registro?`;
+}
+
+export function accountButtons(draftId: number, accounts: Array<{ id: number; name: string }>, lastUsedAccountId: number | null): TelegramButton[][] {
+  const ordered = [...accounts].sort((a, b) => Number(b.id === lastUsedAccountId) - Number(a.id === lastUsedAccountId));
+  const buttons = ordered.map((account) => ({ text: `${account.id === lastUsedAccountId ? "⭐ " : ""}${account.name}`, data: encodeCallback({ action: "acct", id: draftId, arg: account.id }) }));
+  return [...chunkRows(buttons), [{ text: "✖️ Cancelar", data: encodeCallback({ action: "cancel", id: draftId }) }]];
 }
 
 export interface BalanceLine {

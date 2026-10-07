@@ -31,6 +31,7 @@ export interface CategoriesReader {
   expenseTotalsBetween(familyId: number, fromDateInclusive: string, toDateInclusive: string): Promise<CategoryTotal[]>;
 }
 
+
 export interface TransactionsReader {
   recent(familyId: number, limit: number): Promise<RecentMovementRow[]>;
   page(familyId: number, filters: TransactionFilters, sort: TransactionSort, page: number, pageSize: number): Promise<Page<FamilyMovementRow>>;

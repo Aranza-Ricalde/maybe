@@ -1,5 +1,6 @@
 export const ACCOUNT_TYPES = [
   "checking",
+  "debit_card",
   "savings",
   "credit_card",
   "cash",

@@ -8,7 +8,7 @@ import { categoryMonthlyTotals, incomeExpenseMonthly } from "./schema/aggregates
 import { transactions, transfers } from "./schema/transactions";
 
 type Db = NeonDatabase<typeof schema>;
-type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
+export type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
 function toTransactionRecord(row: typeof transactions.$inferSelect): TransactionRecord {
   return {
@@ -26,11 +26,14 @@ function toTransactionRecord(row: typeof transactions.$inferSelect): Transaction
     status: row.status,
     source: row.source,
     importId: row.importId,
+    importHash: row.importHash,
+    postedDate: row.postedDate,
+    reconciled: row.reconciled,
   };
 }
 
-class DrizzleLedgerOperations implements LedgerOperations {
-  constructor(private readonly tx: Tx) {}
+export class DrizzleLedgerOperations implements LedgerOperations {
+  constructor(protected readonly tx: Tx) {}
 
   async getAccount(accountId: number): Promise<AccountSummary | null> {
     const [row] = await this.tx
@@ -88,6 +91,9 @@ class DrizzleLedgerOperations implements LedgerOperations {
         status: input.status ?? "posted",
         source: input.source,
         importId: input.importId ?? null,
+        importHash: input.importHash ?? null,
+        postedDate: input.postedDate ?? null,
+        reconciled: input.reconciled ?? false,
       })
       .returning();
     return toTransactionRecord(row);
