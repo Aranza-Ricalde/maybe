@@ -19,6 +19,9 @@ export interface CategoryRow {
   nature: SpendingNature | null;
   depth: 0 | 1;
   hasChildren: boolean;
+  description: string | null;
+  descriptionText: string | null;
+  descriptionIsSuggested: boolean;
 }
 
 export interface CategoriesTableProps {
@@ -36,6 +39,19 @@ export function CategoriesTable({ rows, updateAction, deleteAction }: Categories
       header: "Nombre",
       isRowHeader: true,
       cell: (c) => <CategoryNameCell name={c.name} color={c.color} depth={c.depth} />,
+    },
+    {
+      key: "description",
+      header: "Qué va aquí",
+      cell: (c) =>
+        c.descriptionText ? (
+          <div className="flex max-w-md flex-col gap-1">
+            <span className="text-xs text-muted">{c.descriptionText}</span>
+            {c.descriptionIsSuggested && <span className="text-[11px] text-muted/70">Sugerida · edítala para personalizarla</span>}
+          </div>
+        ) : (
+          <span className="text-xs text-muted">Sin descripción</span>
+        ),
     },
     {
       key: "type",
@@ -61,7 +77,7 @@ export function CategoriesTable({ rows, updateAction, deleteAction }: Categories
           <CategoryModal
             mode="edit"
             action={updateAction}
-            initialValues={{ id: c.id, name: c.name, classification: c.classification, color: c.color, parentId: c.parentId, nature: c.nature }}
+            initialValues={{ id: c.id, name: c.name, classification: c.classification, color: c.color, parentId: c.parentId, nature: c.nature, description: c.description }}
             parentOptions={c.hasChildren ? [] : topLevel.filter((p) => p.id !== c.id).map((p) => ({ value: String(p.id), label: p.name }))}
           />
           <ConfirmDeleteButton

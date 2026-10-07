@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import type { PeriodViewRepository } from "@/domain/payPeriod/ports";
 import type { FamilySettingsRepository } from "@/domain/settings/ports";
 import { db } from "./client";
 import { familySettings } from "./schema/settings";
@@ -10,7 +11,7 @@ function isUndefinedTable(error: unknown): boolean {
   return e?.code === UNDEFINED_TABLE || e?.cause?.code === UNDEFINED_TABLE;
 }
 
-export class DrizzleFamilySettingsRepository implements FamilySettingsRepository {
+export class DrizzleFamilySettingsRepository implements FamilySettingsRepository, PeriodViewRepository {
   async getMinimumBalanceCents(familyId: number): Promise<number | null> {
     try {
       const [row] = await db.select({ cents: familySettings.minimumBalanceCents }).from(familySettings).where(eq(familySettings.familyId, familyId));
@@ -26,5 +27,17 @@ export class DrizzleFamilySettingsRepository implements FamilySettingsRepository
       .insert(familySettings)
       .values({ familyId, minimumBalanceCents: cents })
       .onConflictDoUpdate({ target: familySettings.familyId, set: { minimumBalanceCents: cents, updatedAt: new Date() } });
+  }
+
+  async get(familyId: number): Promise<string | null> {
+    const [row] = await db.select({ view: familySettings.periodView }).from(familySettings).where(eq(familySettings.familyId, familyId));
+    return row?.view ?? null;
+  }
+
+  async set(familyId: number, view: string): Promise<void> {
+    await db
+      .insert(familySettings)
+      .values({ familyId, periodView: view })
+      .onConflictDoUpdate({ target: familySettings.familyId, set: { periodView: view, updatedAt: new Date() } });
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { FieldError, Select, TextField } from "@heroui/react";
+import { FieldError, Select, TextArea, TextField } from "@heroui/react";
 import type { ComponentProps } from "react";
 import { Input } from "@/components/atoms/Input";
 import { InlinePrefixLabel, Label } from "@/components/atoms/Label";
@@ -23,6 +23,16 @@ export function TextInput({
     <TextField name={name} {...props} className="flex flex-col gap-1.5">
       {label && <Label>{label}</Label>}
       <Input type={type} step={step} min={min} max={max} placeholder={placeholder} />
+      <FieldError className="text-xs text-danger" />
+    </TextField>
+  );
+}
+
+export function TextAreaField({ label, name, placeholder, rows = 3, ...props }: { label?: string; name: string; placeholder?: string; rows?: number } & Omit<ComponentProps<typeof TextField>, "children">) {
+  return (
+    <TextField name={name} {...props} className="flex flex-col gap-1.5">
+      {label && <Label>{label}</Label>}
+      <TextArea placeholder={placeholder} rows={rows} />
       <FieldError className="text-xs text-danger" />
     </TextField>
   );

@@ -1,4 +1,5 @@
 import type { CategoriesRepository, NewCategoryInput } from "@/domain/categories/ports";
+import { assertValidCategoryDescription, normalizeCategoryDescription } from "@/domain/categories/descriptions";
 import { assertValidSpendingNature } from "@/domain/categories/nature";
 import { assertValidCategoryClassification, assertValidCategoryName, assertValidCategoryParent } from "@/domain/categories/rules";
 
@@ -9,6 +10,7 @@ export class CreateCategoryUseCase {
     assertValidCategoryName(input.name);
     assertValidCategoryClassification(input.classification);
     assertValidSpendingNature(input.nature);
+    assertValidCategoryDescription(input.description);
 
     const parentId = input.parentId ?? null;
     const parent = parentId != null ? await this.repo.getHierarchyState(parentId) : null;
@@ -20,6 +22,6 @@ export class CreateCategoryUseCase {
       childClassifications: [],
     });
 
-    await this.repo.create({ ...input, parentId });
+    await this.repo.create({ ...input, parentId, description: normalizeCategoryDescription(input.description) });
   }
 }

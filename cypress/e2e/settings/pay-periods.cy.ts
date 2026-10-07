@@ -1,3 +1,11 @@
+before(() => {
+  cy.task("setPeriodView", "biweekly");
+});
+
+after(() => {
+  cy.task("setPeriodView", "monthly");
+});
+
 describe("Settings — Periodos de pago", () => {
   beforeEach(() => {
     cy.task("mintAccessToken", 1).then((token) => cy.setCookie("access_token", token as string));

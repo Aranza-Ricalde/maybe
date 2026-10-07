@@ -11,13 +11,14 @@ import { FIELD } from "@/lib/formFields";
 
 export interface PayPeriodModalProps {
   mode: "create" | "edit";
-  initialValues?: { id: number; index: number; start: string; end: string };
+  initialValues?: { id: number; index?: number; start: string; end: string };
+  editTitle?: string;
   defaultStart?: string;
   defaultEnd?: string;
   action: (formData: FormData) => Promise<void> | void;
 }
 
-export function PayPeriodModal({ mode, initialValues, defaultStart, defaultEnd, action }: PayPeriodModalProps) {
+export function PayPeriodModal({ mode, initialValues, editTitle, defaultStart, defaultEnd, action }: PayPeriodModalProps) {
   const today = todayIso();
   const [range, setRange] = useState({
     start: initialValues?.start ?? defaultStart ?? today,
@@ -25,7 +26,7 @@ export function PayPeriodModal({ mode, initialValues, defaultStart, defaultEnd, 
   });
 
   return (
-    <EntityFormModal mode={mode} labels={ENTITY.payPeriod} entityId={initialValues?.id} editTitle={`Editar Quincena ${initialValues?.index}`} size="sm" action={action}>
+    <EntityFormModal mode={mode} labels={ENTITY.payPeriod} entityId={initialValues?.id} editTitle={editTitle ?? `Editar Quincena ${initialValues?.index}`} size="sm" action={action}>
       <input type="hidden" name={FIELD.start} value={range.start} />
       <input type="hidden" name={FIELD.end} value={range.end} />
       <div className="flex flex-col items-center gap-2">

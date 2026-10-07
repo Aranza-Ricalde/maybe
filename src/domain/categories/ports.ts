@@ -15,6 +15,7 @@ export interface NewCategoryInput {
   icon: string;
   parentId?: number | null;
   nature?: SpendingNature | null;
+  description?: string | null;
 }
 
 export interface UpdateCategoryInput {
@@ -24,6 +25,7 @@ export interface UpdateCategoryInput {
   color: string;
   parentId?: number | null;
   nature?: SpendingNature | null;
+  description?: string | null;
 }
 
 export interface CategoryHierarchyState extends CategoryParentCandidate {

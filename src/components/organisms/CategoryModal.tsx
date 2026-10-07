@@ -1,5 +1,5 @@
 import { ColorSwatchPicker } from "@/components/molecules/ColorSwatchPicker";
-import { SelectField, TextInput } from "@/components/molecules/FormField";
+import { SelectField, TextAreaField, TextInput } from "@/components/molecules/FormField";
 import { ENTITY } from "@/lib/entityLabels";
 import { EntityFormModal } from "./EntityFormModal";
 import { NO_NATURE_FORM_VALUE, SPENDING_NATURES, SPENDING_NATURE_LABELS, type SpendingNature } from "@/domain/categories/nature";
@@ -15,6 +15,7 @@ export interface CategoryFormValues {
   color: string;
   parentId?: number | null;
   nature?: SpendingNature | null;
+  description?: string | null;
 }
 
 export interface CategoryModalProps {
@@ -46,6 +47,7 @@ export function CategoryModal({ mode, initialValues, parentOptions = [], action 
         />
       )}
       <SelectField label="Naturaleza del gasto" name={FIELD.nature} defaultValue={initialValues?.nature ?? NO_NATURE_FORM_VALUE} options={natureOptions} />
+      <TextAreaField label="Qué va aquí (descripción)" name={FIELD.description} defaultValue={initialValues?.description ?? ""} placeholder="Ej.: Comida a domicilio: Uber Eats, Didi Food, Rappi" />
       <ColorSwatchPicker name={FIELD.color} defaultValue={initialValues?.color} />
     </EntityFormModal>
   );

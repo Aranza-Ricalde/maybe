@@ -32,6 +32,6 @@ describe("Settings — Tu cuenta y Telegram", () => {
 
   it("muestra los encabezados de las secciones de administración", () => {
     cy.contains("h2, h3, [data-slot='card-title']", "Categorías").should("be.visible");
-    cy.contains("h2, h3, [data-slot='card-title']", "Periodos de pago").should("be.visible");
+    cy.contains("h2, h3, [data-slot='card-title']", "Cómo ver tus periodos").should("be.visible");
   });
 });

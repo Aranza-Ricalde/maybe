@@ -1,4 +1,5 @@
-import { budgetTableRows, composeBudgetOverview } from "@/domain/budget/overview";
+import { budgetScopeNote, budgetTableRows, composeBudgetOverview } from "@/domain/budget/overview";
+import { monthShareCovered } from "@/domain/budget/rules";
 import type { CategoriesReader, PlanningReader } from "@/domain/readModels/ports";
 import { pendingBudgetDecisionViews } from "@/domain/recurring/budgetInclusion";
 import type { ResolvePeriodContextUseCase } from "./resolvePeriodContext";
@@ -25,6 +26,7 @@ export class GetBudgetsPageUseCase {
 
     return {
       rows: budgetTableRows(categories, settings, hierarchy),
+      scopeNote: budgetScopeNote(monthShareCovered(selectedPeriods), selectedPeriods.length),
       ...header,
       pendingBudgetDecisions: pendingBudgetDecisionViews(recurringItems, budgetPolicy, new Map(categories.map((category) => [category.id, category.name]))),
       budgetPolicy,

@@ -16,6 +16,7 @@ export const categories = pgTable("categories", {
   icon: text("icon").notNull(),
   classification: text("classification").notNull().$type<Flow>(),
   spendingNature: text("spending_nature").$type<SpendingNature>(),
+  description: text("description"),
 }, (table) => [index("categories_family_idx").on(table.familyId)]);
 
 export const tags = pgTable("tags", {

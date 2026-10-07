@@ -12,6 +12,7 @@ import { ROUTES } from "@/domain/shared/routes";
 export interface BudgetsPageTemplateProps {
   rows: BudgetRow[];
   periodLabel: string;
+  scopeNote: string;
   periods: PeriodMultiSelectOption[];
   selectedIds: number[];
   setLineAction: (formData: FormData) => Promise<void> | void;
@@ -25,6 +26,7 @@ export interface BudgetsPageTemplateProps {
 export function BudgetsPageTemplate({
   rows,
   periodLabel,
+  scopeNote,
   periods,
   selectedIds,
   setLineAction,
@@ -38,7 +40,7 @@ export function BudgetsPageTemplate({
     <>
       <PageHeader
         title="Presupuesto"
-        subtitle={`Cuánto planeas gastar por categoría — ${periodLabel}.`}
+        subtitle={`Cuánto planeas gastar por categoría — ${periodLabel}. ${scopeNote}`}
         action={<PeriodMultiSelect periods={periods} selectedIds={selectedIds} basePath={ROUTES.budgets} />}
       />
 

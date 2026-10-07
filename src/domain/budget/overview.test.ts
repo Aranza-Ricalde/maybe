@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { composeBudgetOverview, topLevelBudgetCards } from "./overview";
+import { budgetScopeNote, composeBudgetOverview, topLevelBudgetCards } from "./overview";
 
-const PERIODS = [{ start: "2026-10-01", end: "2026-10-15" }];
+const PERIODS = [{ start: "2026-10-01", end: "2026-10-15", monthShare: 0.5 }];
 
 test("composeBudgetOverview: arma la jerarquía y el total con el presupuesto prorrateado y el gasto real", () => {
   const overview = composeBudgetOverview({
@@ -51,4 +51,41 @@ test("budgetTableRows: ordena como árbol y completa los datos de presupuesto, g
   assert.equal(ocio.effectiveBudgetedCents, 40_000);
   assert.equal(ocio.actualCents, 10_000);
   assert.equal(rows[1].cadence, "monthly");
+});
+
+test("budgetScopeNote: explica con claridad cuánto cuenta un presupuesto mensual según lo que se ve", () => {
+  assert.match(budgetScopeNote(1, 2), /mes completo/);
+  assert.match(budgetScopeNote(0.5, 1), /la mitad/);
+  assert.match(budgetScopeNote(1.5, 3), /150%/);
+});
+
+import { budgetOriginOf } from "./overview";
+
+const BASE = { manualAmountCents: 0, cadence: "monthly" as const, effectiveCents: 100_000, hasChildren: false, isDerivedFromChildren: false, isRaisedByChildren: false, ownCapCents: 0, unallocatedCents: 0 };
+
+test("budgetOriginOf: distingue manual, recurrente, suma de hijas, tope con sobrante y tope que subió", () => {
+  assert.deepEqual(budgetOriginOf({ ...BASE, effectiveCents: 0 }), { kind: "none" });
+  assert.deepEqual(budgetOriginOf({ ...BASE, manualAmountCents: 45_000 }), { kind: "manual", amountCents: 45_000, cadence: "monthly" });
+  assert.deepEqual(budgetOriginOf(BASE), { kind: "recurring" });
+  assert.deepEqual(budgetOriginOf({ ...BASE, hasChildren: true, isDerivedFromChildren: true }), { kind: "children" });
+  assert.deepEqual(budgetOriginOf({ ...BASE, hasChildren: true, manualAmountCents: 400_000, unallocatedCents: 70_000 }), { kind: "cap", amountCents: 400_000, cadence: "monthly", unallocatedCents: 70_000 });
+  assert.deepEqual(budgetOriginOf({ ...BASE, hasChildren: true, manualAmountCents: 400_000, isRaisedByChildren: true, ownCapCents: 400_000 }), { kind: "raised", ownCapCents: 400_000 });
+});
+
+test("budgetTableRows: cada fila trae el origen del monto y la descripción (propia o sugerida)", () => {
+  const categories = [
+    { id: 1, name: "Vivienda", color: "#00f", parentId: null },
+    { id: 2, name: "Renta", color: "#0ff", parentId: 1, description: "Lo que le pago al casero" },
+    { id: 3, name: "Cosas raras", color: "#0ff", parentId: 1 },
+  ];
+  const settings = [{ categoryId: 2, cadence: "monthly" as const, budgetedAmountCents: 600_000 }];
+  const overview = composeBudgetOverview({ categories, settings, recurringItems: [], periods: [{ start: "2026-10-01", end: "2026-10-31", monthShare: 1 }], actuals: [] });
+  const rows = budgetTableRows(categories, settings, overview.hierarchy);
+  const byName = new Map(rows.map((r) => [r.name, r]));
+  assert.deepEqual(byName.get("Vivienda")?.origin, { kind: "children" });
+  assert.equal(byName.get("Vivienda")?.description.isSuggested, true);
+  assert.deepEqual(byName.get("Renta")?.origin, { kind: "manual", amountCents: 600_000, cadence: "monthly" });
+  assert.deepEqual(byName.get("Renta")?.description, { text: "Lo que le pago al casero", isSuggested: false });
+  assert.deepEqual(byName.get("Cosas raras")?.description, { text: null, isSuggested: false });
+  assert.deepEqual(byName.get("Cosas raras")?.origin, { kind: "none" });
 });

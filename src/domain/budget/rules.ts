@@ -1,27 +1,22 @@
-import { daysInMonth } from "@/domain/cashflow/rules";
-import { addDays, resolveDayOfMonthWithinRange } from "@/domain/payPeriod/rules";
+import { resolveDayOfMonthWithinRange } from "@/domain/payPeriod/rules";
 import { countsTowardBudget } from "@/domain/recurring/budgetInclusion";
 import { groupBy } from "@/domain/shared/collections";
 
 export const BUDGET_CADENCES = ["monthly", "biweekly"] as const;
 export type BudgetCadence = (typeof BUDGET_CADENCES)[number];
 
-export function monthFractionCovered(periods: { start: string; end: string }[]): number {
-  const daysByMonth = new Map<string, Set<string>>();
-  for (const p of periods) {
-    for (let d = p.start; d <= p.end; d = addDays(d, 1)) {
-      const month = d.slice(0, 7);
-      if (!daysByMonth.has(month)) daysByMonth.set(month, new Set());
-      daysByMonth.get(month)!.add(d);
-    }
-  }
-  let fraction = 0;
-  for (const [month, days] of daysByMonth) fraction += days.size / daysInMonth(`${month}-01`);
-  return fraction;
+export interface BudgetPeriod {
+  start: string;
+  end: string;
+  monthShare: number;
 }
 
-export function effectiveBudgetTargetCents(cadence: BudgetCadence, budgetedAmountCents: number, periods: { start: string; end: string }[]): number {
-  return cadence === "biweekly" ? budgetedAmountCents * periods.length : Math.round(budgetedAmountCents * monthFractionCovered(periods));
+export function monthShareCovered(periods: Array<Pick<BudgetPeriod, "monthShare">>): number {
+  return periods.reduce((sum, period) => sum + period.monthShare, 0);
+}
+
+export function effectiveBudgetTargetCents(cadence: BudgetCadence, budgetedAmountCents: number, periods: Array<Pick<BudgetPeriod, "monthShare">>): number {
+  return cadence === "biweekly" ? budgetedAmountCents * periods.length : Math.round(budgetedAmountCents * monthShareCovered(periods));
 }
 
 export interface RecurringBudgetContributionInput {
@@ -61,17 +56,13 @@ export interface EffectiveBudgetLine {
   targetCents: number;
 }
 
-export function composeEffectiveBudgets(
-  settings: BudgetCategorySettingInput[],
-  recurringItems: RecurringBudgetContributionInput[],
-  periods: { start: string; end: string }[],
-): EffectiveBudgetLine[] {
+export function composeEffectiveBudgets(settings: BudgetCategorySettingInput[], recurringItems: RecurringBudgetContributionInput[], periods: BudgetPeriod[]): EffectiveBudgetLine[] {
   const byCategory = new Map<number, number>();
   for (const s of settings) {
     byCategory.set(s.categoryId, effectiveBudgetTargetCents(s.cadence, s.budgetedAmountCents, periods));
   }
   for (const [categoryId, amount] of recurringContributionsByCategory(recurringItems, periods)) {
-    byCategory.set(categoryId, (byCategory.get(categoryId) ?? 0) + amount);
+    if (!byCategory.has(categoryId)) byCategory.set(categoryId, amount);
   }
   return [...byCategory.entries()].map(([categoryId, targetCents]) => ({ categoryId, targetCents }));
 }
@@ -94,7 +85,9 @@ export interface BudgetHierarchyLine {
   targetCents: number;
   actualCents: number;
   childrenAllocatedCents: number;
-  isOverAllocated: boolean;
+  ownCapCents: number;
+  unallocatedCents: number;
+  isRaisedByChildren: boolean;
   isDerivedFromChildren: boolean;
 }
 
@@ -114,7 +107,9 @@ export function rollUpBudgetHierarchy(input: BudgetHierarchyInput): BudgetHierar
         targetCents: target(c.id),
         actualCents: actual(c.id),
         childrenAllocatedCents: 0,
-        isOverAllocated: false,
+        ownCapCents: 0,
+        unallocatedCents: 0,
+        isRaisedByChildren: false,
         isDerivedFromChildren: false,
       };
     }
@@ -124,13 +119,16 @@ export function rollUpBudgetHierarchy(input: BudgetHierarchyInput): BudgetHierar
     const hasOwnCap = input.manualCategoryIds.has(c.id);
     const isDerivedFromChildren = children.length > 0 && !hasOwnCap && childrenAllocatedCents > 0;
 
+    const ownCapCents = hasOwnCap ? target(c.id) : 0;
     return {
       categoryId: c.id,
       parentId: null,
-      targetCents: hasOwnCap ? target(c.id) : target(c.id) + childrenAllocatedCents,
+      targetCents: hasOwnCap ? Math.max(ownCapCents, childrenAllocatedCents) : target(c.id) + childrenAllocatedCents,
       actualCents: actual(c.id) + children.reduce((sum, id) => sum + actual(id), 0),
       childrenAllocatedCents,
-      isOverAllocated: hasOwnCap && childrenAllocatedCents > target(c.id),
+      ownCapCents,
+      unallocatedCents: hasOwnCap ? Math.max(0, ownCapCents - childrenAllocatedCents) : 0,
+      isRaisedByChildren: hasOwnCap && childrenAllocatedCents > ownCapCents,
       isDerivedFromChildren,
     };
   });

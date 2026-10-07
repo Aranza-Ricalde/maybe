@@ -11,22 +11,23 @@ import {
   topCategoryBudgets,
 } from "./rules";
 
-const Q1 = { start: "2026-09-29", end: "2026-10-14" };
-const Q2 = { start: "2026-10-15", end: "2026-10-28" };
-const OCTUBRE = [{ start: "2026-10-01", end: "2026-10-15" }, { start: "2026-10-16", end: "2026-10-31" }];
+const Q1 = { start: "2026-09-29", end: "2026-10-14", monthShare: 0.5 };
+const Q2 = { start: "2026-10-15", end: "2026-10-28", monthShare: 0.5 };
+const OCTUBRE = [{ start: "2026-10-01", end: "2026-10-15", monthShare: 0.5 }, { start: "2026-10-16", end: "2026-10-31", monthShare: 0.5 }];
 
 test("effectiveBudgetTargetCents: quincenal escala con el número de periodos en vista", () => {
   assert.equal(effectiveBudgetTargetCents("biweekly", 150_000, [Q1]), 150_000);
   assert.equal(effectiveBudgetTargetCents("biweekly", 150_000, [Q1, Q2]), 300_000);
 });
 
-test("effectiveBudgetTargetCents: mensual se prorratea: un mes completo da el monto y media quincena su parte", () => {
-  assert.equal(effectiveBudgetTargetCents("monthly", 600_000, OCTUBRE), 600_000);
-  assert.equal(effectiveBudgetTargetCents("monthly", 310_000, [{ start: "2026-10-01", end: "2026-10-15" }]), 150_000);
+test("effectiveBudgetTargetCents: mensual vale exacto en el mes completo y la mitad en una quincena", () => {
+  assert.equal(effectiveBudgetTargetCents("monthly", 450_000, OCTUBRE), 450_000);
+  assert.equal(effectiveBudgetTargetCents("monthly", 450_000, [OCTUBRE[0]]), 225_000);
 });
 
-test("effectiveBudgetTargetCents: mensual no cuenta dos veces los días de periodos traslapados", () => {
-  assert.equal(effectiveBudgetTargetCents("monthly", 600_000, [...OCTUBRE, { start: "2026-10-10", end: "2026-10-20" }]), 600_000);
+test("effectiveBudgetTargetCents: el mes de pago que cruza dos meses de calendario sigue valiendo exacto (no 450.97)", () => {
+  const mesDePago = [{ start: "2026-09-29", end: "2026-10-13", monthShare: 0.5 }, { start: "2026-10-14", end: "2026-10-29", monthShare: 0.5 }];
+  assert.equal(effectiveBudgetTargetCents("monthly", 45_000, mesDePago), 45_000);
 });
 
 test("recurringContributionsByCategory: suma el recurrente cuando su día cae en el periodo en vista", () => {
@@ -174,8 +175,8 @@ test("composeEffectiveBudgets: combina presupuesto manual quincenal escalado + r
     [{ categoryId: 56, cadence: "biweekly", budgetedAmountCents: 150_000 }],
     [{ categoryId: 51, dayOfMonth: 15, estimatedAmountCents: -600_000, flow: "expense", status: "active" }],
     [
-      { start: "2026-09-29", end: "2026-10-13" },
-      { start: "2026-10-14", end: "2026-10-29" },
+      { start: "2026-09-29", end: "2026-10-13", monthShare: 0.5 },
+      { start: "2026-10-14", end: "2026-10-29", monthShare: 0.5 },
     ],
   );
   const despensa = result.find((r) => r.categoryId === 56);
@@ -184,15 +185,27 @@ test("composeEffectiveBudgets: combina presupuesto manual quincenal escalado + r
   assert.equal(renta?.targetCents, 600_000);
 });
 
-test("composeEffectiveBudgets: suma presupuesto manual mensual + recurrente de la MISMA categoría", () => {
+test("composeEffectiveBudgets: el presupuesto manual manda sobre el recurrente de la MISMA categoría (el recurrente solo sugiere)", () => {
   const result = composeEffectiveBudgets(
     [{ categoryId: 51, cadence: "monthly", budgetedAmountCents: 500_000 }],
     [{ categoryId: 51, dayOfMonth: 15, estimatedAmountCents: -600_000, flow: "expense", status: "active" }],
-    [{ start: "2026-10-14", end: "2026-10-29" }],
+    [{ start: "2026-10-14", end: "2026-10-29", monthShare: 0.5 }],
   );
   assert.equal(result.length, 1);
-  // 16 de 31 días de octubre del presupuesto mensual (500,000 × 16/31) + la renta completa que cae en el periodo.
-  assert.equal(result[0].targetCents, Math.round((500_000 * 16) / 31) + 600_000);
+  assert.equal(result[0].targetCents, 250_000);
+});
+
+test("composeEffectiveBudgets: sin presupuesto manual, el recurrente incluido sirve de presupuesto de su categoría", () => {
+  const result = composeEffectiveBudgets([], [{ categoryId: 51, dayOfMonth: 15, estimatedAmountCents: -600_000, flow: "expense", status: "active" }], [{ start: "2026-10-14", end: "2026-10-29", monthShare: 0.5 }]);
+  assert.deepEqual(result, [{ categoryId: 51, targetCents: 600_000 }]);
+});
+
+test("composeEffectiveBudgets: cambiar el monto manual cambia el efectivo exactamente a ese valor aunque haya recurrentes", () => {
+  const recurring = [{ categoryId: 51, dayOfMonth: 15, estimatedAmountCents: -600_000, flow: "expense" as const, status: "active" as const }];
+  const month = [{ start: "2026-10-01", end: "2026-10-31", monthShare: 1 }];
+  for (const amount of [100_000, 600_000, 900_000]) {
+    assert.equal(composeEffectiveBudgets([{ categoryId: 51, cadence: "monthly", budgetedAmountCents: amount }], recurring, month)[0].targetCents, amount);
+  }
 });
 
 import { rollUpBudgetHierarchy, totalBudgetedCents } from "./rules";
@@ -220,20 +233,37 @@ test("rollUpBudgetHierarchy: la madre con presupuesto propio es el tope y las hi
   });
   assert.equal(line(lines, 43).targetCents, 400000);
   assert.equal(line(lines, 43).childrenAllocatedCents, 330000);
-  assert.equal(line(lines, 43).isOverAllocated, false);
+  assert.equal(line(lines, 43).isRaisedByChildren, false);
+  assert.equal(line(lines, 43).ownCapCents, 400000);
+  assert.equal(line(lines, 43).unallocatedCents, 70000);
   assert.equal(totalBudgetedCents(lines), 700000);
 });
 
-test("rollUpBudgetHierarchy: avisa cuando las subcategorías suman más que el tope de la madre, sin corregirlo", () => {
+test("rollUpBudgetHierarchy: si las subcategorías suman más que el tope de la madre, la madre sube a esa suma", () => {
   const lines = rollUpBudgetHierarchy({
     categories: VIVIENDA_TREE,
     effectiveTargets: new Map([[43, 400000], [51, 400000], [53, 160000], [54, 80000]]),
     manualCategoryIds: new Set([43, 51, 53, 54]),
     actuals: new Map(),
   });
-  assert.equal(line(lines, 43).targetCents, 400000);
+  assert.equal(line(lines, 43).targetCents, 640000);
   assert.equal(line(lines, 43).childrenAllocatedCents, 640000);
-  assert.equal(line(lines, 43).isOverAllocated, true);
+  assert.equal(line(lines, 43).isRaisedByChildren, true);
+  assert.equal(line(lines, 43).ownCapCents, 400000);
+  assert.equal(line(lines, 43).unallocatedCents, 0);
+  assert.equal(totalBudgetedCents(lines), 640000);
+});
+
+test("rollUpBudgetHierarchy: al subir una subcategoría la madre se actualiza sola cuando ya no cabe en su tope", () => {
+  const build = (streaming: number) =>
+    rollUpBudgetHierarchy({
+      categories: [{ id: 1, parentId: null }, { id: 2, parentId: 1 }, { id: 3, parentId: 1 }],
+      effectiveTargets: new Map([[1, 400000], [2, streaming], [3, 100000]]),
+      manualCategoryIds: new Set([1, 2, 3]),
+      actuals: new Map(),
+    }).find((l) => l.categoryId === 1);
+  assert.equal(build(200000)?.targetCents, 400000);
+  assert.equal(build(450000)?.targetCents, 550000);
 });
 
 test("rollUpBudgetHierarchy: una madre sin presupuesto propio vale la suma de sus subcategorías", () => {
@@ -245,7 +275,7 @@ test("rollUpBudgetHierarchy: una madre sin presupuesto propio vale la suma de su
   });
   assert.equal(line(lines, 60).targetCents, 2400000);
   assert.equal(line(lines, 60).isDerivedFromChildren, true);
-  assert.equal(line(lines, 60).isOverAllocated, false);
+  assert.equal(line(lines, 60).isRaisedByChildren, false);
   assert.equal(totalBudgetedCents(lines), 2400000);
 });
 

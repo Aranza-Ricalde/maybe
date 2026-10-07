@@ -12,3 +12,8 @@ export interface PayPeriodsRepository {
   update(id: number, start: string, end: string): Promise<void>;
   delete(id: number): Promise<void>;
 }
+
+export interface PeriodViewRepository {
+  get(familyId: number): Promise<string | null>;
+  set(familyId: number, view: string): Promise<void>;
+}

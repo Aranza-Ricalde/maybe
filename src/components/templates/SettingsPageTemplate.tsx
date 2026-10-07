@@ -1,11 +1,14 @@
 import { Card } from "@heroui/react";
 import { PageHeader } from "@/components/molecules/PageHeader";
 import { PayPeriodModal } from "@/components/molecules/PayPeriodModal";
+import { PeriodViewSwitch } from "@/components/molecules/PeriodViewSwitch";
 import { TelegramLinkInfo } from "@/components/molecules/TelegramLinkInfo";
 import { CategoriesTable, type CategoryRow } from "@/components/organisms/CategoriesTable";
 import { CategoryModal } from "@/components/organisms/CategoryModal";
 import { ApiTokenCard, type ApiTokenState, type ApiTokenView } from "@/components/organisms/ApiTokenCard";
+import { PayMonthsTable, type PayMonthRow } from "@/components/organisms/PayMonthsTable";
 import { PayPeriodsTable, type PayPeriodRow } from "@/components/organisms/PayPeriodsTable";
+import type { PeriodView } from "@/domain/payPeriod/periodView";
 
 export interface SettingsPageTemplateProps {
   userName: string;
@@ -20,6 +23,10 @@ export interface SettingsPageTemplateProps {
   updateCategoryAction: (formData: FormData) => Promise<void> | void;
   deleteCategoryAction: (formData: FormData) => Promise<void> | void;
   periods: PayPeriodRow[];
+  months: PayMonthRow[];
+  periodView: PeriodView;
+  setPeriodViewAction: (formData: FormData) => Promise<void> | void;
+  updatePayMonthAction: (formData: FormData) => Promise<void> | void;
   nextPeriodDefaultStart: string;
   nextPeriodDefaultEnd: string;
   createPeriodAction: (formData: FormData) => Promise<void> | void;
@@ -40,6 +47,10 @@ export function SettingsPageTemplate({
   updateCategoryAction,
   deleteCategoryAction,
   periods,
+  months,
+  periodView,
+  setPeriodViewAction,
+  updatePayMonthAction,
   nextPeriodDefaultStart,
   nextPeriodDefaultEnd,
   createPeriodAction,
@@ -85,12 +96,28 @@ export function SettingsPageTemplate({
       </Card>
 
       <Card className="p-5">
-        <Card.Header className="flex-row! items-center justify-between">
-          <Card.Title>Periodos de pago</Card.Title>
-          <PayPeriodModal mode="create" action={createPeriodAction} defaultStart={nextPeriodDefaultStart} defaultEnd={nextPeriodDefaultEnd} />
+        <Card.Header>
+          <Card.Title>Cómo ver tus periodos</Card.Title>
         </Card.Header>
         <Card.Content>
-          <PayPeriodsTable rows={periods} updateAction={updatePeriodAction} deleteAction={deletePeriodAction} />
+          <PeriodViewSwitch value={periodView} action={setPeriodViewAction} />
+        </Card.Content>
+      </Card>
+
+      <Card className="p-5">
+        <Card.Header className="flex-row! items-center justify-between">
+          <Card.Title>{periodView === "monthly" ? "Meses de pago" : "Periodos de pago"}</Card.Title>
+          {periodView === "biweekly" && <PayPeriodModal mode="create" action={createPeriodAction} defaultStart={nextPeriodDefaultStart} defaultEnd={nextPeriodDefaultEnd} />}
+        </Card.Header>
+        <Card.Content className="flex flex-col gap-3">
+          {periodView === "monthly" ? (
+            <>
+              <p className="text-sm text-muted">Cada mes agrupa las quincenas que terminan en él. Edita las fechas de inicio y fin del mes; para agregar o quitar quincenas cambia a la vista Quincenal.</p>
+              <PayMonthsTable rows={months} updateAction={updatePayMonthAction} />
+            </>
+          ) : (
+            <PayPeriodsTable rows={periods} updateAction={updatePeriodAction} deleteAction={deletePeriodAction} />
+          )}
         </Card.Content>
       </Card>
     </>

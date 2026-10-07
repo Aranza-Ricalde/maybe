@@ -1,0 +1,3 @@
+BEGIN;
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS description text;
+COMMIT;

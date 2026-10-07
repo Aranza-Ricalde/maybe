@@ -131,3 +131,36 @@ describe("Settings — Categorías", () => {
     cy.contains("tr", name).should("not.exist");
   });
 });
+
+describe("Settings — Descripción de categorías", () => {
+  beforeEach(() => {
+    cy.task("mintAccessToken", 1).then((token) => cy.setCookie("access_token", token as string));
+  });
+
+  it("muestra una descripción sugerida, se puede personalizar y el tooltip del presupuesto usa la nueva", () => {
+    cy.visit("/settings");
+    cy.contains("tr", "Alimentación").within(() => {
+      cy.contains("Todo lo que comes").should("be.visible");
+      cy.contains("Sugerida").should("be.visible");
+      cy.get('button[aria-label^="Editar"]').click();
+    });
+    cy.get('textarea[name="description"]').clear().type("Mi comida de la semana");
+    cy.get('[role="dialog"]').contains("button", "Guardar").click();
+    cy.get('[role="dialog"]').should("not.exist");
+    cy.contains("tr", "Alimentación").within(() => cy.contains("Mi comida de la semana").should("be.visible"));
+    cy.task("dbQuery", "select description from categories where name = 'Alimentación'").then((rows) => {
+      expect((rows as { description: string }[])[0].description).to.equal("Mi comida de la semana");
+    });
+
+    cy.visit("/budgets");
+    cy.get('[aria-label="¿Qué va en Alimentación?"]').focus();
+    cy.contains("Mi comida de la semana").should("be.visible");
+
+    cy.visit("/settings");
+    cy.contains("tr", "Alimentación").within(() => cy.get('button[aria-label^="Editar"]').click());
+    cy.get('textarea[name="description"]').clear();
+    cy.get('[role="dialog"]').contains("button", "Guardar").click();
+    cy.get('[role="dialog"]').should("not.exist");
+    cy.contains("tr", "Alimentación").within(() => cy.contains("Todo lo que comes").should("be.visible"));
+  });
+});

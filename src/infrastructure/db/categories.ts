@@ -34,6 +34,7 @@ export class DrizzleCategoriesRepository implements CategoriesRepository {
       icon: input.icon,
       parentId: input.parentId,
       spendingNature: input.classification === "expense" ? (input.nature ?? null) : null,
+      description: input.description ?? null,
     });
   }
 
@@ -45,6 +46,7 @@ export class DrizzleCategoriesRepository implements CategoriesRepository {
         classification: input.classification,
         color: input.color,
         parentId: input.parentId,
+        ...(input.description !== undefined ? { description: input.description } : {}),
         ...(input.classification === "income" ? { spendingNature: null } : input.nature !== undefined ? { spendingNature: input.nature } : {}),
       })
       .where(eq(categories.id, input.id));

@@ -1,4 +1,10 @@
 describe("Selector de periodo del dashboard", () => {
+  before(() => {
+    cy.task("setPeriodView", "biweekly");
+  });
+  after(() => {
+    cy.task("setPeriodView", "monthly");
+  });
   beforeEach(() => {
     cy.task("mintAccessToken", 1).then((token) => {
       cy.setCookie("access_token", token as string);

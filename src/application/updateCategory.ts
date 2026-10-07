@@ -1,4 +1,5 @@
 import type { CategoriesRepository, UpdateCategoryInput } from "@/domain/categories/ports";
+import { assertValidCategoryDescription, normalizeCategoryDescription } from "@/domain/categories/descriptions";
 import { assertValidSpendingNature } from "@/domain/categories/nature";
 import {
   InvalidCategoryError,
@@ -14,6 +15,7 @@ export class UpdateCategoryUseCase {
     assertValidCategoryName(input.name);
     assertValidCategoryClassification(input.classification);
     assertValidSpendingNature(input.nature);
+    assertValidCategoryDescription(input.description);
 
     const current = await this.repo.getHierarchyState(input.id);
     if (!current) throw new InvalidCategoryError("La categoría no existe.");
@@ -29,6 +31,6 @@ export class UpdateCategoryUseCase {
       childClassifications: current.childClassifications,
     });
 
-    await this.repo.update({ ...input, parentId });
+    await this.repo.update({ ...input, parentId, ...(input.description !== undefined ? { description: normalizeCategoryDescription(input.description) } : {}) });
   }
 }
