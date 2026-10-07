@@ -1,5 +1,6 @@
-import { bigint, jsonb, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { bigint, date, integer, jsonb, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
 import type { ColumnMapping, ImportStatus } from "@/domain/csvImport/rules";
+import { accounts } from "./accounts";
 import { families } from "./core";
 import { idColumn, familyIdColumn, createdAtColumn } from "./columns";
 
@@ -8,6 +9,14 @@ export const imports = pgTable("imports", {
   familyId: familyIdColumn(),
   filename: text("filename").notNull(),
   status: text("status").notNull().default("pending").$type<ImportStatus>(),
+  bank: text("bank"),
+  accountId: bigint("account_id", { mode: "number" }).references(() => accounts.id, { onDelete: "set null" }),
+  accountLast4: text("account_last4"),
+  periodStart: date("period_start"),
+  periodEnd: date("period_end"),
+  transactionCount: integer("transaction_count"),
+  linkedCount: integer("linked_count"),
+  metadata: jsonb("metadata").$type<Record<string, string | number>>(),
   createdAt: createdAtColumn(),
 });
 
