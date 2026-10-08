@@ -26,6 +26,13 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  async redirects() {
+    return [
+      { source: "/goals", destination: "/budgets", permanent: true },
+      { source: "/spending", destination: "/stats", permanent: true },
+      { source: "/projection", destination: "/stats?m=balance&proj=1", permanent: true },
+    ];
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
