@@ -127,3 +127,20 @@ test("al filtrar por un padre con subcategorías, drillParent lo indica; con una
   assert.equal(composeExplorer({ ...base, filters: { ...FILTERS, categoryId: 2 } }).drillParent, null);
   assert.equal(composeExplorer({ ...base, filters: { ...FILTERS, categoryId: 4 } }).drillParent, null);
 });
+
+test("el apilado por categoría toma las 2 principales, agrupa el resto en Otras y rellena los periodos vacíos", async () => {
+  const { stackByCategory } = await import("./rules");
+  const categories = [
+    { id: 1, parentId: null, name: "Casa", color: "#111", spendingNature: null },
+    { id: 2, parentId: null, name: "Comida", color: "#222", spendingNature: null },
+    { id: 3, parentId: null, name: "Ocio", color: "#333", spendingNature: null },
+  ];
+  const row = (bucket: string, categoryId: number, expenseCents: number) => ({ bucket, categoryId, merchant: null, incomeCents: 0, expenseCents, count: 1 });
+  const stacked = stackByCategory([row("2026-08-01", 1, 100), row("2026-09-01", 2, 50), row("2026-09-01", 3, 7)], categories, { from: "2026-08-01", to: "2026-10-05", bucket: "month" }, null, 2);
+  assert.deepEqual(stacked.keys.map((key) => key.label), ["Casa", "Comida", "Otras"]);
+  assert.deepEqual(stacked.points, [
+    { bucket: "2026-08-01", c1: 100, c2: 0, others: 0 },
+    { bucket: "2026-09-01", c1: 0, c2: 50, others: 7 },
+    { bucket: "2026-10-01", c1: 0, c2: 0, others: 0 },
+  ]);
+});

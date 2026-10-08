@@ -5,7 +5,7 @@ import type { CategoryStatsReader } from "@/domain/categoryStats/ports";
 import type { GetTransferSuggestionsUseCase } from "./getTransferSuggestions";
 
 export interface InsightsContext {
-  savings: { rate: number | null; previousRate: number | null; savedCents: number };
+  savings: { rate: number | null; previousRate: number | null; savedCents: number; periodComplete: boolean };
   netWorthDeltaCents: number;
   occurrences: InsightOccurrence[];
   goals: InsightGoal[];

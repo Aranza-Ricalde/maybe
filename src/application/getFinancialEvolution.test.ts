@@ -19,6 +19,7 @@ function fakeRepo(calls: string[] = []): DashboardRepository {
     getEarliestBalances: unused,
     getPaymentsInto: unused,
     getOpeningBalancesAfter: unused,
+    getTransfersBetween: unused,
     getBalanceAt: unused,
     getBalancesByAccount: unused,
     getBalancesAtDates: async (ids, dates) => {

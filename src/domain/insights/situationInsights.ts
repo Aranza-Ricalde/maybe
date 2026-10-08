@@ -3,7 +3,7 @@ import { Insight, MIN_NET_WORTH_CHANGE_CENTS, PRICE_INCREASE_MIN_CENTS, PRICE_IN
 import { daysBetween, pct, pesos } from "./format";
 import { ROUTES } from "@/domain/shared/routes";
 
-export function savingsInsights(input: { rate: number | null; previousRate: number | null; savedCents: number }): Insight[] {
+export function savingsInsights(input: { rate: number | null; previousRate: number | null; savedCents: number; periodComplete: boolean }): Insight[] {
   const insights: Insight[] = [];
   if (input.savedCents < 0) {
     insights.push({
@@ -13,7 +13,7 @@ export function savingsInsights(input: { rate: number | null; previousRate: numb
       weight: Math.abs(input.savedCents),
     });
   }
-  if (input.rate != null && input.previousRate != null) {
+  if (input.periodComplete && input.rate != null && input.previousRate != null) {
     const shift = input.rate - input.previousRate;
     if (shift <= -SAVINGS_RATE_SHIFT) {
       insights.push({ id: "savings-rate-down", tone: "attention", message: `Tu tasa de ahorro bajó de ${pct(input.previousRate)} a ${pct(input.rate)}`, weight: Math.abs(shift) * 100_000 });

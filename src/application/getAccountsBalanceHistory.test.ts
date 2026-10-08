@@ -23,3 +23,9 @@ test("sin cuentas no hay series ni puntos", async () => {
   const result = await new GetAccountsBalanceHistoryUseCase(history).execute([], "30d", "2026-10-07");
   assert.deepEqual(result, { accounts: [], points: [] });
 });
+
+test("con un límite explícito conserva todas las cuentas pedidas", async () => {
+  const accounts = Array.from({ length: 7 }, (_, i) => ({ id: i + 1, name: `Cuenta ${i + 1}` }));
+  const result = await new GetAccountsBalanceHistoryUseCase(history).execute(accounts, "30d", "2026-10-07", accounts.length);
+  assert.equal(result.accounts.length, 7);
+});

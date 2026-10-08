@@ -14,7 +14,7 @@ import { categoriesReader } from "./readers";
 import { resolveTransactionConceptUseCase, updateTransactionUseCase } from "./core";
 
 const statementContext = new DrizzleStatementContextRepository();
-const reconcileStatementUseCase = new ReconcileStatementUseCase(statementContext, new Sha256StatementHasher());
+export const reconcileStatementUseCase = new ReconcileStatementUseCase(statementContext, new Sha256StatementHasher());
 
 export const parseStatementUseCase = new ParseStatementUseCase(new UnpdfTextExtractor(), statementContext, reconcileStatementUseCase);
 export const confirmStatementImportUseCase = new ConfirmStatementImportUseCase(reconcileStatementUseCase, new DrizzleStatementImportUnitOfWork(), familyOwnership);

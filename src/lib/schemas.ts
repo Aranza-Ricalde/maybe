@@ -7,6 +7,8 @@ import { BUDGET_CADENCES } from "@/domain/budget/rules";
 import { DEFAULT_CATEGORY_COLOR } from "@/domain/categories/palette";
 import { InvalidSpendingNatureError, parseSpendingNatureFormValue } from "@/domain/categories/nature";
 import { NO_PARENT_FORM_VALUE } from "@/domain/categories/rules";
+import { EXPLORER_PRESETS } from "@/domain/explorer/presets";
+import { STATS_GROUPS, STATS_METRICS } from "@/domain/stats/params";
 import { EVOLUTION_RANGES } from "@/domain/evolution/rules";
 import { FLOWS, MAX_AMOUNT_CENTS, MAX_TRANSACTION_NAME_LENGTH } from "@/domain/ledger/rules";
 import { SPENDING_NATURES } from "@/domain/categories/nature";
@@ -76,7 +78,6 @@ export const transactionSortArg = z.object({ field: z.enum(["date", "amount", "n
 export const pageArgs = z.object({ page: pageField, pageSize: pageSizeField });
 export const transactionsPageArgs = z.object({ filters: transactionFiltersArg, sort: transactionSortArg }).extend(pageArgs.shape);
 export const accountPageArgs = z.object({ accountId: idField, fromDate: isoDateField, toDate: isoDateField }).extend(pageArgs.shape);
-export const rangeArgs = z.object({ range: z.enum(EVOLUTION_RANGES) });
 export const balanceHistoryArgs = z.object({ accountId: idField, range: z.enum(EVOLUTION_RANGES) });
 
 const accountBaseForm = {
@@ -259,10 +260,15 @@ export const mergeSubscriptionsForm = z.object({
 
 const optionalPositiveId = z.preprocess((value) => (value === "" || value == null ? null : value), idField.nullable());
 
-export const explorerArgs = z
+export const statsArgs = z
   .object({
-    from: isoDateField,
-    to: isoDateField,
+    metric: z.enum(STATS_METRICS),
+    group: z.enum(STATS_GROUPS),
+    preset: z.enum(EXPLORER_PRESETS),
+    from: z.preprocess((value) => (value === "" || value == null ? null : value), isoDateField.nullable()),
+    to: z.preprocess((value) => (value === "" || value == null ? null : value), isoDateField.nullable()),
+    compare: z.boolean(),
+    projection: z.boolean(),
     accountId: optionalPositiveId,
     categoryId: optionalPositiveId,
     merchant: z.preprocess((value) => (value === "" || value == null ? null : value), z.string().trim().min(1).max(100).nullable()),

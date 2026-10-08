@@ -203,7 +203,7 @@ export interface RunwayResult {
 
 export function computeRunway(input: RunwayInput): RunwayResult {
   if (input.availableCents <= 0) {
-    return { level: "red", message: "Ya no tienes disponible para lo que resta del periodo.", runwayDays: 0 };
+    return { level: "red", message: "Tu disponible no alcanza para lo que resta del periodo.", runwayDays: 0 };
   }
   if (input.dailyBurnRateCents <= 0) {
     return { level: "green", message: "A tu ritmo actual, te alcanza hasta el fin del periodo.", runwayDays: null };

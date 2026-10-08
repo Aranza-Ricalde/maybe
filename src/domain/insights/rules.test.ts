@@ -67,11 +67,15 @@ test("una racha interrumpida no cuenta", () => {
   assert.deepEqual(categoryStreakInsights(stats), []);
 });
 
+test("la tasa de ahorro no se compara mientras el periodo sigue abierto", () => {
+  assert.deepEqual(savingsInsights({ rate: 0.01, previousRate: 0.31, savedCents: 26_017, periodComplete: false }), []);
+});
+
 test("el ahorro: retiros, bajada fuerte de la tasa y subida fuerte", () => {
-  assert.equal(savingsInsights({ rate: 0.05, previousRate: 0.25, savedCents: 100_000 })[0].id, "savings-rate-down");
-  assert.equal(savingsInsights({ rate: 0.3, previousRate: 0.1, savedCents: 100_000 })[0].tone, "positive");
-  assert.equal(savingsInsights({ rate: 0.2, previousRate: 0.15, savedCents: 100_000 }).length, 0);
-  assert.match(savingsInsights({ rate: null, previousRate: null, savedCents: -250_000 })[0].message, /Retiraste \$2,500/);
+  assert.equal(savingsInsights({ rate: 0.05, previousRate: 0.25, savedCents: 100_000, periodComplete: true })[0].id, "savings-rate-down");
+  assert.equal(savingsInsights({ rate: 0.3, previousRate: 0.1, savedCents: 100_000, periodComplete: true })[0].tone, "positive");
+  assert.equal(savingsInsights({ rate: 0.2, previousRate: 0.15, savedCents: 100_000, periodComplete: true }).length, 0);
+  assert.match(savingsInsights({ rate: null, previousRate: null, savedCents: -250_000, periodComplete: true })[0].message, /Retiraste \$2,500/);
 });
 
 test("el patrimonio solo se menciona si cambió de forma apreciable", () => {
@@ -147,7 +151,7 @@ test("la lista final va de lo más importante a lo menos y respeta el tope por t
   const result = buildInsights({
     today: TODAY,
     stats,
-    savings: { rate: 0.2, previousRate: 0.2, savedCents: 10_000 },
+    savings: { rate: 0.2, previousRate: 0.2, savedCents: 10_000, periodComplete: true },
     netWorthDeltaCents: 0,
     uncategorized: { count: 2, totalCents: 50_000 },
     suspectedTransfers: 0,
@@ -160,7 +164,7 @@ test("la lista final va de lo más importante a lo menos y respeta el tope por t
 });
 
 test("sin nada que contar, no se inventa nada", () => {
-  const result = buildInsights({ today: TODAY, stats: statsOf([]), savings: { rate: null, previousRate: null, savedCents: 0 }, netWorthDeltaCents: 0, uncategorized: { count: 0, totalCents: 0 }, suspectedTransfers: 0, expenses: [], occurrences: [], goals: [] });
+  const result = buildInsights({ today: TODAY, stats: statsOf([]), savings: { rate: null, previousRate: null, savedCents: 0, periodComplete: true }, netWorthDeltaCents: 0, uncategorized: { count: 0, totalCents: 0 }, suspectedTransfers: 0, expenses: [], occurrences: [], goals: [] });
   assert.deepEqual(result, []);
 });
 

@@ -15,6 +15,8 @@ const INPUT: PeriodFiguresInput = {
   debtPaymentsCents: 50_000,
   debtAtPeriodStartCents: -400_000,
   assetsAtPreviousEndCents: 1_500_000,
+  savingsTransfersCents: 150_000,
+  previousSavingsTransfersCents: 90_000,
   savingsAtPeriodStartCents: 1_000_000,
   savingsBeforePreviousPeriodCents: 900_000,
   openingsAfterPreviousEndCents: 100_000,
@@ -27,10 +29,11 @@ const INPUT: PeriodFiguresInput = {
 test("computePeriodFigures: deuda, ahorro, flujo y patrimonio salen de las mismas reglas que antes", () => {
   const figures = computePeriodFigures(INPUT);
   assert.deepEqual(figures.debt, { totalCents: -300_000, paidThisPeriodCents: 50_000, overallPercentPaid: 0.5 });
-  assert.equal(figures.savingsRate.savedCents, 200_000);
-  assert.equal(figures.savingsRate.rate, 0.1);
-  assert.equal(figures.savingsRate.previousRate, (1_000_000 - 900_000) / 1_800_000);
-  assert.deepEqual(figures.flow, { incomeCents: 2_000_000, expenseCents: -500_000, debtPaymentCents: -50_000, savingsCents: -200_000, remainingCents: 1_250_000 });
+  assert.equal(figures.savingsRate.savedCents, 150_000);
+  assert.equal(figures.savingsRate.yieldCents, 50_000);
+  assert.equal(figures.savingsRate.rate, 0.075);
+  assert.equal(figures.savingsRate.previousRate, 90_000 / 1_800_000);
+  assert.deepEqual(figures.flow, { incomeCents: 2_000_000, expenseCents: -500_000, debtPaymentCents: -50_000, savingsCents: -150_000, remainingCents: 1_300_000 });
   assert.equal(figures.wealth.netWorthCents, 1_700_000 - 300_000);
   assert.equal(figures.totalBalanceCents, 1_700_000);
   assert.equal(figures.creditCards[0].availableCreditCents, 700_000);

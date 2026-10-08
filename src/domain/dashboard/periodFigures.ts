@@ -16,6 +16,8 @@ export interface PeriodFiguresInput {
   debtPaymentsCents: number;
   debtAtPeriodStartCents: number;
   assetsAtPreviousEndCents: number;
+  savingsTransfersCents: number;
+  previousSavingsTransfersCents: number;
   savingsAtPeriodStartCents: number;
   savingsBeforePreviousPeriodCents: number;
   openingsAfterPreviousEndCents: number;
@@ -33,7 +35,7 @@ export interface PeriodFigures {
   flow: { incomeCents: number; expenseCents: number; debtPaymentCents: number; savingsCents: number; remainingCents: number };
   financialStatus: FinancialStatusResult;
   wealth: { netWorthCents: number; assetsCents: number; liabilitiesCents: number; change: NetWorthChange };
-  savingsRate: { rate: number | null; savedCents: number; incomeCents: number; previousRate: number | null };
+  savingsRate: { rate: number | null; savedCents: number; yieldCents: number; incomeCents: number; previousRate: number | null };
 }
 
 export function computePeriodFigures(input: PeriodFiguresInput): PeriodFigures {
@@ -46,6 +48,9 @@ export function computePeriodFigures(input: PeriodFiguresInput): PeriodFigures {
     openingBalancesAfterPreviousEndCents: input.openingsAfterPreviousEndCents,
     openingBalancesAfterBeforePreviousCents: input.openingsAfterBeforePreviousCents,
   });
+
+  const contributedCents = input.savingsTransfersCents;
+  const yieldCents = savings.contributedCents - contributedCents;
 
   const assetsCents = sumBalances(input.assetAccounts);
   const liabilitiesCents = sumBalances(input.liabilityAccounts);
@@ -64,8 +69,8 @@ export function computePeriodFigures(input: PeriodFiguresInput): PeriodFigures {
       incomeCents: flow.incomeCents,
       expenseCents: flow.expenseCents,
       debtPaymentCents: -debtPaymentsCents,
-      savingsCents: -savings.contributedCents,
-      remainingCents: remainingAfterFlow({ incomeCents: flow.incomeCents, expenseCents: flow.expenseCents, savingsCents: savings.contributedCents, debtPaymentsCents }),
+      savingsCents: -contributedCents,
+      remainingCents: remainingAfterFlow({ incomeCents: flow.incomeCents, expenseCents: flow.expenseCents, savingsCents: contributedCents, debtPaymentsCents }),
     },
     financialStatus: financialStatus({
       incomeCentsThisPeriod: flow.incomeCents,
@@ -78,10 +83,11 @@ export function computePeriodFigures(input: PeriodFiguresInput): PeriodFigures {
     }),
     wealth: { netWorthCents: currentNetWorthCents, assetsCents, liabilitiesCents, change: netWorthChange(currentNetWorthCents, previousNetWorthCents) },
     savingsRate: {
-      rate: savingsRate({ incomeCents: flow.incomeCents, savedCents: savings.contributedCents }),
-      savedCents: savings.contributedCents,
+      rate: savingsRate({ incomeCents: flow.incomeCents, savedCents: contributedCents }),
+      savedCents: contributedCents,
+      yieldCents,
       incomeCents: flow.incomeCents,
-      previousRate: savingsRate({ incomeCents: priorFlow.incomeCents, savedCents: savings.previousContributedCents }),
+      previousRate: savingsRate({ incomeCents: priorFlow.incomeCents, savedCents: input.previousSavingsTransfersCents }),
     },
   };
 }

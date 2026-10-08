@@ -73,6 +73,18 @@ export interface ExplorerComparison {
   drivers: ExplorerDriver[];
 }
 
+export interface StackedKey {
+  key: string;
+  label: string;
+  categoryId: number | null;
+  color: string | null;
+}
+
+export interface StackedSeries {
+  keys: StackedKey[];
+  points: Array<Record<string, string | number>>;
+}
+
 export interface ExplorerResult {
   from: string;
   to: string;
@@ -81,6 +93,8 @@ export interface ExplorerResult {
   expenseCents: number;
   count: number;
   series: ExplorerPoint[];
+  previousSeries: ExplorerPoint[];
+  stacked: StackedSeries;
   byCategory: ExplorerShare[];
   drillParent: { id: number; name: string } | null;
   byMerchant: ExplorerShare[];
@@ -217,6 +231,46 @@ export function composeSeries(rows: ExplorerRow[], from: string, to: string, buc
   return [...points.values()];
 }
 
+export const STACK_TOP_CATEGORIES = 5;
+export const STACK_OTHERS_KEY = "others";
+const STACK_NONE_KEY = "none";
+
+export function stackByCategory(rows: ExplorerRow[], categories: ExplorerCategory[], window: { from: string; to: string; bucket: ExplorerBucket }, parentId: number | null, topN = STACK_TOP_CATEGORIES): StackedSeries {
+  const { byId, rootOf } = indexCategories(categories);
+  const targetOf = (categoryId: number | null) => (parentId != null ? (categoryId == null ? null : (byId.get(categoryId) ?? null)) : rootOf(categoryId));
+  const totals = new Map<string, StackedKey & { totalCents: number }>();
+  const perBucket = new Map<string, Map<string, number>>();
+
+  for (const row of rows) {
+    if (row.expenseCents <= 0) continue;
+    const target = targetOf(row.categoryId);
+    const key = target ? `c${target.id}` : STACK_NONE_KEY;
+    const entry = totals.get(key) ?? { key, label: target?.name ?? UNCATEGORIZED_LABEL, categoryId: target?.id ?? null, color: target?.color ?? null, totalCents: 0 };
+    entry.totalCents += row.expenseCents;
+    totals.set(key, entry);
+    const bucket = bucketStart(row.bucket, window.bucket);
+    const cells = perBucket.get(bucket) ?? new Map<string, number>();
+    cells.set(key, (cells.get(key) ?? 0) + row.expenseCents);
+    perBucket.set(bucket, cells);
+  }
+
+  const ranked = [...totals.values()].sort((a, b) => b.totalCents - a.totalCents || a.label.localeCompare(b.label, "es"));
+  const top = ranked.slice(0, topN);
+  const topKeys = new Set(top.map((entry) => entry.key));
+  const hasOthers = ranked.length > topN;
+  const keys: StackedKey[] = top.map(({ key, label, categoryId, color }) => ({ key, label, categoryId, color }));
+  if (hasOthers) keys.push({ key: STACK_OTHERS_KEY, label: "Otras", categoryId: null, color: null });
+
+  const points = bucketKeys(window.from, window.to, window.bucket).map((bucket) => {
+    const cells = perBucket.get(bucket) ?? new Map<string, number>();
+    const point: Record<string, string | number> = { bucket };
+    for (const entry of top) point[entry.key] = cells.get(entry.key) ?? 0;
+    if (hasOthers) point[STACK_OTHERS_KEY] = [...cells.entries()].filter(([key]) => !topKeys.has(key)).reduce((sum, [, cents]) => sum + cents, 0);
+    return point;
+  });
+  return { keys, points };
+}
+
 export function composeComparison(current: ExplorerRow[], previous: ExplorerRow[], previousWindow: { from: string; to: string }, categories: ExplorerCategory[]): ExplorerComparison {
   const expenseCents = sumExpense(current);
   const previousExpense = sumExpense(previous);
@@ -259,6 +313,7 @@ export function composeExplorer({ filters, bucket, currentRows, previousRows, ca
   const selected = filters.categoryId != null ? byId.get(filters.categoryId) : undefined;
   const drillParent = selected && selected.parentId == null && childrenOf(selected.id).length > 0 ? { id: selected.id, name: selected.name } : null;
   const merchants = sharesByMerchant(current);
+  const parentId = drillParent?.id ?? null;
 
   const merchantTotals = new Map<string, number>();
   for (const row of withoutMerchant) if (row.expenseCents > 0 && row.merchant != null) merchantTotals.set(row.merchant, (merchantTotals.get(row.merchant) ?? 0) + row.expenseCents);
@@ -271,7 +326,9 @@ export function composeExplorer({ filters, bucket, currentRows, previousRows, ca
     expenseCents: sumExpense(current),
     count: current.reduce((sum, row) => sum + row.count, 0),
     series: composeSeries(current, filters.from, filters.to, bucket),
-    byCategory: sharesByCategory(current, categories, drillParent?.id ?? null),
+    previousSeries: composeSeries(previous, previousWindow.from, previousWindow.to, bucket),
+    stacked: stackByCategory(current, categories, { from: filters.from, to: filters.to, bucket }, parentId),
+    byCategory: sharesByCategory(current, categories, parentId),
     drillParent,
     byMerchant: merchants.ranked,
     unidentified: merchants.unidentified,

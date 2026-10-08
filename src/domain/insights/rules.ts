@@ -12,7 +12,7 @@ export * from "./spendingInsights";
 export interface InsightsInput {
   today: string;
   stats: CategoryStats;
-  savings: { rate: number | null; previousRate: number | null; savedCents: number };
+  savings: { rate: number | null; previousRate: number | null; savedCents: number; periodComplete: boolean };
   netWorthDeltaCents: number;
   uncategorized: { count: number; totalCents: number };
   suspectedTransfers: number;

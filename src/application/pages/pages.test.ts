@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { AccountsReader, PlanningReader } from "@/domain/readModels/ports";
-import type { GetAccountBalanceHistoryUseCase } from "../getAccountBalanceHistory";
 import type { GetEmergencyFundUseCase } from "../getEmergencyFund";
 import type { GetGoalProjectionsUseCase } from "../getGoalProjections";
+import type { GetDebtOverviewUseCase } from "../getDebtOverview";
 import type { GetAccountsBalanceHistoryUseCase } from "../getAccountsBalanceHistory";
 import { GetAccountsPageUseCase } from "./getAccountsPage";
 import { GetGoalsPageUseCase } from "./getGoalsPage";
@@ -21,14 +21,12 @@ const accountsReader: AccountsReader = {
   movementsPage: async () => ({ rows: [], total: 0 }),
 };
 
-test("página de cuentas: filas con saldo, archivadas sin detalles y serie inicial de la cuenta por defecto", async () => {
-  const history = { execute: async (accountId: number, range: string) => [{ date: TODAY, value: accountId * 100, range }] } as unknown as GetAccountBalanceHistoryUseCase;
+test("página de cuentas: filas con saldo, archivadas sin detalles e historial de saldos de todas las cuentas", async () => {
   const accountsHistory = { execute: async () => ({ accounts: [{ key: "a1", label: "Cuenta Nómina" }], points: [] }) } as unknown as GetAccountsBalanceHistoryUseCase;
-  const page = await new GetAccountsPageUseCase(accountsReader, history, accountsHistory).execute(1, TODAY);
+  const page = await new GetAccountsPageUseCase(accountsReader, accountsHistory, { execute: async () => [] } as unknown as GetDebtOverviewUseCase).execute(1, TODAY);
 
   assert.deepEqual(page.accounts.map((a) => [a.id, a.balanceCents, a.creditLimitCents]), [[1, 10_000, null], [2, -5_000, 500_000]]);
   assert.deepEqual(page.archivedAccounts, [{ id: 9, name: "Efectivo", type: "cash" }]);
-  assert.equal(page.initialBalanceSeries.length, 1);
   assert.equal(page.initialAccountsHistory.accounts[0].label, "Cuenta Nómina");
 });
 

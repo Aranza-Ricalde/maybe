@@ -1,9 +1,10 @@
-export const SPENDING_NATURES = ["essential", "discretionary"] as const;
+export const SPENDING_NATURES = ["essential", "discretionary", "savings"] as const;
 export type SpendingNature = (typeof SPENDING_NATURES)[number];
 
 export const SPENDING_NATURE_LABELS: Record<SpendingNature, string> = {
   essential: "Esencial",
   discretionary: "Discrecional",
+  savings: "Ahorro (no es gasto)",
 };
 
 export const NO_NATURE_FORM_VALUE = "none";
@@ -27,6 +28,10 @@ export interface NatureCategory {
   id: number;
   parentId: number | null;
   nature: SpendingNature | null;
+}
+
+export function isSavingsCategory(category: NatureCategory, byId: Map<number, NatureCategory>): boolean {
+  return effectiveNature(category, byId) === "savings";
 }
 
 export function effectiveNature(category: NatureCategory, byId: Map<number, NatureCategory>): SpendingNature | null {

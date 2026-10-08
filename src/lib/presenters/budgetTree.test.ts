@@ -37,3 +37,10 @@ test("todo expandido solo si hay padres y todos están abiertos", () => {
   assert.equal(areAllExpanded(rows, new Set()), false);
   assert.equal(areAllExpanded([row(4, null)], new Set()), false);
 });
+
+test("las categorías sin presupuesto quedan al final y los hijos siguen a su padre", async () => {
+  const { sortBudgetRows } = await import("./budgetTree");
+  const mk = (categoryId: number, parentId: number | null, effectiveBudgetedCents: number) => ({ categoryId, parentId, hasChildren: false, effectiveBudgetedCents, actualCents: 0 });
+  const sorted = sortBudgetRows([mk(1, null, 0), mk(2, null, 500), mk(3, 2, 100), mk(4, null, 0), mk(5, null, 300)]);
+  assert.deepEqual(sorted.map((row) => row.categoryId), [2, 3, 5, 1, 4]);
+});

@@ -89,6 +89,18 @@ export class DrizzleDashboardRepository implements DashboardRepository {
     return Number(result.rows[0]?.total ?? 0);
   }
 
+  async getTransfersBetween(accountIds: number[], from: string, to: string): Promise<number> {
+    if (accountIds.length === 0 || from > to) return 0;
+    const result = await db.execute<{ total: string | null }>(sql`
+      SELECT COALESCE(SUM(amount_cents), 0)::bigint AS total
+      FROM transactions
+      WHERE account_id IN (${sql.join(accountIds.map((id) => sql`${id}`), sql`, `)})
+        AND kind = 'transfer'
+        AND date BETWEEN ${from}::date AND ${to}::date
+    `);
+    return Number(result.rows[0]?.total ?? 0);
+  }
+
   async getOpeningBalancesAfter(accountIds: number[], date: string): Promise<number> {
     if (accountIds.length === 0) return 0;
     const result = await db.execute<{ total: string | null }>(sql`

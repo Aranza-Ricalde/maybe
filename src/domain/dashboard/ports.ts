@@ -43,6 +43,7 @@ export interface BalanceReader {
   getEarliestBalances(accountIds: number[]): Promise<number[]>;
   getPaymentsInto(accountIds: number[], fromDate: string, toDateInclusive: string): Promise<number>;
   getOpeningBalancesAfter(accountIds: number[], date: string): Promise<number>;
+  getTransfersBetween(accountIds: number[], from: string, to: string): Promise<number>;
   getBalanceAt(accountIds: number[], date: string): Promise<number>;
   getBalancesAtDates(accountIds: number[], dates: string[]): Promise<number[]>;
   getBalancesByAccount(accountIds: number[], date: string): Promise<Map<number, number>>;

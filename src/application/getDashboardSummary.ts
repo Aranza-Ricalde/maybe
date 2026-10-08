@@ -40,7 +40,7 @@ export interface DashboardSummary {
   balanceSeries: DailyBalancePoint[];
   financialStatus: FinancialStatusResult;
   wealth: { netWorthCents: number; assetsCents: number; liabilitiesCents: number; change: NetWorthChange };
-  savingsRate: { rate: number | null; savedCents: number; incomeCents: number; previousRate: number | null };
+  savingsRate: { rate: number | null; savedCents: number; yieldCents: number; incomeCents: number; previousRate: number | null };
 }
 
 export class GetDashboardSummaryUseCase {
@@ -94,6 +94,10 @@ export class GetDashboardSummaryUseCase {
       savingsAccountIds,
       assetAccountIds: assetAccounts.map((a) => a.accountId),
     });
+    const [savingsTransfersCents, previousSavingsTransfersCents] = await Promise.all([
+      this.repo.getTransfersBetween(savingsAccountIds, periodStart, referenceDate),
+      this.repo.getTransfersBetween(savingsAccountIds, previousPeriod.start, previousPeriod.end),
+    ]);
     const { earliestBalances, debtAtPeriodStart, savingsAtPeriodStart, balanceSeries, assetsAtPreviousEnd, savingsBeforePreviousPeriod, openingsAfterPreviousEnd, openingsAfterBeforePrevious, debtPaymentsCents } = history;
 
     const figures = computePeriodFigures({
@@ -107,6 +111,8 @@ export class GetDashboardSummaryUseCase {
       debtPaymentsCents,
       debtAtPeriodStartCents: debtAtPeriodStart,
       assetsAtPreviousEndCents: assetsAtPreviousEnd,
+      savingsTransfersCents,
+      previousSavingsTransfersCents,
       savingsAtPeriodStartCents: savingsAtPeriodStart,
       savingsBeforePreviousPeriodCents: savingsBeforePreviousPeriod,
       openingsAfterPreviousEndCents: openingsAfterPreviousEnd,

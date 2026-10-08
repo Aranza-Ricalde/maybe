@@ -1,10 +1,11 @@
 import { resolveCategoryDescription, type ResolvedCategoryDescription } from "@/domain/categories/descriptions";
+import { isSavingsCategory, type NatureCategory, type SpendingNature } from "@/domain/categories/nature";
 import { orderCategoriesAsTree } from "@/domain/categories/rules";
 import { indexBy } from "@/domain/shared/collections";
 import { composeEffectiveBudgets, rollUpBudgetHierarchy, totalBudgetedCents, type BudgetCadence, type BudgetCategorySettingInput, type BudgetHierarchyLine, type BudgetPeriod, type RecurringBudgetContributionInput } from "./rules";
 
 export interface BudgetOverviewInput {
-  categories: Array<{ id: number; parentId: number | null }>;
+  categories: Array<{ id: number; parentId: number | null; spendingNature?: SpendingNature | null }>;
   settings: BudgetCategorySettingInput[];
   recurringItems: RecurringBudgetContributionInput[];
   periods: BudgetPeriod[];
@@ -24,7 +25,13 @@ export function composeBudgetOverview(input: BudgetOverviewInput): BudgetOvervie
     manualCategoryIds: new Set(input.settings.map((s) => s.categoryId)),
     actuals: new Map(input.actuals.map((a) => [a.categoryId, a.totalCents])),
   });
-  return { hierarchy, totalCents: totalBudgetedCents(hierarchy) };
+  const savingsIds = savingsCategoryIds(input.categories);
+  return { hierarchy, totalCents: totalBudgetedCents(hierarchy.filter((line) => !savingsIds.has(line.categoryId))) };
+}
+
+export function savingsCategoryIds(categories: Array<{ id: number; parentId: number | null; spendingNature?: SpendingNature | null }>): Set<number> {
+  const byId = new Map<number, NatureCategory>(categories.map((c) => [c.id, { id: c.id, parentId: c.parentId, nature: c.spendingNature ?? null }]));
+  return new Set([...byId.values()].filter((category) => isSavingsCategory(category, byId)).map((category) => category.id));
 }
 
 export interface BudgetCategoryCard {
@@ -70,6 +77,7 @@ export interface BudgetTableRow {
   hasChildren: boolean;
   origin: BudgetOrigin;
   description: ResolvedCategoryDescription;
+  isSavings: boolean;
 }
 
 export type BudgetOrigin =
@@ -90,12 +98,13 @@ export function budgetOriginOf(args: { manualAmountCents: number; cadence: Budge
 }
 
 export function budgetTableRows(
-  categories: Array<{ id: number; name: string; color: string; parentId: number | null; description?: string | null }>,
+  categories: Array<{ id: number; name: string; color: string; parentId: number | null; description?: string | null; spendingNature?: SpendingNature | null }>,
   settings: BudgetCategorySettingInput[],
   hierarchy: BudgetHierarchyLine[],
 ): BudgetTableRow[] {
   const manualByCategory = indexBy(settings, (setting) => setting.categoryId);
   const lineByCategory = indexBy(hierarchy, (line) => line.categoryId);
+  const savingsIds = savingsCategoryIds(categories);
   return orderCategoriesAsTree(categories).map((category) => {
     const manual = manualByCategory.get(category.id);
     const line = lineByCategory.get(category.id);
@@ -130,6 +139,7 @@ export function budgetTableRows(
       hasChildren: category.hasChildren,
       origin,
       description: resolveCategoryDescription(category.name, category.description),
+      isSavings: savingsIds.has(category.id),
     };
   });
 }
@@ -140,12 +150,12 @@ export interface BudgetSummary {
   overCount: number;
 }
 
-export function summarizeBudget(rows: Array<Pick<BudgetTableRow, "depth" | "effectiveBudgetedCents" | "actualCents">>): BudgetSummary {
-  const roots = rows.filter((row) => row.depth === 0 && row.effectiveBudgetedCents > 0);
+export function summarizeBudget(rows: Array<Pick<BudgetTableRow, "depth" | "effectiveBudgetedCents" | "actualCents"> & { isSavings?: boolean }>): BudgetSummary {
+  const roots = rows.filter((row) => row.depth === 0 && row.effectiveBudgetedCents > 0 && !row.isSavings);
   return {
     budgetedCents: roots.reduce((sum, row) => sum + row.effectiveBudgetedCents, 0),
     spentCents: roots.reduce((sum, row) => sum + Math.abs(row.actualCents), 0),
-    overCount: rows.filter((row) => row.effectiveBudgetedCents > 0 && Math.abs(row.actualCents) > row.effectiveBudgetedCents).length,
+    overCount: rows.filter((row) => !row.isSavings && row.effectiveBudgetedCents > 0 && Math.abs(row.actualCents) > row.effectiveBudgetedCents).length,
   };
 }
 

@@ -39,3 +39,14 @@ export function areAllExpanded(rows: BudgetTreeRow[], expanded: ReadonlySet<numb
   const parents = parentIds(rows);
   return parents.length > 0 && parents.every((id) => expanded.has(id));
 }
+
+export function sortBudgetRows<T extends BudgetTreeRow>(rows: T[]): T[] {
+  const groups: Array<{ root: T; children: T[] }> = [];
+  for (const row of rows) {
+    if (row.parentId == null) groups.push({ root: row, children: [] });
+    else groups.find((group) => group.root.categoryId === row.parentId)?.children.push(row);
+  }
+  const hasBudget = (group: { root: T }) => group.root.effectiveBudgetedCents > 0;
+  const ordered = [...groups.filter(hasBudget), ...groups.filter((group) => !hasBudget(group))];
+  return ordered.flatMap((group) => [group.root, ...group.children]);
+}

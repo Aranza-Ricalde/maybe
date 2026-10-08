@@ -89,3 +89,31 @@ test("budgetTableRows: cada fila trae el origen del monto y la descripción (pro
   assert.deepEqual(byName.get("Cosas raras")?.description, { text: null, isSuggested: false });
   assert.deepEqual(byName.get("Cosas raras")?.origin, { kind: "none" });
 });
+
+import { summarizeBudget } from "./overview";
+
+test("el ahorro planeado no cuenta como presupuesto de gasto: ni la categoría ni sus hijas", () => {
+  const categories = [
+    { id: 1, parentId: null, spendingNature: null },
+    { id: 2, parentId: null, spendingNature: "savings" as const },
+    { id: 3, parentId: 2, spendingNature: null },
+  ];
+  const overview = composeBudgetOverview({
+    categories,
+    settings: [
+      { categoryId: 1, cadence: "biweekly", budgetedAmountCents: 100_000 },
+      { categoryId: 3, cadence: "biweekly", budgetedAmountCents: 240_000 },
+    ],
+    recurringItems: [],
+    periods: PERIODS,
+    actuals: [],
+  });
+  assert.equal(overview.totalCents, 100_000);
+  const rows = budgetTableRows(
+    categories.map((c) => ({ ...c, name: `c${c.id}`, color: "#000" })),
+    [{ categoryId: 1, cadence: "biweekly", budgetedAmountCents: 100_000 }, { categoryId: 3, cadence: "biweekly", budgetedAmountCents: 240_000 }],
+    overview.hierarchy,
+  );
+  assert.deepEqual(rows.map((row) => [row.categoryId, row.isSavings]), [[1, false], [2, true], [3, true]]);
+  assert.equal(summarizeBudget(rows).budgetedCents, 100_000);
+});
