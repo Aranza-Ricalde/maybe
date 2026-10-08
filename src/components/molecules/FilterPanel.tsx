@@ -34,19 +34,17 @@ export function FilterPanel({ groups, onClear }: FilterPanelProps) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Popover>
-        <PopoverTrigger asChild>
-          <Button type="button" variant="outline" size="sm">
+        <PopoverTrigger render={<Button type="button" variant="outline" size="sm" />}>
             <ListFilter />
             Filtros
             {active.length > 0 && <Badge className="ml-0.5 h-4 min-w-4 px-1">{active.length}</Badge>}
-          </Button>
-        </PopoverTrigger>
+          </PopoverTrigger>
         <PopoverContent align="start" className="w-80">
           <FieldGroup className="gap-3">
             {groups.map((group) => (
               <Field key={group.key}>
                 <FieldLabel>{group.label}</FieldLabel>
-                <Select value={toSelectValue(group.value)} onValueChange={(next) => group.onChange(fromSelectValue(next))}>
+                <Select value={toSelectValue(group.value)} items={group.options.map((option) => ({ value: toSelectValue(option.id), label: option.label }))} onValueChange={(next) => group.onChange(fromSelectValue(next ?? ""))}>
                   <SelectTrigger className="w-full" aria-label={group.label}>
                     <SelectValue />
                   </SelectTrigger>

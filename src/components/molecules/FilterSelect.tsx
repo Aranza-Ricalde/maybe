@@ -20,7 +20,7 @@ export const FILTER_PILL_CLASS = "h-8 w-auto gap-1.5 rounded-full text-xs";
 
 export function FilterSelect({ label, options, value, onChange }: FilterSelectProps) {
   return (
-    <Select value={toSelectValue(value)} onValueChange={(next) => onChange(fromSelectValue(next))}>
+    <Select value={toSelectValue(value)} items={options.map((option) => ({ value: toSelectValue(option.id), label: option.label }))} onValueChange={(next) => onChange(fromSelectValue(next ?? ""))}>
       <SelectTrigger size="sm" aria-label={label} className={FILTER_PILL_CLASS}>
         <InlinePrefixLabel>{label}:</InlinePrefixLabel>
         <SelectValue />

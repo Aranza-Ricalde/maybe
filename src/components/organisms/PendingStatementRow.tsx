@@ -41,7 +41,7 @@ export function PendingStatementRow({ item, accounts, onConfigure, onRetry, onRe
             </NativeSelectOption>
           ))}
         </NativeSelect>
-        {item.status === "password" && <Input type="password" aria-label="Contraseña del PDF" placeholder="Contraseña del PDF" className="h-8 w-44 text-xs" value={item.password} onChange={(event) => onConfigure({ password: event.target.value })} />}
+        {item.status === "password" && <Input type="password" aria-label="Contraseña del PDF" placeholder="Contraseña del PDF" className="h-8 w-44 text-base md:text-xs" value={item.password} onChange={(event) => onConfigure({ password: event.target.value })} />}
         {canRetry && (
           <Button type="button" size="sm" onClick={onRetry}>
             Reintentar

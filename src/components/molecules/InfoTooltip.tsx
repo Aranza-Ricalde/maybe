@@ -11,11 +11,9 @@ export interface InfoTooltipProps {
 export function InfoTooltip({ label, ariaLabel = "¿Cómo se calcula esto?" }: InfoTooltipProps) {
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <Button type="button" aria-label={ariaLabel} variant="ghost" size="icon-sm">
+      <TooltipTrigger render={<Button type="button" aria-label={ariaLabel} variant="ghost" size="icon-sm" />}>
           <Icon icon={Info} />
-        </Button>
-      </TooltipTrigger>
+        </TooltipTrigger>
       <TooltipContent className="max-w-64 text-left leading-relaxed">{label}</TooltipContent>
     </Tooltip>
   );

@@ -3,6 +3,7 @@
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 import type { ReactNode } from "react";
 import { Text } from "@/components/atoms/Text";
+import { InfoTooltip } from "@/components/molecules/InfoTooltip";
 import { EmptyState } from "@/components/molecules/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +22,7 @@ const ACTIONS_COLUMN_KEY = "actions";
 export interface DataTableColumn<T extends object> {
   key: string;
   header: string;
+  headerHint?: string;
   align?: "left" | "right";
   isRowHeader?: boolean;
   sortable?: boolean;
@@ -88,7 +90,10 @@ function MobileRow<T extends object>({ row, titleColumn, actionsColumn, detailCo
         <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
           {detailColumns.map((column) => (
             <div key={column.key} className="flex min-w-0 flex-col">
-              <dt className="text-xs text-muted-foreground">{column.header}</dt>
+              <dt className="flex items-center gap-1 text-xs text-muted-foreground">
+                {column.header}
+                {column.headerHint && <InfoTooltip label={column.headerHint} ariaLabel={`¿Qué significa ${column.header}?`} />}
+              </dt>
               <dd className="min-w-0 tabular-nums">{column.cell(row)}</dd>
             </div>
           ))}
@@ -153,7 +158,10 @@ function DesktopTable<T extends object>({ ariaLabel, columns, rows, getRowId, mi
                 {column.sortable && onSortChange ? (
                   <SortableHeader label={column.header} direction={direction} align={align} onToggle={() => onSortChange({ column: column.key, direction: direction === "ascending" ? "descending" : "ascending" })} />
                 ) : (
-                  column.header
+                  <span className="inline-flex items-center gap-1">
+                    {column.header}
+                    {column.headerHint && <InfoTooltip label={column.headerHint} ariaLabel={`¿Qué significa ${column.header}?`} />}
+                  </span>
                 )}
               </TableHead>
             );

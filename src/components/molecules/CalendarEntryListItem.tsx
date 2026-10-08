@@ -58,7 +58,7 @@ export function CalendarEntryListItem({ entry, decisionAction, listPaymentCandid
             )}
           </ItemTitle>
           <ItemDescription>
-            {SOURCE_LABEL[entry.source]} · {isPaid && entry.actualDate ? `Pagado el ${formatShortDate(entry.actualDate)}` : `Esperado el ${formatShortDate(entry.expectedDate)}`}
+            {SOURCE_LABEL[entry.source]}{isPaid && entry.actualDate ? ` · Pagado el ${formatShortDate(entry.actualDate)}` : ""}
             {entry.isManual && " · Marcado por ti"}
           </ItemDescription>
         </ItemContent>
@@ -71,11 +71,9 @@ export function CalendarEntryListItem({ entry, decisionAction, listPaymentCandid
           )}
           {occurrenceId != null && (isOpen || REOPEN_LABEL[entry.status]) && (
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button type="button" variant="ghost" size="icon-sm" aria-label={`Más acciones de ${entry.name}`} disabled={isPending}>
+              <DropdownMenuTrigger render={<Button type="button" variant="ghost" size="icon-sm" aria-label={`Más acciones de ${entry.name}`} disabled={isPending} />}>
                   <Icon icon={EllipsisVertical} />
-                </Button>
-              </DropdownMenuTrigger>
+                </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {isOpen && (
                   <>

@@ -25,11 +25,11 @@ export function CategoryStatsTable({ stats }: { stats: CategoryStats }) {
   const windowStart = stats.completedMonths[0] ?? stats.months[0];
 
   return (
-    <div className="overflow-x-auto">
-      <Table className="min-w-240">
+    <div className="overflow-x-auto rounded-lg border">
+      <Table className="min-w-[760px] text-sm">
         <TableHeader>
           <TableRow>
-            <TableHead>Categoría</TableHead>
+            <TableHead className="sticky left-0 z-10 bg-card">Categoría</TableHead>
             {stats.months.map((m) => (
               <TableHead key={m} className="text-right">
                 {formatMonthYearShort(m)}
@@ -47,7 +47,7 @@ export function CategoryStatsTable({ stats }: { stats: CategoryStats }) {
             const href = transactionsHref(row.categoryId, windowStart, lastDay);
             return (
               <TableRow key={`${row.parentId ?? "root"}-${row.categoryId}`} className={isSub ? "text-muted-foreground" : undefined}>
-                <TableCell className={isSub ? "pl-8" : "font-medium"}>
+                <TableCell className={`sticky left-0 z-10 bg-card ${isSub ? "pl-8 text-muted-foreground" : "font-medium"}`}>
                   {href ? (
                     <Link href={href} className="hover:text-primary hover:underline">
                       {row.name}
@@ -74,7 +74,7 @@ export function CategoryStatsTable({ stats }: { stats: CategoryStats }) {
                   );
                 })}
                 <TableCell className={CELL}>{row.avgLast3Cents === 0 ? <span className="text-muted-foreground">—</span> : formatPesos(row.avgLast3Cents)}</TableCell>
-                <TableCell className={CELL}>{deltaLabel(row)}</TableCell>
+                <TableCell className={`${CELL} ${row.deltaCents > 0 ? "text-danger" : row.deltaCents < 0 ? "text-success" : ""}`}>{deltaLabel(row)}</TableCell>
                 <TableCell className={CELL}>{row.shareOfWindow > 0 ? `${(row.shareOfWindow * 100).toFixed(1)}%` : "—"}</TableCell>
               </TableRow>
             );
@@ -82,7 +82,7 @@ export function CategoryStatsTable({ stats }: { stats: CategoryStats }) {
         </TableBody>
         <TableFooter>
           <TableRow>
-            <TableCell className="font-semibold">Total</TableCell>
+            <TableCell className="sticky left-0 z-10 bg-muted font-semibold">Total</TableCell>
             {stats.totals.seriesCents.map((cents, i) => (
               <TableCell key={stats.months[i]} className={`${CELL} ${stats.months[i] === stats.currentMonth ? "text-muted-foreground" : ""}`}>
                 {formatPesos(cents)}

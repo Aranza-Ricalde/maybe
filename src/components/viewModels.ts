@@ -1,3 +1,6 @@
+import type { AccountType } from "@/domain/accounts/rules";
+import type { DebtTerms } from "@/domain/debts/rules";
+
 export interface RecentTransactionView {
   id: number;
   date: string;
@@ -45,4 +48,13 @@ export interface CategoryOption {
   id: number;
   name: string;
   label?: string;
+}
+
+export interface AccountRow {
+  id: number;
+  name: string;
+  type: AccountType;
+  balanceCents: number;
+  creditLimitCents: number | null;
+  debtTerms: DebtTerms;
 }

@@ -1,28 +1,29 @@
+"use client";
+
+import { useState } from "react";
 import type { FormAction } from "@/lib/actionResult";
-import { Card, CardContent } from "@/components/ui/card";
+import type { DebtAccountOverview } from "@/application/getDebtOverview";
+import type { AccountsBalanceHistory } from "@/application/getAccountsBalanceHistory";
 import { EmptyState } from "@/components/molecules/EmptyState";
 import { CreateAccountModal } from "@/components/molecules/CreateAccountModal";
-import { StatBlock } from "@/components/molecules/StatBlock";
-import { StatBlockRow } from "@/components/molecules/StatBlockRow";
-import { formatCurrency } from "@/lib/format";
-import type { AccountsTotals } from "@/domain/accounts/rules";
+import { PillTabs } from "@/components/molecules/PillTabs";
+import { MetricStrip } from "@/components/molecules/MetricStrip";
 import { PageHeader } from "@/components/molecules/PageHeader";
-import { AccountExplorerCard, type FetchAccountMovements, type LoadBalanceHistory } from "@/components/organisms/AccountExplorerCard";
-import type { AccountsBalanceHistory } from "@/application/getAccountsBalanceHistory";
-import { AccountsBalanceChart } from "@/components/organisms/AccountsBalanceChart";
-import type { LoadAccountsHistory } from "@/hooks/useAccountsHistory";
-import { AccountsTable, type AccountRow } from "@/components/organisms/AccountsTable";
+import { AccountDetailSheet } from "@/components/organisms/AccountDetailSheet";
+import { AccountsList } from "@/components/organisms/AccountsList";
+import type { AccountRow } from "@/components/viewModels";
 import { ArchivedAccountsModal, type ArchivedAccountInput } from "@/components/organisms/ArchivedAccountsModal";
-import type { EvolutionPoint } from "@/domain/evolution/rules";
-import type { AccountOption } from "@/components/viewModels";
+import type { FetchAccountMovements, LoadBalanceHistory } from "@/hooks/useAccountExplorer";
+import type { AccountsTotals } from "@/domain/accounts/rules";
+import { formatCurrency } from "@/lib/format";
+import { ACCOUNT_FILTERS, accountSeries, filterAccounts, type AccountFilter } from "@/lib/presenters/accounts";
 
 export interface AccountsPageTemplateProps {
   initialAccountsHistory: AccountsBalanceHistory;
-  loadAccountsHistory: LoadAccountsHistory;
   totals: AccountsTotals;
+  debts: DebtAccountOverview[];
   accounts: AccountRow[];
   archivedAccounts: ArchivedAccountInput[];
-  initialBalanceSeries: EvolutionPoint[];
   loadBalanceHistory: LoadBalanceHistory;
   today: string;
   createAccountAction: FormAction;
@@ -32,28 +33,15 @@ export interface AccountsPageTemplateProps {
   fetchTransactionsPage: FetchAccountMovements;
 }
 
-export function AccountsPageTemplate({
-  accounts,
-  totals,
-  initialAccountsHistory,
-  loadAccountsHistory,
-  archivedAccounts,
-  initialBalanceSeries,
-  loadBalanceHistory,
-  today,
-  createAccountAction,
-  updateAccountAction,
-  deleteAccountAction,
-  restoreAccountAction,
-  fetchTransactionsPage,
-}: AccountsPageTemplateProps) {
-  const explorerAccounts: AccountOption[] = accounts.map((a) => ({ id: a.id, name: a.name }));
+export function AccountsPageTemplate({ accounts, totals, debts, initialAccountsHistory, archivedAccounts, loadBalanceHistory, today, createAccountAction, updateAccountAction, deleteAccountAction, restoreAccountAction, fetchTransactionsPage }: AccountsPageTemplateProps) {
+  const [openId, setOpenId] = useState<number | null>(null);
+  const [filter, setFilter] = useState<AccountFilter>("all");
+  const openAccount = accounts.find((account) => account.id === openId) ?? null;
 
   return (
     <>
       <PageHeader
         title="Cuentas"
-        subtitle="Todas tus cuentas, en un solo lugar."
         action={
           <div className="flex items-center gap-4">
             <ArchivedAccountsModal accounts={archivedAccounts} restoreAccountAction={restoreAccountAction} />
@@ -63,28 +51,31 @@ export function AccountsPageTemplate({
       />
 
       {accounts.length === 0 ? (
-        <Card>
-          <CardContent>
-            <EmptyState title="Todavía no tienes cuentas" description="Agrega tu primera cuenta para empezar a registrar movimientos." />
-          </CardContent>
-        </Card>
+        <EmptyState title="Todavía no tienes cuentas" description="Agrega tu primera cuenta para empezar a registrar movimientos." />
       ) : (
         <>
-          <StatBlockRow>
-            <StatBlock label="Lo que tienes" value={formatCurrency(totals.assetsCents)} tooltip="Suma de tus cuentas de ahorro, cheques, efectivo y demás activos." />
-            <StatBlock label="Lo que debes" value={formatCurrency(totals.liabilitiesCents)} tone={totals.liabilitiesCents > 0 ? "danger" : "default"} tooltip="Suma de tus tarjetas de crédito, préstamos y otros pasivos." />
-            <StatBlock label="Patrimonio neto" value={formatCurrency(totals.netCents)} tone={totals.netCents < 0 ? "danger" : "default"} tooltip="Lo que tienes menos lo que debes." />
-          </StatBlockRow>
+          <MetricStrip
+            metrics={[
+              { key: "net", label: "Patrimonio neto", value: formatCurrency(totals.netCents), tone: totals.netCents < 0 ? "danger" : "default" },
+              { key: "assets", label: "Tienes", value: formatCurrency(totals.assetsCents) },
+              { key: "debts", label: "Debes", value: formatCurrency(totals.liabilitiesCents), tone: totals.liabilitiesCents > 0 ? "danger" : "default" },
+            ]}
+          />
 
-          <AccountsTable rows={accounts} updateAccountAction={updateAccountAction} deleteAccountAction={deleteAccountAction} />
-          <AccountsBalanceChart initial={initialAccountsHistory} load={loadAccountsHistory} />
+          <PillTabs options={ACCOUNT_FILTERS} value={filter} onChange={setFilter} ariaLabel="Filtrar cuentas" />
 
-          <AccountExplorerCard
-            accounts={explorerAccounts}
-            initialSeries={initialBalanceSeries}
+          <AccountsList rows={filterAccounts(accounts, filter)} history={initialAccountsHistory} onOpen={(account) => setOpenId(account.id)} />
+
+          <AccountDetailSheet
+            account={openAccount}
+            debt={openAccount ? (debts.find((debt) => debt.id === openAccount.id) ?? null) : null}
+            initialSeries={openAccount ? accountSeries(initialAccountsHistory, openAccount.id) : []}
+            updateAccountAction={updateAccountAction}
+            deleteAccountAction={deleteAccountAction}
             loadBalanceHistory={loadBalanceHistory}
             fetchTransactionsPage={fetchTransactionsPage}
             today={today}
+            onClose={() => setOpenId(null)}
           />
         </>
       )}

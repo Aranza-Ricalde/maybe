@@ -82,8 +82,9 @@ export function SelectField({ label, description, ariaLabel, name, options, defa
       {name && <input type="hidden" name={name} value={current} />}
       <Select
         value={toSelectValue(current)}
+        items={options.map((option) => ({ value: toSelectValue(option.value), label: option.label }))}
         onValueChange={(next) => {
-          const real = fromSelectValue(next);
+          const real = fromSelectValue(next ?? "");
           setInternal(real);
           onChange?.(real);
         }}

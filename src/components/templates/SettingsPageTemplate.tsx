@@ -1,9 +1,15 @@
+"use client";
+
 import type { FormAction } from "@/lib/actionResult";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { PageHeader } from "@/components/molecules/PageHeader";
-import { PageSection } from "@/components/molecules/PageSection";
+import { SettingsRow } from "@/components/molecules/SettingsRow";
+import { SectionNav } from "@/components/molecules/SectionNav";
+import { useSettingsSection } from "@/hooks/useSettingsSection";
+import { SETTINGS_SECTIONS, type SettingsSectionId } from "@/lib/presenters/settings";
 import { PayPeriodModal } from "@/components/molecules/PayPeriodModal";
 import { PeriodViewSwitch } from "@/components/molecules/PeriodViewSwitch";
+import { AccentPicker } from "@/components/molecules/AccentPicker";
 import { ThemeSwitch } from "@/components/molecules/ThemeSwitch";
 import { TelegramLinkInfo } from "@/components/molecules/TelegramLinkInfo";
 import { CategoriesTable, type CategoryRow } from "@/components/organisms/CategoriesTable";
@@ -14,6 +20,7 @@ import { PayPeriodsTable, type PayPeriodRow } from "@/components/organisms/PayPe
 import type { PeriodView } from "@/domain/payPeriod/periodView";
 
 export interface SettingsPageTemplateProps {
+  initialSection: SettingsSectionId;
   userName: string;
   userEmail: string | undefined;
   isTelegramLinked: boolean;
@@ -38,6 +45,7 @@ export interface SettingsPageTemplateProps {
 }
 
 export function SettingsPageTemplate({
+  initialSection,
   userName,
   userEmail,
   isTelegramLinked,
@@ -60,89 +68,92 @@ export function SettingsPageTemplate({
   updatePeriodAction,
   deletePeriodAction,
 }: SettingsPageTemplateProps) {
+  const { section, select } = useSettingsSection(initialSection);
+
   return (
     <>
       <PageHeader title="Configuración" />
 
-      <PageSection id="cuenta" title="Cuenta" description="Tus datos y cómo se ve la app.">
-        <Card>
-          <CardHeader>
-            <CardTitle>Tu cuenta</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2 text-sm">
-            <p>
-              <span className="text-muted-foreground">Nombre:</span> {userName}
-            </p>
-            <p>
-              <span className="text-muted-foreground">Email:</span> {userEmail}
-            </p>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Telegram:</span>
-              <TelegramLinkInfo isLinked={isTelegramLinked} linkCode={telegramLinkCode} />
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex flex-col gap-6 md:flex-row md:gap-12">
+        <SectionNav items={SETTINGS_SECTIONS.map(({ id, label }) => ({ value: id, label }))} value={section} onChange={select} ariaLabel="Secciones de configuración" />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Apariencia</CardTitle>
-            <CardDescription>Elige el tema de la app; “Sistema” sigue el de tu dispositivo.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ThemeSwitch />
-          </CardContent>
-        </Card>
+        <div className="min-w-0 flex-1 text-sm">
+          {section === "cuenta" && (
+            <SettingsSection title="Cuenta" description="Tus datos y tu enlace con Telegram.">
+              <SettingsRow title="Nombre">{userName}</SettingsRow>
+              <SettingsRow title="Correo">{userEmail}</SettingsRow>
+              <SettingsRow title="Telegram" description="Registra movimientos desde el chat.">
+                <TelegramLinkInfo isLinked={isTelegramLinked} linkCode={telegramLinkCode} />
+              </SettingsRow>
+            </SettingsSection>
+          )}
 
-      </PageSection>
+          {section === "apariencia" && (
+            <SettingsSection title="Apariencia" description="Elige el tema de la app; “Sistema” sigue el de tu dispositivo.">
+              <SettingsRow title="Tema">
+                <ThemeSwitch />
+              </SettingsRow>
+              <SettingsRow title="Color de acento" description="Se usa en botones, enlaces y gráficas. Se guarda en este navegador.">
+                <AccentPicker />
+              </SettingsRow>
+            </SettingsSection>
+          )}
 
-      <PageSection id="integraciones" title="Integraciones" description="Registra movimientos desde tu teléfono.">
-        <ApiTokenCard info={apiToken} origin={apiOrigin} generateAction={generateApiTokenAction} />
-      </PageSection>
+          {section === "integraciones" && (
+            <SettingsSection title="Integraciones" description="Registra movimientos desde tu teléfono.">
+              <ApiTokenCard info={apiToken} origin={apiOrigin} generateAction={generateApiTokenAction} />
+            </SettingsSection>
+          )}
 
-      <PageSection id="categorias" title="Categorías" description="Cómo se clasifican tus movimientos.">
-        <Card>
-          <CardHeader className="items-center justify-between">
-            <CardTitle>Categorías</CardTitle>
-            <CategoryModal
-              mode="create"
-              action={createCategoryAction}
-              parentOptions={categories.filter((c) => c.depth === 0).map((c) => ({ value: String(c.id), label: c.name }))}
-            />
-          </CardHeader>
-          <CardContent>
-            <CategoriesTable rows={categories} updateAction={updateCategoryAction} deleteAction={deleteCategoryAction} />
-          </CardContent>
-        </Card>
+          {section === "categorias" && (
+            <SettingsSection
+              title="Categorías"
+              description="Cómo se clasifican tus movimientos."
+              action={<CategoryModal mode="create" action={createCategoryAction} parentOptions={categories.filter((c) => c.depth === 0).map((c) => ({ value: String(c.id), label: c.name }))} />}
+            >
+              <CategoriesTable rows={categories} updateAction={updateCategoryAction} deleteAction={deleteCategoryAction} />
+            </SettingsSection>
+          )}
 
-      </PageSection>
-
-      <PageSection id="periodos" title="Periodos" description="Cómo agrupas tu dinero en el tiempo.">
-        <Card>
-          <CardHeader>
-            <CardTitle>Cómo ver tus periodos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <PeriodViewSwitch value={periodView} action={setPeriodViewAction} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="items-center justify-between">
-            <CardTitle>{periodView === "monthly" ? "Meses de pago" : "Periodos de pago"}</CardTitle>
-            {periodView === "biweekly" && <PayPeriodModal mode="create" action={createPeriodAction} defaultStart={nextPeriodDefaultStart} defaultEnd={nextPeriodDefaultEnd} />}
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {periodView === "monthly" ? (
-              <>
-                <p className="text-sm text-muted-foreground">Cada mes agrupa las quincenas que terminan en él. Edita las fechas de inicio y fin del mes; para agregar o quitar quincenas cambia a la vista Quincenal.</p>
-                <PayMonthsTable rows={months} updateAction={updatePayMonthAction} />
-              </>
-            ) : (
-              <PayPeriodsTable rows={periods} updateAction={updatePeriodAction} deleteAction={deletePeriodAction} />
-            )}
-          </CardContent>
-        </Card>
-      </PageSection>
+          {section === "periodos" && (
+            <SettingsSection title="Periodos" description="Cómo agrupas tu dinero en el tiempo. Los presupuestos, el Resumen y las Estadísticas usan estos periodos.">
+              <SettingsRow title="Vista de periodos" description="Mensual usa tus meses de pago; quincenal, tus quincenas.">
+                <PeriodViewSwitch value={periodView} action={setPeriodViewAction} />
+              </SettingsRow>
+              <SettingsRow
+                title={periodView === "monthly" ? "Meses de pago" : "Periodos de pago"}
+                description={periodView === "monthly" ? "Cada mes agrupa las quincenas que terminan en él. Para agregar o quitar quincenas cambia a la vista Quincenal." : undefined}
+              >
+                <div className="flex flex-col gap-3">
+                  {periodView === "biweekly" && (
+                    <div className="flex justify-end">
+                      <PayPeriodModal mode="create" action={createPeriodAction} defaultStart={nextPeriodDefaultStart} defaultEnd={nextPeriodDefaultEnd} />
+                    </div>
+                  )}
+                  {periodView === "monthly" ? <PayMonthsTable rows={months} updateAction={updatePayMonthAction} /> : <PayPeriodsTable rows={periods} updateAction={updatePeriodAction} deleteAction={deletePeriodAction} />}
+                </div>
+              </SettingsRow>
+            </SettingsSection>
+          )}
+        </div>
+      </div>
     </>
+  );
+}
+
+function SettingsSection({ title, description, action, children }: { title: string; description?: string; action?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <Card aria-labelledby={`settings-${title}`}>
+      <CardHeader className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 id={`settings-${title}`} className="text-lg leading-snug font-medium">
+            {title}
+          </h2>
+          {description && <CardDescription className="mt-1 max-w-xl">{description}</CardDescription>}
+        </div>
+        {action}
+      </CardHeader>
+      <CardContent className="flex flex-col">{children}</CardContent>
+    </Card>
   );
 }

@@ -30,13 +30,11 @@ export function PeriodPicker({ presets, value, customLabel, isCustom, customRang
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button type="button" variant="outline" size="sm" aria-label="Elegir periodo">
+      <PopoverTrigger render={<Button type="button" variant="outline" size="sm" aria-label="Elegir periodo" />}>
           <Icon icon={CalendarIcon} size="sm" />
           {current}
           <Icon icon={ChevronDown} size="sm" />
-        </Button>
-      </PopoverTrigger>
+        </PopoverTrigger>
       <PopoverContent align="start" className="flex w-auto flex-col gap-1 p-2">
         {presets.map((preset) => (
           <Button

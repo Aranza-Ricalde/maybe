@@ -25,9 +25,9 @@ export function SignedAmountField({ name, defaultValue, label = "Monto", placeho
       <FieldLabel htmlFor={`${name}-display`}>{label}</FieldLabel>
       <input type="hidden" name={name} value={joinSignedAmount(kind, magnitude)} />
       <div className="flex gap-2">
-        <ToggleGroup type="single" variant="outline" value={kind} onValueChange={(next) => next && setKind(next as AmountKind)} aria-label="Tipo de movimiento">
+        <ToggleGroup variant="outline" value={[kind]} onValueChange={(next) => next[0] && setKind(next[0] as AmountKind)} aria-label="Tipo de movimiento">
           {(Object.keys(KIND_LABEL) as AmountKind[]).map((option) => (
-            <ToggleGroupItem key={option} value={option} className="px-3 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+            <ToggleGroupItem key={option} value={option} className="px-3 data-pressed:bg-primary data-pressed:text-primary-foreground">
               {KIND_LABEL[option]}
             </ToggleGroupItem>
           ))}

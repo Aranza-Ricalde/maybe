@@ -2,6 +2,7 @@
 
 import type { FormAction } from "@/lib/actionResult";
 import { CurrencyText } from "@/components/atoms/CurrencyText";
+import { recurringDetailLabel } from "@/lib/presenters/recurring";
 import { Text } from "@/components/atoms/Text";
 import { DeleteEntityButton } from "./DeleteEntityButton";
 import { ClientDataTable } from "./ClientDataTable";
@@ -54,10 +55,7 @@ export function RecurringItemsTable({ rows, accounts, categories, updateAction, 
       key: "detail",
       header: "Cuenta / Categoría",
       cell: (item) => (
-        <Text tone="muted">
-          {item.accountId != null ? (accountNameById.get(item.accountId) ?? "—") : "—"}
-          {item.categoryId != null ? ` · ${categoryNameById.get(item.categoryId) ?? "—"}` : ""}
-        </Text>
+        <Text tone="muted">{recurringDetailLabel(item.accountId != null ? accountNameById.get(item.accountId) : undefined, item.categoryId != null ? categoryNameById.get(item.categoryId) : undefined)}</Text>
       ),
     },
     {
@@ -67,7 +65,8 @@ export function RecurringItemsTable({ rows, accounts, categories, updateAction, 
     },
     {
       key: "budget",
-      header: "Como presupuesto",
+      header: "Suma al presupuesto",
+      headerHint: "Suma este pago al presupuesto de su categoría. Si ya definiste uno manual, ese manda.",
       cell: (item) => (
         <RecurringBudgetInclusionCell itemId={item.id} isRelevant={isBudgetRelevant(item)} budgetInclusion={item.budgetInclusion} action={budgetDecisionAction} />
       ),

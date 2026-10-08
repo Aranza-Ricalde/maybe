@@ -29,12 +29,10 @@ export function PeriodMultiSelect({ periods, selectedIds, basePath }: PeriodMult
 
   return (
     <Popover open={isOpen} onOpenChange={onOpenChange}>
-      <PopoverTrigger asChild>
-        <Button type="button" variant="secondary" size="sm" disabled={isPending}>
+      <PopoverTrigger render={<Button type="button" variant="secondary" size="sm" disabled={isPending} />}>
           {isPending ? <Spinner /> : <Icon icon={Calendar} size="sm" />}
           Cambiar periodo
-        </Button>
-      </PopoverTrigger>
+        </PopoverTrigger>
       <PopoverContent align="end" className="flex max-h-96 w-72 flex-col gap-2">
         <PopoverHeader>
           <PopoverTitle>Periodos</PopoverTitle>

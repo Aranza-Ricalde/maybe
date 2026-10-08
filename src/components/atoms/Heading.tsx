@@ -5,7 +5,7 @@ export type HeadingTone = "default" | "muted";
 export type HeadingLevel = 1 | 2 | 3 | 4;
 
 const TONE_CLASS: Record<HeadingTone, string> = { default: "text-foreground", muted: "text-muted-foreground" };
-const LEVEL_CLASS: Record<HeadingLevel, string> = { 1: "text-2xl font-semibold", 2: "text-xl font-semibold", 3: "text-lg font-semibold", 4: "text-base font-semibold" };
+const LEVEL_CLASS: Record<HeadingLevel, string> = { 1: "text-2xl font-semibold tracking-tight md:text-3xl", 2: "text-xl font-semibold", 3: "text-lg font-semibold", 4: "text-base font-semibold" };
 
 export interface HeadingProps extends Omit<ComponentProps<"h1">, "color"> {
   tone?: HeadingTone;

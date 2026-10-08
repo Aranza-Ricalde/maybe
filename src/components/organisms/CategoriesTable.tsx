@@ -5,6 +5,7 @@ import { parentOptionsFor } from "@/lib/presenters/categories";
 import { Badge } from "@/components/ui/badge";
 import { SPENDING_NATURE_LABELS, type SpendingNature } from "@/domain/categories/nature";
 import { CategoryModal } from "./CategoryModal";
+import { InfoTooltip } from "@/components/molecules/InfoTooltip";
 import { DeleteEntityButton } from "./DeleteEntityButton";
 import { ClientDataTable } from "./ClientDataTable";
 import type { DataTableColumn } from "./DataTable";
@@ -36,20 +37,12 @@ export function CategoriesTable({ rows, updateAction, deleteAction }: Categories
       key: "name",
       header: "Nombre",
       isRowHeader: true,
-      cell: (c) => <CategoryNameCell name={c.name} color={c.color} depth={c.depth} />,
-    },
-    {
-      key: "description",
-      header: "Qué va aquí",
-      cell: (c) =>
-        c.descriptionText ? (
-          <div className="flex max-w-md flex-col gap-1">
-            <span className="text-xs text-muted-foreground">{c.descriptionText}</span>
-            {c.descriptionIsSuggested && <span className="text-[11px] text-muted-foreground/70">Sugerida · edítala para personalizarla</span>}
-          </div>
-        ) : (
-          <span className="text-xs text-muted-foreground">Sin descripción</span>
-        ),
+      cell: (c) => (
+        <div className="flex items-center gap-1">
+          <CategoryNameCell name={c.name} color={c.color} depth={c.depth} />
+          <InfoTooltip label={c.descriptionText ?? "Sin descripción. Edita la categoría para agregar una."} ariaLabel={`¿Qué va en ${c.name}?`} />
+        </div>
+      ),
     },
     {
       key: "type",
@@ -61,7 +54,7 @@ export function CategoriesTable({ rows, updateAction, deleteAction }: Categories
       header: "Naturaleza",
       cell: (c) =>
         c.classification === "expense" && c.nature ? (
-          <Badge variant={c.nature === "essential" ? "success" : "secondary"}>{SPENDING_NATURE_LABELS[c.nature]}</Badge>
+          <Badge variant={c.nature === "essential" ? "success" : c.nature === "savings" ? "outline" : "secondary"}>{SPENDING_NATURE_LABELS[c.nature]}</Badge>
         ) : (
           <span className="text-xs text-muted-foreground">{c.classification === "expense" ? "—" : ""}</span>
         ),

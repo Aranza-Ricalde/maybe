@@ -24,11 +24,9 @@ export function FilterPillPopover({ label, valueLabel, title, clearAriaLabel, on
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <Button type="button" variant="outline" size="sm" className={cn(FILTER_PILL_CLASS, "font-normal")}>
+      <PopoverTrigger render={<Button type="button" variant="outline" size="sm" className={cn(FILTER_PILL_CLASS, "font-normal")} />}>
           <InlinePrefixLabel>{`${label}:`}</InlinePrefixLabel> {valueLabel}
-        </Button>
-      </PopoverTrigger>
+        </PopoverTrigger>
       <PopoverContent align="start" className={cn("flex w-auto flex-col gap-2", dialogClassName)}>
         <FilterPopoverHeader
           title={title}

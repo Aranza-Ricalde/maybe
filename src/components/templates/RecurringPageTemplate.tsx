@@ -78,7 +78,7 @@ export function RecurringPageTemplate({
 
       <Alert variant="info">
         <Info />
-        <AlertTitle>Como presupuesto</AlertTitle>
+        <AlertTitle>Suma al presupuesto</AlertTitle>
         <AlertDescription>Si está activo, el monto del recurrente sirve de presupuesto de su categoría. Si defines un presupuesto manual para esa categoría, el tuyo manda y el recurrente solo queda como referencia.</AlertDescription>
       </Alert>
 

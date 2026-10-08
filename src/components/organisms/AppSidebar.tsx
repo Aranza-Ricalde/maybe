@@ -1,61 +1,56 @@
 "use client";
 
-import { LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogoutForm } from "@/components/molecules/LogoutForm";
-import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarRail, SidebarTrigger } from "@/components/ui/sidebar";
+import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarRail } from "@/components/ui/sidebar";
 import { isNavActive } from "@/lib/navigation";
-import { NAV_ITEMS } from "./navItems";
+import { NavUser, type NavUserProps } from "./NavUser";
+import { NAV_GROUPS } from "./navItems";
 
-export function AppSidebar() {
+export function AppSidebar({ user }: { user: NavUserProps }) {
   const pathname = usePathname();
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader>
-        <div className="flex items-center justify-between gap-2 px-1 group-data-[collapsible=icon]:flex-col">
-          <div className="flex items-center gap-2">
-            <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">M</span>
-            <span className="text-lg font-semibold group-data-[collapsible=icon]:hidden">Maybe</span>
-          </div>
-          <SidebarTrigger aria-label="Contraer o expandir menú" />
-        </div>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg" render={<Link href="/" />}>
+              <span className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sm font-bold text-sidebar-primary-foreground">M</span>
+              <span className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate font-semibold">Maybe</span>
+                <span className="truncate text-xs text-muted-foreground">Finanzas personales</span>
+              </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <nav aria-label="Navegación principal">
-            <SidebarMenu>
-              {NAV_ITEMS.map((item) => {
-                const active = isNavActive(pathname, item.href);
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
-                      <Link href={item.href} aria-current={active ? "page" : undefined}>
+        <nav aria-label="Navegación principal">
+          {NAV_GROUPS.map((group) => (
+            <SidebarGroup key={group.label}>
+              {group.items.length > 1 || group.label !== group.items[0]?.label ? <SidebarGroupLabel>{group.label}</SidebarGroupLabel> : null}
+              <SidebarMenu>
+                {group.items.map((item) => {
+                  const active = isNavActive(pathname, item.href);
+                  return (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton isActive={active} tooltip={item.label} render={<Link href={item.href} aria-current={active ? "page" : undefined} />}>
                         <item.icon />
                         <span>{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
-            </SidebarMenu>
-          </nav>
-        </SidebarGroup>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+              </SidebarMenu>
+            </SidebarGroup>
+          ))}
+        </nav>
       </SidebarContent>
 
       <SidebarFooter>
-        <LogoutForm>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton type="submit" tooltip="Salir">
-                <LogOut />
-                <span>Salir</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </LogoutForm>
+        <NavUser {...user} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

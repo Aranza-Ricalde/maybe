@@ -1,14 +1,14 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
-export type ResponsiveDialogSize = "sm" | "md" | "lg";
+export type ResponsiveDialogSize = "sm" | "md" | "lg" | "xl";
 
-const SIZE_CLASS: Record<ResponsiveDialogSize, string> = { sm: "sm:max-w-sm", md: "sm:max-w-md", lg: "sm:max-w-lg" };
+const SIZE_CLASS: Record<ResponsiveDialogSize, string> = { sm: "sm:max-w-sm", md: "sm:max-w-md", lg: "sm:max-w-lg", xl: "sm:max-w-3xl" };
 
 export interface ResponsiveDialogProps {
   title: string;
@@ -27,7 +27,7 @@ export function ResponsiveDialog({ title, description, trigger, open, onOpenChan
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
-        {trigger && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
+        {trigger && <DrawerTrigger render={trigger as ReactElement} />}
         <DrawerContent>
           <DrawerHeader className="text-left">
             <DrawerTitle>{title}</DrawerTitle>
@@ -41,13 +41,13 @@ export function ResponsiveDialog({ title, description, trigger, open, onOpenChan
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      <DialogContent showCloseButton={!hideClose} className={cn("max-h-[90dvh] overflow-y-auto", SIZE_CLASS[size])}>
+      {trigger && <DialogTrigger render={trigger as ReactElement} />}
+      <DialogContent showCloseButton={!hideClose} className={cn("max-h-[90dvh] overflow-x-hidden overflow-y-auto", SIZE_CLASS[size])}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription className={description ? undefined : "sr-only"}>{description ?? title}</DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-4">{children}</div>
+        <div className="flex min-w-0 flex-col gap-4">{children}</div>
       </DialogContent>
     </Dialog>
   );

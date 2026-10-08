@@ -13,7 +13,7 @@ export function TelegramLinkInfo({ isLinked, linkCode }: TelegramLinkInfoProps) 
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <Badge variant="secondary">Sin vincular</Badge>
       <DetailModal title="Vincular Telegram" triggerLabel="¿Cómo vincular? →">
         <Text>Para registrar movimientos por chat:</Text>

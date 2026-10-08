@@ -5,22 +5,21 @@ import { ROUTES, type AppRoute } from "@/domain/shared/routes";
 export const REVALIDATE = {
   accounts: [ROUTES.accounts, ROUTES.dashboard],
   transactions: [ROUTES.transactions, ROUTES.dashboard],
-  transferReview: [ROUTES.transactions, ROUTES.dashboard, ROUTES.spending, ROUTES.budgets],
-  captureReview: [ROUTES.transactions, ROUTES.dashboard, ROUTES.spending, ROUTES.budgets],
-  statementImport: [ROUTES.transactions, ROUTES.dashboard, ROUTES.spending, ROUTES.budgets, ROUTES.accounts, ROUTES.projection],
+  transferReview: [ROUTES.transactions, ROUTES.dashboard, ROUTES.stats, ROUTES.budgets],
+  captureReview: [ROUTES.transactions, ROUTES.dashboard, ROUTES.stats, ROUTES.budgets],
+  statementImport: [ROUTES.transactions, ROUTES.dashboard, ROUTES.stats, ROUTES.budgets, ROUTES.accounts, ROUTES.stats],
   goals: [ROUTES.goals, ROUTES.dashboard],
   budgetLines: [ROUTES.budgets, ROUTES.dashboard],
   categories: [ROUTES.settings, ROUTES.budgets, ROUTES.transactions, ROUTES.dashboard],
   payPeriods: [ROUTES.settings, ROUTES.budgets, ROUTES.dashboard],
-  periodView: [ROUTES.settings, ROUTES.budgets, ROUTES.dashboard, ROUTES.spending],
+  periodView: [ROUTES.settings, ROUTES.budgets, ROUTES.dashboard, ROUTES.stats],
   recurring: [ROUTES.recurring, ROUTES.dashboard],
   recurringBudget: [ROUTES.recurring, ROUTES.budgets, ROUTES.dashboard],
   recurringPolicy: [ROUTES.recurring, ROUTES.budgets],
   conceptConfirmed: [ROUTES.dashboard, ROUTES.transactions],
   settingsOnly: [ROUTES.settings],
-  spendingOnly: [ROUTES.spending],
   dashboard: [ROUTES.dashboard],
-  projection: [ROUTES.projection],
+  stats: [ROUTES.stats],
 } as const satisfies Record<string, readonly AppRoute[]>;
 
 export function revalidateRoutes(routes: readonly AppRoute[]): void {

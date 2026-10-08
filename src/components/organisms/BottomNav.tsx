@@ -27,12 +27,10 @@ export function BottomNav() {
             </Link>
           );
         })}
-        <DrawerTrigger asChild>
-          <button type="button" className={cn(ITEM_BASE, itemTone(moreActive))}>
+        <DrawerTrigger render={<button type="button" className={cn(ITEM_BASE, itemTone(moreActive))} />}>
             <Ellipsis className="size-5" />
             Más
-          </button>
-        </DrawerTrigger>
+          </DrawerTrigger>
       </nav>
 
       <DrawerContent>
