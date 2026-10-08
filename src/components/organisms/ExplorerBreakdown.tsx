@@ -4,6 +4,8 @@ import { Text } from "@/components/atoms/Text";
 import { Progress } from "@/components/ui/progress";
 import type { ExplorerShare } from "@/domain/explorer/rules";
 import { formatPercent, formatPesos } from "@/lib/format";
+import { donutSlices } from "@/lib/presenters/charts";
+import { ShareDonutChart } from "./ShareDonutChart";
 
 export interface ExplorerBreakdownProps {
   title: string;
@@ -28,7 +30,12 @@ export function ExplorerBreakdown({ title, shares, onSelect, selectLabel, footer
     );
   }
 
+  const slices = donutSlices(shares);
+  const total = shares.reduce((sum, share) => sum + share.totalCents, 0);
+
   return (
+    <div className="grid items-center gap-6 md:grid-cols-[14rem_minmax(0,1fr)]">
+      <ShareDonutChart slices={slices} totalCents={total} label="Gasto" />
     <ul aria-label={title} className="flex flex-col gap-1">
       {shares.map((share) => {
         const selectable = onSelect != null && share.key !== "others" && (share.categoryId != null || share.color == null);
@@ -63,5 +70,6 @@ export function ExplorerBreakdown({ title, shares, onSelect, selectLabel, footer
         </Text>
       )}
     </ul>
+    </div>
   );
 }

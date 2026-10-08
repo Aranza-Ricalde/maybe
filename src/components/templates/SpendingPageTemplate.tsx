@@ -1,13 +1,15 @@
 import type { FormAction } from "@/lib/actionResult";
 import { TriangleAlert } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import type { SpendingAnalysisView } from "@/application/getSpendingAnalysis";
 import { StatBlock } from "@/components/molecules/StatBlock";
 import { StatBlockRow } from "@/components/molecules/StatBlockRow";
 import { EmptyState } from "@/components/molecules/EmptyState";
 import { PageHeader } from "@/components/molecules/PageHeader";
+import { SpendingStackedChart } from "@/components/organisms/SpendingStackedChart";
+import { stackedSpendingSeries } from "@/lib/presenters/charts";
 import { CategoryStatsTable } from "@/components/organisms/CategoryStatsTable";
 import { NatureBreakdownCard } from "@/components/organisms/NatureBreakdownCard";
 import { SpendingAnalysisSection } from "@/components/organisms/SpendingAnalysisSection";
@@ -69,6 +71,16 @@ export function SpendingPageTemplate({ stats, analysis, mergeSubscriptionsAction
               </AlertDescription>
             </Alert>
           )}
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Gasto mensual por categoría</CardTitle>
+              <CardDescription>Las categorías que más pesan; el resto se junta en Otras. El mes en curso está incompleto.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SpendingStackedChart series={stackedSpendingSeries(stats)} />
+            </CardContent>
+          </Card>
 
           <Card>
             <CardContent>

@@ -9,6 +9,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { StatBlock } from "@/components/molecules/StatBlock";
 import { StatBlockRow } from "@/components/molecules/StatBlockRow";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { budgetVsActualBars } from "@/lib/presenters/charts";
+import { BudgetVsActualChart } from "./BudgetVsActualChart";
 import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CurrencyText } from "@/components/atoms/CurrencyText";
@@ -199,6 +202,18 @@ export function BudgetsTable({ rows, setLineAction, deleteLineAction }: BudgetsT
           }
         />
       </StatBlockRow>
+
+      {rows.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Presupuesto contra gasto</CardTitle>
+            <CardDescription>En rojo, las categorías que ya se pasaron de su presupuesto.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BudgetVsActualChart bars={budgetVsActualBars(rows)} />
+          </CardContent>
+        </Card>
+      )}
 
       {tree.hasParents && (
         <div className="flex justify-end">
