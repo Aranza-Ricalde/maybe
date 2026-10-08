@@ -98,3 +98,10 @@ Todas las gráficas deberían compartir el mismo conjunto de controles (los que 
 - Peso del paquete de Recharts: carga diferida.
 - La paleta para categorías: usar el color que el usuario ya asigna a cada categoría, con respaldo accesible.
 - Decidir con el usuario cuáles de G-A a G-Q se hacen primero (Q-10).
+
+## Estado tras el rediseño de Estadísticas
+
+- Una sola gráfica configurable (`TimeSeriesChart`) alimenta Estadísticas y el ritmo de gasto del Resumen: barras (gasto, ingreso, neto), apiladas por categoría, ranking por comercio, líneas de saldo con tramo proyectado punteado y una línea por cuenta.
+- Se mantienen aparte `BudgetVsActualChart` (Presupuestos), `GoalRingsChart` (Metas), `LineEvolutionChart` (detalle de cuenta) y `ProjectionBalanceChart` (simulador).
+- Retiradas: dona de reparto, cascada de "qué cambió" y las gráficas del explorador antiguo; su información vive en la tabla sincronizada y en la comparación con el periodo anterior.
+- Pendientes del catálogo: treemap, Sankey, patrimonio apilado, dispersión de gastos hormiga y costo de suscripciones.
