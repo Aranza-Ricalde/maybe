@@ -18,7 +18,7 @@ const VALID = { bank: "bbva_debito", accountId: "1" };
 describe("Importación de estados de cuenta — endpoints", () => {
   beforeEach(() => {
     cy.task("mintAccessToken", 1).then((token) => cy.setCookie("access_token", token as string));
-    cy.visit("/settings");
+    cy.visit("/settings?s=integraciones");
   });
 
   it("rechaza lo que no es un PDF válido, el banco o la cuenta inválidos y los archivos grandes", () => {

@@ -9,7 +9,7 @@ after(() => {
 describe("Settings — Periodos de pago", () => {
   beforeEach(() => {
     cy.task("mintAccessToken", 1).then((token) => cy.setCookie("access_token", token as string));
-    cy.visit("/settings");
+    cy.visit("/settings?s=periodos");
   });
 
   it("lista las 26 quincenas sembradas, marca la 'Actual' exactamente una vez, y coincide con la base", () => {
@@ -101,7 +101,7 @@ describe("Settings — Periodos de pago", () => {
 describe("Settings — Periodos de pago: sin traslapes", () => {
   beforeEach(() => {
     cy.task("mintAccessToken", 1).then((token) => cy.setCookie("access_token", token as string));
-    cy.visit("/settings");
+    cy.visit("/settings?s=periodos");
   });
 
   it("un periodo que comparte un día con otro no se crea", () => {

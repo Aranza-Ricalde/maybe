@@ -7,7 +7,7 @@ describe("Settings — Tu cuenta y Telegram", () => {
   it("muestra el nombre y email reales del usuario sembrado", () => {
     cy.task("dbQuery", "select name, email from users where id = 1").then((rows) => {
       const user = (rows as { name: string; email: string }[])[0];
-      cy.contains("Tu cuenta").should("be.visible");
+      cy.contains("h2", "Cuenta").should("be.visible");
       cy.contains(user.name).should("be.visible");
       cy.contains(user.email).should("be.visible");
     });
@@ -30,8 +30,13 @@ describe("Settings — Tu cuenta y Telegram", () => {
     cy.contains("Vincular Telegram").should("not.exist");
   });
 
-  it("muestra los encabezados de las secciones de administración", () => {
-    cy.contains("h2, h3, [data-slot='card-title']", "Categorías").should("be.visible");
-    cy.contains("h2, h3, [data-slot='card-title']", "Cómo ver tus periodos").should("be.visible");
+  it("ofrece las secciones de administración como un menú interno y recuerda la elegida en la dirección", () => {
+    cy.get('nav[aria-label="Secciones de configuración"]').within(() => {
+      ["Cuenta", "Apariencia", "Integraciones", "Categorías", "Periodos"].forEach((label) => cy.contains("button", label).should("be.visible"));
+      cy.contains("button", "Periodos").click();
+    });
+    cy.location("search").should("eq", "?s=periodos");
+    cy.contains("h2", "Periodos").should("be.visible");
+    cy.contains("Vista de periodos").should("be.visible");
   });
 });

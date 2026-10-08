@@ -7,7 +7,7 @@ describe("Avisos de éxito y de error en toda la app", () => {
 
   it("crear, editar y eliminar una meta avisa cada paso", () => {
     const name = `E2E aviso ${Date.now()}`;
-    cy.visit("/goals");
+    cy.visit("/budgets");
     cy.contains("button", "+ Nueva meta").click();
     cy.get('input[name="name"]').type(name);
     cy.get('input[name="targetAmount"]').type("1000");
@@ -23,7 +23,7 @@ describe("Avisos de éxito y de error en toda la app", () => {
 
   it("un error de validación avisa el motivo y no cierra el formulario", () => {
     cy.task("setPeriodView", "biweekly");
-    cy.visit("/settings");
+    cy.visit("/settings?s=periodos");
     cy.get('[aria-label="Periodos de pago"]').within(() => cy.get('button[aria-label^="Editar"]').eq(1).click());
     cy.task("dbQuery", `select "end"::text as value from pay_periods order by "start" limit 1`).then((rows) => {
       const firstEnd = (rows as { value: string }[])[0].value;

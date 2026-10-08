@@ -18,7 +18,7 @@ describe("Importar estados — pantalla", () => {
       cy.contains("[data-sonner-toast]", "No se pudo leer el estado").should("be.visible");
       cy.get("[data-sonner-toast]", { timeout: 12000 }).should("not.exist");
       cy.get("aside[aria-label='Progreso de importación']").should("not.exist");
-      cy.get("nav").contains("Resumen").click();
+      cy.contains("nav a", "Resumen").click();
       cy.get("aside[aria-label='Progreso de importación']").should("be.visible");
       cy.get("aside [role=progressbar]").should("have.length.at.least", 2);
       cy.task("dbQuery", "select count(*)::int as n from transactions").should("deep.equal", before);

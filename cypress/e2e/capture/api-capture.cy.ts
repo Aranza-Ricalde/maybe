@@ -11,7 +11,7 @@ describe("Registro por API — token, endpoint y confirmación", () => {
   });
 
   it("genera el token una sola vez, registra por el endpoint y el movimiento pide confirmar categoría en Movimientos", () => {
-    cy.visit("/settings");
+    cy.visit("/settings?s=integraciones");
     cy.contains("button", /Generar/).click();
     cy.contains("Copia tu token ahora").should("be.visible");
 
@@ -30,7 +30,7 @@ describe("Registro por API — token, endpoint y confirmación", () => {
         });
       });
 
-    cy.visit("/settings");
+    cy.visit("/settings?s=integraciones");
     cy.contains("Activo · termina en").should("be.visible");
     cy.get("[role=status]").should("not.exist");
 
@@ -51,7 +51,7 @@ describe("Registro por API — token, endpoint y confirmación", () => {
   });
 
   it("acepta la notificación del banco en texto plano, la entiende con reglas y la guarda con su texto original", () => {
-    cy.visit("/settings");
+    cy.visit("/settings?s=integraciones");
     cy.contains("button", /Generar/).click();
     cy.get("[role=status] code")
       .invoke("text")
@@ -69,12 +69,12 @@ describe("Registro por API — token, endpoint y confirmación", () => {
   });
 
   it("al generar un token nuevo el anterior deja de servir", () => {
-    cy.visit("/settings");
+    cy.visit("/settings?s=integraciones");
     cy.contains("button", /Generar/).click();
     cy.get("[role=status] code")
       .invoke("text")
       .then((first) => {
-        cy.visit("/settings");
+        cy.visit("/settings?s=integraciones");
         cy.contains("button", "Generar uno nuevo").click();
         cy.get("[role=status] code").should("not.have.text", first);
         cy.request({ method: "POST", url: API, headers: bearer(first), body: { account: "Nu Débito", type: "expense", amount: 1, description: "x" }, failOnStatusCode: false }).its("status").should("eq", 401);

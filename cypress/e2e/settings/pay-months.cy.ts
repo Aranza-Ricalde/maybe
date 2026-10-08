@@ -23,7 +23,7 @@ describe("Settings — Meses de pago", () => {
 
   beforeEach(() => {
     cy.task("mintAccessToken", 1).then((token) => cy.setCookie("access_token", token as string));
-    cy.visit("/settings");
+    cy.visit("/settings?s=periodos");
   });
 
   it("guardar un mes de pago lo actualiza en la base y avisa que salió bien; deshacerlo también", () => {
@@ -34,7 +34,7 @@ describe("Settings — Meses de pago", () => {
       cy.contains("[data-sonner-toast]", "Mes de pago actualizado", { timeout: 10000 }).should("be.visible");
       readValue(FIRST_MONTH_END).should("equal", shrunk);
 
-      cy.visit("/settings");
+      cy.visit("/settings?s=periodos");
       editMonth(0, { end: originalEnd });
       cy.contains("[data-sonner-toast]", "Mes de pago actualizado", { timeout: 10000 }).should("be.visible");
       readValue(FIRST_MONTH_END).should("equal", originalEnd);

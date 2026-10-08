@@ -68,7 +68,8 @@ describe("Autenticación: login, logout, rutas protegidas", () => {
       const sessionsBefore = (rows as { n: number }[])[0].n;
       expect(sessionsBefore).to.be.greaterThan(0);
 
-      cy.get('form[action="/api/logout"] button[type="submit"]').click({ force: true });
+      cy.get('[data-slot="sidebar"]').contains("button", "E2E Tester").click();
+      cy.get('form[action="/api/logout"] button[type="submit"]').click();
       cy.location("pathname", { timeout: 10000 }).should("eq", "/login");
 
       cy.task("dbQuery", "select count(*)::int as n from sessions").then((afterRows) => {

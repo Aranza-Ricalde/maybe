@@ -45,7 +45,7 @@ describe("Recurrentes: nómina", () => {
 
     cy.visit("/");
     cy.contains("Calendario del periodo").should("be.visible");
-    cy.contains("[data-slot=card]", "Calendario del periodo").should("not.contain", "Nómina");
+    cy.get('[aria-label="Calendario del periodo"]').should("not.contain", "Nómina");
   });
 
   it("al editar a pago mensual con un día elegido reemplaza la nómina anclada sin duplicarla", () => {

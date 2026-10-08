@@ -1,4 +1,4 @@
-describe("/accounts — lista, saldos y explorador", () => {
+describe("/accounts — lista, saldos y detalle", () => {
   beforeEach(() => {
     cy.task("mintAccessToken", 1).then((token) => cy.setCookie("access_token", token as string));
     cy.visit("/accounts");
@@ -6,7 +6,6 @@ describe("/accounts — lista, saldos y explorador", () => {
 
   it("muestra el encabezado y el botón de nueva cuenta", () => {
     cy.contains("h1, h2, h3", "Cuentas").should("be.visible");
-    cy.contains("Todas tus cuentas, en un solo lugar.").should("be.visible");
     cy.contains("button", "+ Nueva cuenta").should("be.visible");
   });
 
@@ -18,11 +17,11 @@ describe("/accounts — lista, saldos y explorador", () => {
       "Préstamo Auto": "Préstamo",
     };
     for (const [name, typeLabel] of Object.entries(expected)) {
-      cy.contains("tr", name).within(() => {
+      cy.contains("li", name).within(() => {
         cy.contains(typeLabel).should("be.visible");
       });
     }
-    cy.contains("tr", "Efectivo").should("not.exist");
+    cy.contains("li", "Efectivo").should("not.exist");
   });
 
   it("el saldo mostrado de cada cuenta coincide EXACTAMENTE con la base de datos", () => {
@@ -36,7 +35,7 @@ describe("/accounts — lista, saldos y explorador", () => {
       for (const acc of list) {
         const cents = Number(acc.balance_cents);
         const formatted = (Math.abs(cents) / 100).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
-        cy.contains("tr", acc.name).within(() => {
+        cy.contains("li", acc.name).within(() => {
           cy.contains(formatted.replace(/\s/g, "")).should("exist");
         });
       }
@@ -46,7 +45,7 @@ describe("/accounts — lista, saldos y explorador", () => {
   it("el signo del saldo de la tarjeta de crédito (Nu TDC) coincide con la base: negativo solo si hay deuda", () => {
     cy.task("dbQuery", "select balance_cents from account_balances_daily where account_id = (select id from accounts where name = 'Nu TDC') order by date desc limit 1").then((rows) => {
       const cents = Number((rows as { balance_cents: string }[])[0].balance_cents);
-      cy.contains("tr", "Nu TDC").within(() => {
+      cy.contains("li", "Nu TDC").within(() => {
         if (cents < 0) cy.contains("-$").should("exist");
         else cy.contains("-$").should("not.exist");
       });
@@ -65,25 +64,41 @@ describe("/accounts — lista, saldos y explorador", () => {
     cy.contains("Cuentas archivadas").should("not.exist");
   });
 
-  it("el explorador de movimientos por cuenta muestra Nu Débito por defecto, con gráfica y tabla", () => {
-    cy.contains("Movimientos por cuenta").should("be.visible");
-    cy.contains("Movimientos de Nu Débito").should("be.visible");
-    // La gráfica (o su mensaje vacío) debe existir — Nu Débito tiene movimientos, así que debe haber datos reales, no el mensaje vacío.
-    cy.contains("Todavía no hay suficientes datos para graficar esta cuenta.").should("not.exist");
-    cy.get("svg").should("exist");
+  it("muestra el patrimonio neto y las pestañas filtran las cuentas por tipo", () => {
+    cy.contains("Patrimonio neto").should("be.visible");
+    cy.contains("button", "Crédito").click();
+    cy.contains("li", "Nu TDC").should("be.visible");
+    cy.contains("li", "Nu Débito").should("not.exist");
+    cy.contains("button", "Préstamos").click();
+    cy.contains("li", "Préstamo Auto").should("be.visible");
+    cy.contains("button", "Todas").click();
+    cy.contains("li", "Nu Débito").should("be.visible");
   });
 
-  it("el explorador permite cambiar de rango (30 días / 3 meses / 6 meses / 1 año)", () => {
-    for (const label of ["30 días", "3 meses", "6 meses", "1 año"]) {
-      cy.contains("button", label).click();
-      cy.contains("button", label).should("have.attr", "data-state", "active");
-    }
+  it("al abrir una cuenta se ve su saldo, la gráfica y sus movimientos", () => {
+    cy.get('button[aria-label="Ver detalle de Nu Débito"]').click();
+    cy.get('[data-slot="dialog-content"]').within(() => {
+      cy.contains("Movimientos recientes").should("be.visible");
+      cy.contains("Todavía no hay suficientes datos para graficar esta cuenta.").should("not.exist");
+      cy.get("svg").should("exist");
+    });
   });
 
-  it("el explorador permite cambiar de cuenta y la tabla de movimientos se actualiza acorde", () => {
-    cy.get('[aria-label="Cuenta"], [role="combobox"]').first().click();
-    cy.contains('[role="option"], li', "Nu TDC").click();
-    cy.contains("Movimientos de Nu TDC").should("be.visible");
-    cy.contains("Amazon").should("be.visible");
+  it("el detalle permite cambiar de rango (30 días / 3 meses / 6 meses / 1 año)", () => {
+    cy.get('button[aria-label="Ver detalle de Nu Débito"]').click();
+    cy.get('[data-slot="dialog-content"]').within(() => {
+      for (const label of ["30 días", "3 meses", "6 meses", "1 año"]) {
+        cy.contains("button", label).click();
+        cy.contains("button", label).should("have.attr", "data-active");
+      }
+    });
+  });
+
+  it("el detalle de una tarjeta lista sus movimientos y los datos de la deuda", () => {
+    cy.get('button[aria-label="Ver detalle de Nu TDC"]').click();
+    cy.get('[data-slot="dialog-content"]').within(() => {
+      cy.contains("Amazon").should("be.visible");
+      cy.contains("section", "Deuda").should("be.visible");
+    });
   });
 });

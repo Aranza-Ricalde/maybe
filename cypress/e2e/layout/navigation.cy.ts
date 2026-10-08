@@ -14,13 +14,13 @@ describe("Navegación adaptable", () => {
     cy.get(SIDEBAR).contains("a", "Presupuestos").should("have.attr", "aria-current", "page");
   });
 
-  it("en móvil el contenido ocupa todo el ancho: hay barra inferior de 4 destinos y no menú lateral", () => {
+  it("en móvil el contenido ocupa todo el ancho: hay barra inferior de 5 destinos y no menú lateral", () => {
     cy.viewport(375, 800);
     cy.visit("/budgets");
     cy.get(SIDEBAR).should("not.exist");
     cy.get(BOTTOM).should("be.visible");
     cy.get(BOTTOM).contains("a", "Presupuestos").should("have.attr", "aria-current", "page");
-    cy.get(BOTTOM).find("a, button").should("have.length", 4);
+    cy.get(BOTTOM).find("a, button").should("have.length", 5);
     cy.get("main").then(($main) => {
       expect($main[0].clientWidth).to.eq(375);
     });
@@ -39,10 +39,10 @@ describe("Navegación adaptable", () => {
     cy.visit("/budgets");
     cy.get(BOTTOM).contains("button", "Más").click();
     cy.get('[role="dialog"]').within(() => {
-      ["Cuentas", "Gasto por categoría", "Recurrentes", "Proyección", "Metas", "Importar estados", "Configuración", "Salir"].forEach((label) => cy.contains(label).should("be.visible"));
-      cy.contains("a", "Metas").click();
+      ["Cuentas", "Importar estados", "Recurrentes", "Configuración", "Salir"].forEach((label) => cy.contains(label).should("be.visible"));
+      cy.contains("a", "Recurrentes").click();
     });
-    cy.location("pathname").should("eq", "/goals");
+    cy.location("pathname").should("eq", "/recurring");
     cy.get('[role="dialog"]').should("not.exist");
   });
 
