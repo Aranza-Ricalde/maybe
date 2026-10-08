@@ -1,4 +1,5 @@
 import { Text } from "@/components/atoms/Text";
+import { Progress } from "@/components/ui/progress";
 
 export interface ProgressListRowProps {
   label: string;
@@ -7,18 +8,16 @@ export interface ProgressListRowProps {
   barColor?: string;
 }
 
-export function ProgressListRow({ label, value, percent, barColor = "var(--accent)" }: ProgressListRowProps) {
+export function ProgressListRow({ label, value, percent, barColor }: ProgressListRowProps) {
   return (
-    <div>
+    <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between gap-3 text-sm">
         <Text weight="medium">{label}</Text>
         <Text tone="muted" className="shrink-0 tabular-nums">
           {value}
         </Text>
       </div>
-      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-separator">
-        <div className="h-full rounded-full" style={{ width: `${Math.min(100, percent * 100)}%`, backgroundColor: barColor }} />
-      </div>
+      <Progress value={Math.min(100, percent * 100)} indicatorColor={barColor} aria-label={label} className="h-1.5" />
     </div>
   );
 }

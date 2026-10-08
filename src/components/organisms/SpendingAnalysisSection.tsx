@@ -1,4 +1,5 @@
-import { Card } from "@heroui/react";
+import type { FormAction } from "@/lib/actionResult";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Text } from "@/components/atoms/Text";
 import { ProgressListRow } from "@/components/molecules/ProgressListRow";
 import type { SpendingAnalysisView } from "@/application/getSpendingAnalysis";
@@ -9,46 +10,46 @@ import { TabbedSections } from "./TabbedSections";
 
 export interface SpendingAnalysisSectionProps {
   analysis: SpendingAnalysisView;
-  mergeAction: (formData: FormData) => void;
-  dissolveAction: (formData: FormData) => void;
+  mergeAction: FormAction;
+  dissolveAction: FormAction;
 }
 
 export function SpendingAnalysisSection({ analysis, mergeAction, dissolveAction }: SpendingAnalysisSectionProps) {
   const { small, merchants, subscriptions, monthsAnalyzed } = analysis;
 
   const merchantsCard = (
-    <Card className="p-5">
-      <Card.Header>
-        <Card.Title>Comercios que más consumen</Card.Title>
-        <Card.Description>Solo comercios identificados, últimos {monthsAnalyzed} meses completos, de mayor a menor.</Card.Description>
-      </Card.Header>
-      <Card.Content className="flex flex-col gap-3">
+    <Card>
+      <CardHeader>
+        <CardTitle>Comercios que más consumen</CardTitle>
+        <CardDescription>Solo comercios identificados, últimos {monthsAnalyzed} meses completos, de mayor a menor.</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
         {merchants.ranked.map((m) => (
           <ProgressListRow key={m.merchant} label={`${m.merchant} · ${m.count}`} value={formatPesos(m.totalCents)} percent={merchants.ranked[0].totalCents > 0 ? m.totalCents / merchants.ranked[0].totalCents : 0} />
         ))}
         {merchants.unidentified && (
-          <Text size="xs" tone="muted" className="border-t border-separator pt-3">
+          <Text size="xs" tone="muted" className="border-t border-border pt-3">
             Sin comercio identificado: {formatPesos(merchants.unidentified.totalCents)} en {merchants.unidentified.count} movimientos ({formatPercent(merchants.unidentified.shareOfSpend)} de tu gasto). Incluye pagos a personas y descripciones libres.
           </Text>
         )}
-      </Card.Content>
+      </CardContent>
     </Card>
   );
 
   const smallCard = small && (
-    <Card className="p-5">
-      <Card.Header>
-        <Card.Title>Tus gastos pequeños, juntos</Card.Title>
-        <Card.Description>
+    <Card>
+      <CardHeader>
+        <CardTitle>Tus gastos pequeños, juntos</CardTitle>
+        <CardDescription>
           {formatMonthYear(small.month)}: {small.count} movimientos de hasta {formatPesos(SMALL_EXPENSE_MAX_CENTS)} que suman {formatPesos(small.totalCents)} ({formatPercent(small.shareOfSpend)} de tu gasto
           {small.previousTotalCents != null ? `; el mes anterior fueron ${formatPesos(small.previousTotalCents)}` : ""}).
-        </Card.Description>
-      </Card.Header>
-      <Card.Content className="flex flex-col gap-3">
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
         {small.groups.map((g) => (
           <ProgressListRow key={g.name} label={`${g.name} · ${g.count}`} value={formatPesos(g.totalCents)} percent={small.totalCents > 0 ? g.totalCents / small.totalCents : 0} />
         ))}
-      </Card.Content>
+      </CardContent>
     </Card>
   );
 

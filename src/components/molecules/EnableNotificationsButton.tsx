@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/atoms/Button";
+import { Button } from "@/components/ui/button";
 import { useIsClient } from "@/hooks/useIsClient";
 import { notify } from "@/lib/notifications";
 
@@ -13,10 +13,10 @@ export function EnableNotificationsButton() {
   if (current !== "default") return null;
 
   return (
-    <Button
+    <Button type="button"
       size="sm"
       variant="secondary"
-      onPress={async () => {
+      onClick={async () => {
         const result = await Notification.requestPermission();
         setPermission(result);
         if (result === "granted") notify.success("Avisos activados", "Te avisaremos cuando termine una importación, aunque estés en otra pestaña.");

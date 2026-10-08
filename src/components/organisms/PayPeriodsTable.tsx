@@ -1,6 +1,7 @@
 "use client";
 
-import { Chip } from "@/components/atoms/Chip";
+import type { FormAction } from "@/lib/actionResult";
+import { Badge } from "@/components/ui/badge";
 import { Text } from "@/components/atoms/Text";
 import { periodLabel } from "@/domain/payPeriod/rules";
 import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
@@ -19,8 +20,8 @@ export interface PayPeriodRow {
 
 export interface PayPeriodsTableProps {
   rows: PayPeriodRow[];
-  updateAction: (formData: FormData) => Promise<void> | void;
-  deleteAction: (formData: FormData) => Promise<void> | void;
+  updateAction: FormAction;
+  deleteAction: FormAction;
 }
 
 export function PayPeriodsTable({ rows, updateAction, deleteAction }: PayPeriodsTableProps) {
@@ -34,9 +35,9 @@ export function PayPeriodsTable({ rows, updateAction, deleteAction }: PayPeriods
         <div className="flex items-center gap-2">
           <span className="font-medium">Quincena {p.index}</span>
           {p.isCurrent && (
-            <Chip tone="success" className="text-xs">
+            <Badge variant="success">
               Actual
-            </Chip>
+            </Badge>
           )}
         </div>
       ),

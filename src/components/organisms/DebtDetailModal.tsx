@@ -26,8 +26,8 @@ export function DebtDetailModal({ totalCents, paidThisPeriodCents, overallPercen
     <DetailModal title="Deudas">
       <div className="rounded-xl bg-danger/5 p-4">
         <CurrencyText cents={totalCents} absolute size="base" weight="semibold" tone="danger" className="text-2xl" />
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-separator">
-          <div className="h-full rounded-full bg-accent" style={{ width: `${overallPercentPaid * 100}%` }} />
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
+          <div className="h-full rounded-full bg-primary" style={{ width: `${overallPercentPaid * 100}%` }} />
         </div>
         <Text size="xs" tone="muted" className="mt-1.5">
           {formatPercent(overallPercentPaid)} de la deuda reducido desde su primer registro
@@ -87,7 +87,7 @@ export function DebtDetailModal({ totalCents, paidThisPeriodCents, overallPercen
         </div>
       )}
 
-      <Link href={ROUTES.accounts} className="text-sm text-accent hover:underline">
+      <Link href={ROUTES.accounts} className="text-sm text-primary hover:underline">
         Ver todas tus cuentas →
       </Link>
     </DetailModal>

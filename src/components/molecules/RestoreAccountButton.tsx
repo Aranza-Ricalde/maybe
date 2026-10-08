@@ -1,26 +1,25 @@
 "use client";
 
-import { Button } from "@heroui/react";
-import { useTransition } from "react";
+import type { FormAction } from "@/lib/actionResult";
+import { Button } from "@/components/ui/button";
+import { useFeedbackAction } from "@/hooks/useFeedbackAction";
 
 export interface RestoreAccountButtonProps {
   accountId: number;
-  restoreAccountAction: (formData: FormData) => Promise<void> | void;
+  restoreAccountAction: FormAction;
 }
 
 export function RestoreAccountButton({ accountId, restoreAccountAction }: RestoreAccountButtonProps) {
-  const [isPending, startTransition] = useTransition();
+  const { isPending, run } = useFeedbackAction(restoreAccountAction);
 
   function handlePress() {
     const formData = new FormData();
     formData.set("accountId", String(accountId));
-    startTransition(async () => {
-      await restoreAccountAction(formData);
-    });
+    run(formData);
   }
 
   return (
-    <Button type="button" size="sm" variant="secondary" isDisabled={isPending} onPress={handlePress}>
+    <Button type="button" size="sm" variant="secondary" disabled={isPending} onClick={handlePress}>
       {isPending ? "Reactivando…" : "Reactivar"}
     </Button>
   );

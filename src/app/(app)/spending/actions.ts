@@ -11,6 +11,7 @@ export async function mergeSubscriptions(formData: FormData) {
   return runFormAction(formData, {
     schema: mergeSubscriptionsForm,
     run: (input, user) => mergeSubscriptionsUseCase.execute(user.familyId, input[FIELD.members], input[FIELD.name]),
+    success: "Suscripciones fusionadas",
     revalidate: REVALIDATE.spendingOnly,
     tolerate: [InvalidSubscriptionMergeError],
   });
@@ -20,6 +21,7 @@ export async function dissolveSubscriptionGroup(formData: FormData) {
   return runFormAction(formData, {
     schema: idForm,
     run: (input, user) => mergeSubscriptionsUseCase.dissolve(user.familyId, input.id),
+    success: "Fusión deshecha",
     revalidate: REVALIDATE.spendingOnly,
   });
 }

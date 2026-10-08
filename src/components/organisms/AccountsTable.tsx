@@ -1,14 +1,17 @@
 "use client";
 
+import type { FormAction } from "@/lib/actionResult";
 import { CurrencyText } from "@/components/atoms/CurrencyText";
 import { Text } from "@/components/atoms/Text";
-import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
+import { DeleteEntityButton } from "./DeleteEntityButton";
 import { ClientDataTable } from "./ClientDataTable";
 import type { DataTableColumn } from "./DataTable";
 import { EditAccountModal } from "@/components/molecules/EditAccountModal";
-import type { AccountType } from "@/domain/accounts/rules";
+import { creditUtilization, type AccountType } from "@/domain/accounts/rules";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import type { DebtTerms } from "@/domain/debts/rules";
-import { ACCOUNT_TYPE_LABELS } from "@/lib/format";
+import { ACCOUNT_TYPE_LABELS, formatPercent, formatPesos } from "@/lib/format";
 import { FIELD } from "@/lib/formFields";
 
 export interface AccountRow {
@@ -22,20 +25,35 @@ export interface AccountRow {
 
 export interface AccountsTableProps {
   rows: AccountRow[];
-  updateAccountAction: (formData: FormData) => Promise<void> | void;
-  deleteAccountAction: (formData: FormData) => Promise<void> | void;
+  updateAccountAction: FormAction;
+  deleteAccountAction: FormAction;
 }
 
 export function AccountsTable({ rows, updateAccountAction, deleteAccountAction }: AccountsTableProps) {
 
   const columns: DataTableColumn<AccountRow>[] = [
     { key: "name", header: "Cuenta", isRowHeader: true, cell: (a) => <span className="font-medium">{a.name}</span> },
-    { key: "type", header: "Tipo", cell: (a) => <Text tone="muted">{ACCOUNT_TYPE_LABELS[a.type]}</Text> },
+    { key: "type", header: "Tipo", cell: (a) => <Badge variant="secondary">{ACCOUNT_TYPE_LABELS[a.type]}</Badge> },
     {
       key: "balance",
       header: "Saldo",
       align: "right",
-      cell: (a) => <CurrencyText cents={a.balanceCents} weight="medium" tone={a.balanceCents < 0 ? "danger" : "default"} />,
+      cell: (a) => {
+        const usage = creditUtilization(a.balanceCents, a.creditLimitCents);
+        return (
+          <div className="flex flex-col items-end gap-1">
+            <CurrencyText cents={a.balanceCents} weight="medium" tone={a.balanceCents < 0 ? "danger" : "default"} />
+            {usage != null && (
+              <div className="flex w-32 flex-col items-end gap-1">
+                <Progress value={usage * 100} variant={usage >= 0.8 ? "destructive" : usage >= 0.5 ? "warning" : "default"} aria-label={`Uso del crédito de ${a.name}`} className="h-1" />
+                <Text size="xs" tone="muted">
+                  {formatPercent(usage)} de {formatPesos(a.creditLimitCents ?? 0)}
+                </Text>
+              </div>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: "actions",
@@ -44,16 +62,8 @@ export function AccountsTable({ rows, updateAccountAction, deleteAccountAction }
       cell: (a) => (
         <div className="flex items-center justify-end gap-1">
           <EditAccountModal accountId={a.id} name={a.name} type={a.type} creditLimitCents={a.creditLimitCents} debtTerms={a.debtTerms} updateAccountAction={updateAccountAction} />
-          <ConfirmDeleteButton
-            title="Eliminar cuenta"
-            triggerAriaLabel={`Eliminar ${a.name}`}
-            confirmQuestion={
-              <>
-                ¿Eliminar <span className="font-semibold">&ldquo;{a.name}&rdquo;</span>?
-              </>
-            }
+          <DeleteEntityButton noun="cuenta" name={a.name} id={a.id} idField={FIELD.accountId}
             helperText="Si ya tiene movimientos registrados, se archivará en vez de borrarse — tu historial no se pierde."
-            hiddenFields={{ [FIELD.accountId]: a.id }}
             action={deleteAccountAction}
           />
         </div>

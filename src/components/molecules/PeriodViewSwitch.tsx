@@ -1,30 +1,29 @@
 "use client";
 
-import { useTransition } from "react";
+import type { FormAction } from "@/lib/actionResult";
+import { useFeedbackAction } from "@/hooks/useFeedbackAction";
 import { Text } from "@/components/atoms/Text";
-import { ACTIVE_ACCENT, SegmentedButtons } from "@/components/molecules/SegmentedButtons";
+import { SegmentedButtons } from "@/components/molecules/SegmentedButtons";
 import { PERIOD_VIEWS, PERIOD_VIEW_LABELS, type PeriodView } from "@/domain/payPeriod/periodView";
 
 export interface PeriodViewSwitchProps {
   value: PeriodView;
-  action: (formData: FormData) => Promise<void> | void;
+  action: FormAction;
 }
 
 export function PeriodViewSwitch({ value, action }: PeriodViewSwitchProps) {
-  const [isPending, startTransition] = useTransition();
+  const { isPending, run } = useFeedbackAction(action);
 
   function choose(view: PeriodView) {
     if (view === value) return;
     const formData = new FormData();
     formData.set("view", view);
-    startTransition(() => {
-      void action(formData);
-    });
+    run(formData);
   }
 
   return (
     <div className="flex flex-col gap-2" aria-busy={isPending}>
-      <SegmentedButtons options={PERIOD_VIEWS.map((view) => ({ value: view, label: PERIOD_VIEW_LABELS[view] }))} value={value} onChange={choose} activeClassName={ACTIVE_ACCENT} />
+      <SegmentedButtons options={PERIOD_VIEWS.map((view) => ({ value: view, label: PERIOD_VIEW_LABELS[view] }))} value={value} onChange={choose} />
       <Text size="sm" tone="muted">
         {value === "monthly"
           ? "Verás el mes de pago completo (tus dos quincenas juntas). Un presupuesto mensual cuenta exacto."

@@ -1,7 +1,9 @@
+import type { FormAction } from "@/lib/actionResult";
+import { withFeedback } from "@/services/actionFeedback";
 import { useState, useTransition, type FormEvent } from "react";
 
 export interface UseFormModalControllerOptions {
-  action: (formData: FormData) => Promise<void> | void;
+  action: FormAction;
 }
 
 export interface UseFormModalControllerResult {
@@ -19,8 +21,7 @@ export function useFormModalController({ action }: UseFormModalControllerOptions
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
-      await action(formData);
-      setIsOpen(false);
+      if (await withFeedback(action)(formData)) setIsOpen(false);
     });
   }
 

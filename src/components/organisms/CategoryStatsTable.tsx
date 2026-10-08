@@ -4,8 +4,9 @@ import { endOfMonth } from "@/domain/cashflow/rules";
 import { UNCATEGORIZED_ID, UNKNOWN_CATEGORY_ID, type CategoryStatRow, type CategoryStats } from "@/domain/categoryStats/rules";
 import { formatMonthYearShort, formatPesos, formatSignedPercent } from "@/lib/format";
 import { transactionsDrilldownHref } from "@/domain/shared/routes";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-const CELL = "px-3 py-2.5 text-right tabular-nums whitespace-nowrap";
+const CELL = "text-right tabular-nums";
 
 function transactionsHref(categoryId: number, from: string, to: string): string | null {
   if (categoryId === UNCATEGORIZED_ID || categoryId === UNKNOWN_CATEGORY_ID) return null;
@@ -25,74 +26,74 @@ export function CategoryStatsTable({ stats }: { stats: CategoryStats }) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[960px] text-sm">
-        <thead>
-          <tr className="text-xs text-muted uppercase">
-            <th className="px-3 pb-2 text-left font-medium">Categoría</th>
+      <Table className="min-w-240">
+        <TableHeader>
+          <TableRow>
+            <TableHead>Categoría</TableHead>
             {stats.months.map((m) => (
-              <th key={m} className="px-3 pb-2 text-right font-medium whitespace-nowrap">
+              <TableHead key={m} className="text-right">
                 {formatMonthYearShort(m)}
                 {m === stats.currentMonth && <span className="block text-[10px] font-normal normal-case">en curso</span>}
-              </th>
+              </TableHead>
             ))}
-            <th className="px-3 pb-2 text-right font-medium whitespace-nowrap">Prom. 3 meses</th>
-            <th className="px-3 pb-2 text-right font-medium whitespace-nowrap">Último mes vs anterior</th>
-            <th className="px-3 pb-2 text-right font-medium">% del gasto</th>
-          </tr>
-        </thead>
-        <tbody>
+            <TableHead className="text-right">Prom. 3 meses</TableHead>
+            <TableHead className="text-right">Último mes vs anterior</TableHead>
+            <TableHead className="text-right">% del gasto</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {stats.rows.map((row) => {
             const isSub = row.depth === 1;
             const href = transactionsHref(row.categoryId, windowStart, lastDay);
             return (
-              <tr key={`${row.parentId ?? "root"}-${row.categoryId}`} className={`border-t border-separator ${isSub ? "text-muted" : ""}`}>
-                <td className={`px-3 py-2.5 ${isSub ? "pl-8" : "font-medium text-foreground"}`}>
+              <TableRow key={`${row.parentId ?? "root"}-${row.categoryId}`} className={isSub ? "text-muted-foreground" : undefined}>
+                <TableCell className={isSub ? "pl-8" : "font-medium"}>
                   {href ? (
-                    <Link href={href} className="hover:text-accent hover:underline">
+                    <Link href={href} className="hover:text-primary hover:underline">
                       {row.name}
                     </Link>
                   ) : (
                     row.name
                   )}
-                </td>
+                </TableCell>
                 {row.seriesCents.map((cents, i) => {
                   const month = stats.months[i];
                   const monthHref = cents !== 0 ? transactionsHref(row.categoryId, month, endOfMonth(month)) : null;
                   return (
-                    <td key={month} className={`${CELL} ${month === stats.currentMonth ? "text-muted" : ""}`}>
+                    <TableCell key={month} className={`${CELL} ${month === stats.currentMonth ? "text-muted-foreground" : ""}`}>
                       {cents === 0 ? (
-                        <span className="text-muted">—</span>
+                        <span className="text-muted-foreground">—</span>
                       ) : monthHref ? (
-                        <Link href={monthHref} className="hover:text-accent hover:underline">
+                        <Link href={monthHref} className="hover:text-primary hover:underline">
                           {formatPesos(cents)}
                         </Link>
                       ) : (
                         formatPesos(cents)
                       )}
-                    </td>
+                    </TableCell>
                   );
                 })}
-                <td className={CELL}>{row.avgLast3Cents === 0 ? <span className="text-muted">—</span> : formatPesos(row.avgLast3Cents)}</td>
-                <td className={CELL}>{deltaLabel(row)}</td>
-                <td className={CELL}>{row.shareOfWindow > 0 ? `${(row.shareOfWindow * 100).toFixed(1)}%` : "—"}</td>
-              </tr>
+                <TableCell className={CELL}>{row.avgLast3Cents === 0 ? <span className="text-muted-foreground">—</span> : formatPesos(row.avgLast3Cents)}</TableCell>
+                <TableCell className={CELL}>{deltaLabel(row)}</TableCell>
+                <TableCell className={CELL}>{row.shareOfWindow > 0 ? `${(row.shareOfWindow * 100).toFixed(1)}%` : "—"}</TableCell>
+              </TableRow>
             );
           })}
-        </tbody>
-        <tfoot>
-          <tr className="border-t-2 border-separator font-semibold">
-            <td className="px-3 py-2.5">Total</td>
+        </TableBody>
+        <TableFooter>
+          <TableRow>
+            <TableCell className="font-semibold">Total</TableCell>
             {stats.totals.seriesCents.map((cents, i) => (
-              <td key={stats.months[i]} className={`${CELL} ${stats.months[i] === stats.currentMonth ? "text-muted" : ""}`}>
+              <TableCell key={stats.months[i]} className={`${CELL} ${stats.months[i] === stats.currentMonth ? "text-muted-foreground" : ""}`}>
                 {formatPesos(cents)}
-              </td>
+              </TableCell>
             ))}
-            <td className={CELL}>{formatPesos(stats.totals.avgLast3Cents)}</td>
-            <td className={CELL}>{deltaLabel(stats.totals)}</td>
-            <td className={CELL}>100%</td>
-          </tr>
-        </tfoot>
-      </table>
+            <TableCell className={CELL}>{formatPesos(stats.totals.avgLast3Cents)}</TableCell>
+            <TableCell className={CELL}>{deltaLabel(stats.totals)}</TableCell>
+            <TableCell className={CELL}>100%</TableCell>
+          </TableRow>
+        </TableFooter>
+      </Table>
       <Text size="xs" tone="muted" className="mt-3 block">
         Las subcategorías (con sangría) ya están incluidas en el total de su categoría principal. El mes en curso se muestra, pero no entra en promedios ni en la
         comparación, porque está incompleto. Haz clic en una categoría o en un monto para ver los movimientos que lo componen.

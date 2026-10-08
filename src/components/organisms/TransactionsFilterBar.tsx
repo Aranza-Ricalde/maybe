@@ -1,8 +1,8 @@
 "use client";
 
-import { FunnelXmark } from "@gravity-ui/icons";
-import { SearchField } from "@heroui/react";
-import { Button } from "@/components/atoms/Button";
+import { FunnelX, Search, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Icon } from "@/components/atoms/Icon";
 import { FilterSelect } from "@/components/molecules/FilterSelect";
 import { AmountFilter, type AmountFilterMode } from "./AmountFilter";
@@ -65,17 +65,23 @@ export function TransactionsFilterBar({ accounts, categories, value, onChange }:
         amount={value.amountValue}
         onChange={(mode, amount) => onChange({ ...value, amountMode: mode, amountValue: amount })}
       />
-      <SearchField.Root aria-label="Buscar movimientos" value={value.search} onChange={(v) => update("search", v)} className="w-40">
-        <SearchField.Group className="rounded-full">
-          <SearchField.SearchIcon className="size-3.5" />
-          <SearchField.Input placeholder="Buscar…" className="text-xs" />
-          <SearchField.ClearButton />
-        </SearchField.Group>
-      </SearchField.Root>
+      <InputGroup className="h-8 w-44 rounded-full">
+        <InputGroupAddon>
+          <Search />
+        </InputGroupAddon>
+        <InputGroupInput aria-label="Buscar movimientos" placeholder="Buscar…" value={value.search} onChange={(event) => update("search", event.target.value)} className="text-xs" />
+        {value.search && (
+          <InputGroupAddon align="inline-end">
+            <InputGroupButton size="icon-xs" aria-label="Limpiar búsqueda" onClick={() => update("search", "")}>
+              <X />
+            </InputGroupButton>
+          </InputGroupAddon>
+        )}
+      </InputGroup>
 
       {hasActiveTransactionFilters(value) && (
-        <Button type="button" variant="ghost" size="sm" isIconOnly aria-label="Limpiar todos los filtros" onPress={() => onChange(EMPTY_TRANSACTION_FILTERS)}>
-          <Icon icon={FunnelXmark} />
+        <Button type="button" variant="ghost" size="icon-sm" aria-label="Limpiar todos los filtros" onClick={() => onChange(EMPTY_TRANSACTION_FILTERS)}>
+          <Icon icon={FunnelX} />
         </Button>
       )}
     </div>

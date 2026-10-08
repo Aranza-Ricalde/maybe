@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import type { FormAction } from "@/lib/actionResult";
+import type { ReactNode } from "react";
 import type { TransactionFilters, TransactionSort } from "@/domain/ledger/filters";
 import type { TransactionRowView } from "@/components/viewModels";
+import { useRefreshSignal } from "@/hooks/useRefreshSignal";
 import { PageHeader } from "@/components/molecules/PageHeader";
 import { CreateTransactionModal } from "./CreateTransactionModal";
 import { TransactionsExplorer } from "./TransactionsExplorer";
@@ -17,12 +19,12 @@ export interface TransactionsPageClientProps {
   today: string;
   initialFilters?: Partial<TransactionFiltersValue>;
   reviewSlot?: ReactNode;
-  createTransactionAction: (formData: FormData) => Promise<void> | void;
-  updateTransactionAction: (formData: FormData) => Promise<void> | void;
-  deleteTransactionAction: (formData: FormData) => Promise<void> | void;
-  undoTransferAction?: (formData: FormData) => Promise<void> | void;
-  markTransferAction?: (formData: FormData) => Promise<void> | void;
-  recordTransferAction: (formData: FormData) => Promise<void> | void;
+  createTransactionAction: FormAction;
+  updateTransactionAction: FormAction;
+  deleteTransactionAction: FormAction;
+  undoTransferAction?: FormAction;
+  markTransferAction?: FormAction;
+  recordTransferAction: FormAction;
   fetchTransactionsPage: (
     filters: TransactionFilters,
     sort: TransactionSort,
@@ -45,17 +47,7 @@ export function TransactionsPageClient({
   recordTransferAction,
   fetchTransactionsPage,
 }: TransactionsPageClientProps) {
-  const [refreshSignal, setRefreshSignal] = useState(0);
-
-  async function handleCreate(formData: FormData) {
-    await createTransactionAction(formData);
-    setRefreshSignal((n) => n + 1);
-  }
-
-  async function handleTransfer(formData: FormData) {
-    await recordTransferAction(formData);
-    setRefreshSignal((n) => n + 1);
-  }
+  const { signal: refreshSignal, withRefresh } = useRefreshSignal();
 
   return (
     <>
@@ -64,9 +56,9 @@ export function TransactionsPageClient({
         subtitle="Todo lo que entra y sale, de todas tus cuentas."
         action={
           accounts.length > 0 && (
-            <div className="flex items-center gap-2">
-              <TransferModal accounts={accounts} today={today} recordTransferAction={handleTransfer} />
-              <CreateTransactionModal accounts={accounts} categories={categories} today={today} createTransactionAction={handleCreate} />
+            <div className="flex flex-wrap items-center gap-2">
+              <TransferModal accounts={accounts} today={today} recordTransferAction={withRefresh(recordTransferAction)} />
+              <CreateTransactionModal accounts={accounts} categories={categories} today={today} createTransactionAction={withRefresh(createTransactionAction)} />
             </div>
           )
         }

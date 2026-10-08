@@ -1,40 +1,57 @@
 "use client";
 
-import { FieldError, Select, TextArea, TextField } from "@heroui/react";
-import type { ComponentProps } from "react";
-import { Input } from "@/components/atoms/Input";
-import { InlinePrefixLabel, Label } from "@/components/atoms/Label";
-import { SelectOptionsPopover } from "./SelectOptionsPopover";
+import { useState, type ComponentProps, type ReactNode } from "react";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { fromSelectValue, toSelectValue } from "@/lib/selectValue";
 
-export function TextInput({
-  label,
-  name,
-  type,
-  step,
-  min,
-  max,
-  placeholder,
-  ...props
-}: { label?: string; name: string; type?: string; step?: string; min?: string; max?: string; placeholder?: string } & Omit<
-  ComponentProps<typeof TextField>,
-  "children" | "type"
->) {
+export interface TextInputProps extends Omit<ComponentProps<typeof Input>, "onChange" | "value" | "defaultValue"> {
+  label?: string;
+  description?: ReactNode;
+  prefix?: string;
+  isRequired?: boolean;
+  defaultValue?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+}
+
+export function TextInput({ label, description, prefix, name, isRequired, onChange, id, className, ...props }: TextInputProps) {
+  const fieldId = id ?? (name ? `field-${name}` : undefined);
+  const handleChange = onChange ? (event: React.ChangeEvent<HTMLInputElement>) => onChange(event.target.value) : undefined;
+
   return (
-    <TextField name={name} {...props} className="flex flex-col gap-1.5">
-      {label && <Label>{label}</Label>}
-      <Input type={type} step={step} min={min} max={max} placeholder={placeholder} />
-      <FieldError className="text-xs text-danger" />
-    </TextField>
+    <Field>
+      {label && <FieldLabel htmlFor={fieldId}>{label}</FieldLabel>}
+      {prefix ? (
+        <InputGroup>
+          <InputGroupAddon>{prefix}</InputGroupAddon>
+          <InputGroupInput id={fieldId} name={name} required={isRequired} onChange={handleChange} className={className} {...props} />
+        </InputGroup>
+      ) : (
+        <Input id={fieldId} name={name} required={isRequired} onChange={handleChange} className={className} {...props} />
+      )}
+      {description && <FieldDescription>{description}</FieldDescription>}
+    </Field>
   );
 }
 
-export function TextAreaField({ label, name, placeholder, rows = 3, ...props }: { label?: string; name: string; placeholder?: string; rows?: number } & Omit<ComponentProps<typeof TextField>, "children">) {
+export interface TextAreaFieldProps extends Omit<ComponentProps<typeof Textarea>, "onChange"> {
+  label?: string;
+  description?: ReactNode;
+  onChange?: (value: string) => void;
+}
+
+export function TextAreaField({ label, description, name, rows = 3, onChange, id, ...props }: TextAreaFieldProps) {
+  const fieldId = id ?? (name ? `field-${name}` : undefined);
   return (
-    <TextField name={name} {...props} className="flex flex-col gap-1.5">
-      {label && <Label>{label}</Label>}
-      <TextArea placeholder={placeholder} rows={rows} />
-      <FieldError className="text-xs text-danger" />
-    </TextField>
+    <Field>
+      {label && <FieldLabel htmlFor={fieldId}>{label}</FieldLabel>}
+      <Textarea id={fieldId} name={name} rows={rows} onChange={onChange ? (event) => onChange(event.target.value) : undefined} {...props} />
+      {description && <FieldDescription>{description}</FieldDescription>}
+    </Field>
   );
 }
 
@@ -45,6 +62,7 @@ export interface SelectFieldOption {
 
 export interface SelectFieldProps {
   label?: string;
+  description?: ReactNode;
   ariaLabel?: string;
   name?: string;
   options: SelectFieldOption[];
@@ -52,28 +70,36 @@ export interface SelectFieldProps {
   value?: string;
   onChange?: (value: string) => void;
   placeholder?: string;
-  isRequired?: boolean;
 }
 
-export function SelectField({ label, ariaLabel, name, options, defaultValue, value, onChange, placeholder, isRequired }: SelectFieldProps) {
+export function SelectField({ label, description, ariaLabel, name, options, defaultValue, value, onChange, placeholder }: SelectFieldProps) {
+  const [internal, setInternal] = useState(defaultValue ?? "");
+  const current = value ?? internal;
+
   return (
-    <div className="flex flex-col gap-1.5">
-      {label && <InlinePrefixLabel tone="strong">{label}</InlinePrefixLabel>}
-      <Select.Root
-        aria-label={label ?? ariaLabel ?? placeholder}
-        name={name}
-        isRequired={isRequired}
-        placeholder={placeholder}
-        selectedKey={value}
-        defaultSelectedKey={defaultValue}
-        onSelectionChange={onChange ? (key) => onChange(String(key)) : undefined}
+    <Field>
+      {label && <FieldLabel>{label}</FieldLabel>}
+      {name && <input type="hidden" name={name} value={current} />}
+      <Select
+        value={toSelectValue(current)}
+        onValueChange={(next) => {
+          const real = fromSelectValue(next);
+          setInternal(real);
+          onChange?.(real);
+        }}
       >
-        <Select.Trigger className="w-full justify-between">
-          <Select.Value />
-          <Select.Indicator />
-        </Select.Trigger>
-        <SelectOptionsPopover options={options.map((option) => ({ id: option.value, label: option.label }))} />
-      </Select.Root>
-    </div>
+        <SelectTrigger className="w-full" aria-label={label ?? ariaLabel ?? placeholder}>
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={toSelectValue(option.value)}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {description && <FieldDescription>{description}</FieldDescription>}
+    </Field>
   );
 }

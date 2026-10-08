@@ -1,3 +1,4 @@
+import type { FormAction } from "@/lib/actionResult";
 import { AccountMultiSelect } from "@/components/molecules/AccountMultiSelect";
 import { TextInput } from "@/components/molecules/FormField";
 import { ENTITY } from "@/lib/entityLabels";
@@ -17,7 +18,7 @@ export interface GoalModalProps {
   mode: "create" | "edit";
   initialValues?: GoalFormValues;
   accounts: AccountOption[];
-  action: (formData: FormData) => Promise<void> | void;
+  action: FormAction;
 }
 
 export function GoalModal({ mode, initialValues, accounts, action }: GoalModalProps) {
@@ -25,18 +26,24 @@ export function GoalModal({ mode, initialValues, accounts, action }: GoalModalPr
     <EntityFormModal mode={mode} labels={ENTITY.goal} entityId={initialValues?.id}
       action={action}
     >
-      <TextInput label="Nombre" name={FIELD.name} defaultValue={initialValues?.name} isRequired />
-      <TextInput
-        label="Monto objetivo"
-        name={FIELD.targetAmount}
-        type="number"
-        step="0.01"
-        defaultValue={initialValues ? String(initialValues.targetAmountCents / 100) : undefined}
-        isRequired
-      />
-      <TextInput label="Fecha objetivo (opcional)" name={FIELD.targetDate} type="date" defaultValue={initialValues?.targetDate ?? undefined} />
+      <TextInput label="Nombre" name={FIELD.name} defaultValue={initialValues?.name} placeholder="Ej.: Vacaciones, Fondo de emergencia" isRequired />
+      <div className="grid gap-4 sm:grid-cols-2 [&>*]:min-w-0">
+        <TextInput
+          label="Monto objetivo"
+          prefix="$"
+          name={FIELD.targetAmount}
+          type="number"
+          step="0.01"
+          min="0.01"
+          placeholder="0.00"
+          defaultValue={initialValues ? String(initialValues.targetAmountCents / 100) : undefined}
+          isRequired
+        />
+        <TextInput label="Fecha objetivo" description="Opcional." name={FIELD.targetDate} type="date" defaultValue={initialValues?.targetDate ?? undefined} />
+      </div>
       <AccountMultiSelect
-        label="Cuentas vinculadas (opcional)"
+        label="Cuentas vinculadas"
+        description="Opcional. Su saldo cuenta como avance de la meta."
         name={FIELD.accountIds}
         options={accounts}
         defaultValue={initialValues?.linkedAccountIds ?? []}

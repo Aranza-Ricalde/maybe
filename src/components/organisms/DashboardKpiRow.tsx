@@ -30,7 +30,7 @@ export function DashboardKpiRow({ totalBalanceCents, debtTotalCents, debtPaidThi
         tone="danger"
         tooltip="Lo que debes en tarjetas de crédito y préstamos."
         hint={
-          <div className="mt-1 flex items-center gap-2">
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
             {debtPaidThisPeriodCents > 0 && (
               <Text size="xs" tone="success">
                 −{formatCurrency(debtPaidThisPeriodCents)} este periodo

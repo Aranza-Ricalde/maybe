@@ -1,14 +1,15 @@
 "use client";
 
+import type { FormAction } from "@/lib/actionResult";
 import { CurrencyText } from "@/components/atoms/CurrencyText";
 import { Text } from "@/components/atoms/Text";
-import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
-import { ClientDataTable } from "./ClientDataTable";
-import type { DataTableColumn } from "./DataTable";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { DeleteEntityButton } from "./DeleteEntityButton";
 import { GoalModal } from "./GoalModal";
 import { formatCurrency } from "@/lib/format";
 import { goalProgress } from "@/domain/dashboard/rules";
-import { FIELD } from "@/lib/formFields";
 import type { AccountOption } from "@/components/viewModels";
 
 export interface GoalRow {
@@ -25,104 +26,78 @@ export interface GoalRow {
 export interface GoalsTableProps {
   rows: GoalRow[];
   accounts: AccountOption[];
-  updateAction: (formData: FormData) => Promise<void> | void;
-  deleteAction: (formData: FormData) => Promise<void> | void;
+  updateAction: FormAction;
+  deleteAction: FormAction;
 }
 
 export function GoalsTable({ rows, accounts, updateAction, deleteAction }: GoalsTableProps) {
-
-  const columns: DataTableColumn<GoalRow>[] = [
-    { key: "name", header: "Meta", isRowHeader: true, cell: (g) => <span className="font-medium">{g.name}</span> },
-    {
-      key: "progress",
-      header: "Progreso",
-      cell: (g) => {
+  return (
+    <ul aria-label="Metas" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {rows.map((g) => {
         const { currentCents: current, percent } = goalProgress(g.currentCents, g.targetAmountCents);
         const pct = Math.round(percent * 100);
+        const reached = percent >= 1;
         return (
-          <div className="min-w-32">
-            <div className="flex items-center justify-between gap-2 text-xs">
-              <CurrencyText cents={current} size="xs" />
-              <Text size="xs" tone="muted" className="tabular-nums">
-                de {formatCurrency(g.targetAmountCents)}
-              </Text>
-            </div>
-            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-default">
-              <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
-            </div>
-          </div>
+          <li key={g.id}>
+            <Card size="sm" className="h-full">
+              <CardHeader>
+                <div className="flex min-w-0 flex-col gap-1.5">
+                  <CardTitle className="truncate">{g.name}</CardTitle>
+                  {reached && <Badge variant="success" className="w-fit">Meta cumplida</Badge>}
+                </div>
+                <CardAction className="flex items-center gap-1">
+                  <GoalModal
+                    mode="edit"
+                    accounts={accounts}
+                    action={updateAction}
+                    initialValues={{ id: g.id, name: g.name, targetAmountCents: g.targetAmountCents, targetDate: g.targetDate, linkedAccountIds: g.linkedAccountIds }}
+                  />
+                  <DeleteEntityButton noun="meta" name={g.name} id={g.id}
+                    helperText="Tus cuentas y movimientos no se tocan — solo se borra esta meta y sus vínculos."
+                    action={deleteAction}
+                  />
+                </CardAction>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <CurrencyText cents={current} size="base" weight="semibold" className="text-xl" />
+                    <Text size="sm" tone="muted" className="tabular-nums">
+                      de {formatCurrency(g.targetAmountCents)} · {pct}%
+                    </Text>
+                  </div>
+                  <Progress value={Math.min(100, pct)} variant={reached ? "success" : "default"} aria-label={`Avance de ${g.name}`} className="h-1.5" />
+                </div>
+                {g.projection && (
+                  <div className="flex flex-col gap-0.5">
+                    <Text size="sm" weight="medium">
+                      {g.projection.headline}
+                    </Text>
+                    {g.projection.detail && (
+                      <Text size="xs" tone="muted">
+                        {g.projection.detail}
+                      </Text>
+                    )}
+                  </div>
+                )}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {g.linkedAccountNames.length > 0 ? (
+                    g.linkedAccountNames.map((name) => (
+                      <Badge key={name} variant="outline">
+                        {name}
+                      </Badge>
+                    ))
+                  ) : (
+                    <Text size="xs" tone="muted">
+                      Sin cuentas ligadas
+                    </Text>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </li>
         );
-      },
-    },
-    {
-      key: "projection",
-      header: "Al ritmo actual",
-      cell: (g) =>
-        g.projection ? (
-          <div className="min-w-48 max-w-72">
-            <Text size="xs" weight="medium">
-              {g.projection.headline}
-            </Text>
-            {g.projection.detail && (
-              <Text size="xs" tone="muted">
-                {g.projection.detail}
-              </Text>
-            )}
-          </div>
-        ) : (
-          <span className="text-muted">—</span>
-        ),
-    },
-    {
-      key: "accounts",
-      header: "Cuentas",
-      cell: (g) => <span className="text-muted">{g.linkedAccountNames.length > 0 ? g.linkedAccountNames.join(", ") : "Ninguna"}</span>,
-    },
-    {
-      key: "actions",
-      header: "Acciones",
-      align: "right",
-      cell: (g) => (
-        <div className="flex items-center justify-end gap-1">
-          <GoalModal
-            mode="edit"
-            accounts={accounts}
-            action={updateAction}
-            initialValues={{
-              id: g.id,
-              name: g.name,
-              targetAmountCents: g.targetAmountCents,
-              targetDate: g.targetDate,
-              linkedAccountIds: g.linkedAccountIds,
-            }}
-          />
-          <ConfirmDeleteButton
-            title="Eliminar meta"
-            triggerAriaLabel={`Eliminar ${g.name}`}
-            confirmQuestion={
-              <>
-                ¿Eliminar <span className="font-semibold">&ldquo;{g.name}&rdquo;</span>?
-              </>
-            }
-            helperText="Tus cuentas y movimientos no se tocan — solo se borra esta meta y sus vínculos."
-            hiddenFields={{ [FIELD.id]: g.id }}
-            action={deleteAction}
-          />
-        </div>
-      ),
-    },
-  ];
-
-  return (
-    <ClientDataTable
-      ariaLabel="Metas"
-      columns={columns}
-      rows={rows}
-      getRowId={(g) => g.id}
-      emptyTitle="Sin metas todavía"
-      emptyDescription="Crea tu primera meta de ahorro arriba."
-      itemsLabel="metas"
-      minWidthClassName="min-w-[760px]"
-    />
+      })}
+    </ul>
   );
 }

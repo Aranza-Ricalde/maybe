@@ -1,4 +1,5 @@
-import { Card } from "@heroui/react";
+import type { FormAction } from "@/lib/actionResult";
+import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { EmptyState } from "@/components/molecules/EmptyState";
 import { PageHeader } from "@/components/molecules/PageHeader";
@@ -15,11 +16,11 @@ export interface BudgetsPageTemplateProps {
   scopeNote: string;
   periods: PeriodMultiSelectOption[];
   selectedIds: number[];
-  setLineAction: (formData: FormData) => Promise<void> | void;
-  deleteLineAction: (formData: FormData) => Promise<void> | void;
+  setLineAction: FormAction;
+  deleteLineAction: FormAction;
   pendingBudgetDecisions: BudgetDecisionItem[];
   budgetPolicy: BudgetPolicy;
-  budgetDecisionAction: (formData: FormData) => void;
+  budgetDecisionAction: FormAction;
   resetBudgetPolicyAction: () => void;
 }
 
@@ -47,16 +48,18 @@ export function BudgetsPageTemplate({
       <RecurringBudgetDecisionBanner pending={pendingBudgetDecisions} action={budgetDecisionAction} />
 
       {rows.length === 0 ? (
-        <Card className="p-5">
-          <EmptyState
-            title="Todavía no tienes categorías"
-            description="Crea categorías en Configuración para poder presupuestar por categoría."
-            action={
-              <Link href={ROUTES.settings} className="text-sm text-accent hover:underline">
-                Ir a Configuración →
-              </Link>
-            }
-          />
+        <Card>
+          <CardContent>
+            <EmptyState
+              title="Todavía no tienes categorías"
+              description="Crea categorías en Configuración para poder presupuestar por categoría."
+              action={
+                <Link href={ROUTES.settings} className="text-sm text-primary hover:underline">
+                  Ir a Configuración →
+                </Link>
+              }
+            />
+          </CardContent>
         </Card>
       ) : (
         <BudgetsTable rows={rows} setLineAction={setLineAction} deleteLineAction={deleteLineAction} />

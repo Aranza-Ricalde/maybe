@@ -2,10 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type Dispatch, type ReactNode } from "react";
-import type { StatementPreview } from "@/domain/statements/reconcile";
-import { summarizeChoices, toDecisions } from "@/domain/statements/decisions";
 import { notify } from "@/lib/notifications";
 import { nextToRead, queueReducer, type QueueAction, type QueueItem } from "@/lib/statementQueue";
+import { requestConfirm, requestParse } from "@/lib/statementsApi";
 
 interface ImportContextValue {
   items: QueueItem[];
@@ -22,32 +21,14 @@ export function useStatementImport(): ImportContextValue {
   return value;
 }
 
-function formFor(item: QueueItem): FormData {
-  const form = new FormData();
-  form.append("file", item.file);
-  form.append("bank", item.bank ?? "");
-  form.append("accountId", String(item.accountId ?? ""));
-  if (item.password) form.append("password", item.password);
-  return form;
-}
-
 function notifyDevice(title: string, body: string): void {
   if (typeof Notification === "undefined" || Notification.permission !== "granted" || !document.hidden) return;
   new Notification(title, { body });
 }
 
-function announce(kind: "success" | "danger" | "warning", title: string, description: string): void {
-  const show = kind === "danger" ? notify.error : kind === "warning" ? notify.warning : notify.success;
-  show(title, description);
+function announce(kind: "success" | "danger", title: string, description: string): void {
+  (kind === "danger" ? notify.error : notify.success)(title, description);
   notifyDevice(title, description);
-}
-
-async function readJson(response: Response): Promise<Record<string, unknown>> {
-  try {
-    return (await response.json()) as Record<string, unknown>;
-  } catch {
-    return {};
-  }
 }
 
 export function StatementImportProvider({ children }: { children: ReactNode }) {
@@ -64,22 +45,14 @@ export function StatementImportProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const read = useCallback(async (item: QueueItem) => {
-    try {
-      const response = await fetch("/api/statements/parse", { method: "POST", body: formFor(item) });
-      const body = await readJson(response);
-      if (response.ok && body.preview) {
-        const preview = body.preview as StatementPreview;
-        dispatch({ type: "parsed", id: item.id, preview });
-        announce("success", "Estado leído", `${item.file.name}: ${preview.rows.length} movimientos listos para revisar.`);
-      } else {
-        const message = String(body.mensaje ?? "No se pudo leer el estado.");
-        dispatch({ type: "failed", id: item.id, message, needsPassword: body.error === "pdf_protegido" });
-        announce("danger", "No se pudo leer el estado", `${item.file.name}: ${message}`);
-      }
-    } catch {
-      dispatch({ type: "failed", id: item.id, message: "Falló la conexión al leer el estado." });
-      announce("danger", "No se pudo leer el estado", `${item.file.name}: falló la conexión.`);
+    const outcome = await requestParse(item);
+    if (outcome.ok) {
+      dispatch({ type: "parsed", id: item.id, preview: outcome.preview });
+      announce("success", "Estado leído", `${item.file.name}: ${outcome.preview.rows.length} movimientos listos para revisar.`);
+      return;
     }
+    dispatch({ type: "failed", id: item.id, message: outcome.message, needsPassword: outcome.needsPassword });
+    announce("danger", "No se pudo leer el estado", `${item.file.name}: ${outcome.message}`);
   }, []);
 
   useEffect(() => {
@@ -96,34 +69,20 @@ export function StatementImportProvider({ children }: { children: ReactNode }) {
       const item = itemsRef.current.find((candidate) => candidate.id === id);
       if (!item || item.status !== "ready" || !item.preview) return;
       dispatch({ type: "confirming", id });
-      const form = formFor(item);
-      form.append("decisions", JSON.stringify(toDecisions(item.preview, item.choices)));
-      form.append("acknowledgeMismatch", String(item.acknowledgeMismatch));
-      const summary = summarizeChoices(item.preview, item.choices);
-      try {
-        const response = await fetch("/api/statements/confirm", { method: "POST", body: form });
-        const body = await readJson(response);
-        if (!response.ok) {
-          const message = String(body.mensaje ?? "No se pudo importar.");
-          dispatch({ type: "confirmFailed", id, message });
-          announce("danger", "No se importó el estado", `${item.file.name}: ${message}`);
-          return;
-        }
-        dispatch({ type: "confirmed", id, result: { imported: Number(body.importados ?? summary.toImport), linked: Number(body.vinculados ?? summary.toLink), skipped: Number(body.omitidos ?? summary.toSkip), paired: Number(body.emparejados ?? summary.toPair) } });
-        announce("success", "Importación exitosa", `${item.file.name}: ${Number(body.importados ?? summary.toImport)} importados, ${Number(body.vinculados ?? summary.toLink)} vinculados.`);
-        router.refresh();
-      } catch {
-        dispatch({ type: "confirmFailed", id, message: "Falló la conexión al importar." });
-        announce("danger", "No se importó el estado", `${item.file.name}: falló la conexión.`);
+      const outcome = await requestConfirm({ ...item, preview: item.preview });
+      if (!outcome.ok) {
+        dispatch({ type: "confirmFailed", id, message: outcome.message });
+        announce("danger", "No se importó el estado", `${item.file.name}: ${outcome.message}`);
+        return;
       }
+      dispatch({ type: "confirmed", id, result: outcome.result });
+      announce("success", "Importación exitosa", `${item.file.name}: ${outcome.result.imported} importados, ${outcome.result.linked} vinculados.`);
+      router.refresh();
     },
     [router],
   );
 
   const value = useMemo(() => ({ items, dispatch, addFiles, confirm }), [items, addFiles, confirm]);
-  return (
-    <ImportContext.Provider value={value}>
-      {children}
-    </ImportContext.Provider>
-  );
+  return <ImportContext.Provider value={value}>{children}</ImportContext.Provider>;
 }
+

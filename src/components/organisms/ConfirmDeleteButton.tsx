@@ -1,4 +1,5 @@
-import { TrashBin } from "@gravity-ui/icons";
+import type { FormAction } from "@/lib/actionResult";
+import { Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Text } from "@/components/atoms/Text";
 import { FormModal } from "@/components/organisms/FormModal";
@@ -9,7 +10,7 @@ export interface ConfirmDeleteButtonProps {
   confirmQuestion: ReactNode;
   helperText?: ReactNode;
   hiddenFields: Record<string, string | number>;
-  action: (formData: FormData) => Promise<void> | void;
+  action: FormAction;
   submitLabel?: string;
   pendingLabel?: string;
 }
@@ -27,9 +28,9 @@ export function ConfirmDeleteButton({
   return (
     <FormModal
       title={title}
-      iconTrigger={{ icon: TrashBin, label: triggerAriaLabel, tone: "danger" }}
+      iconTrigger={{ icon: Trash2, label: triggerAriaLabel, tone: "danger" }}
       submitLabel={submitLabel}
-      submitVariant="danger"
+      submitVariant="destructive"
       pendingLabel={pendingLabel}
       size="sm"
       action={action}

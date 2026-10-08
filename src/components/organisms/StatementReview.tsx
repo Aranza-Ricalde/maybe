@@ -1,34 +1,26 @@
 "use client";
 
-import { Card } from "@heroui/react";
-import { useState } from "react";
-import { Button } from "@/components/atoms/Button";
-import { Chip } from "@/components/atoms/Chip";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { CurrencyText } from "@/components/atoms/CurrencyText";
-import { Select } from "@/components/atoms/Select";
+import { NativeSelect } from "@/components/ui/native-select";
 import { Text } from "@/components/atoms/Text";
-import { ACTIVE_ACCENT, SegmentedButtons } from "@/components/molecules/SegmentedButtons";
+import { SegmentedButtons } from "@/components/molecules/SegmentedButtons";
 import { StatementTotalsCheck } from "@/components/molecules/StatementTotalsCheck";
 import type { CategoryOption } from "@/components/viewModels";
-import { importAllNew, isTransferType, linkAllHighConfidence, setAction, setCategory, setPair, setType, skipAllProbable, summarizeChoices } from "@/domain/statements/decisions";
+import { importAllNew, isTransferType, linkAllHighConfidence, setAction, setCategory, setPair, setType, skipAllProbable } from "@/domain/statements/decisions";
 import type { PreviewRow, RowAction } from "@/domain/statements/reconcile";
 import { STATEMENT_BANK_LABELS, type StatementTransactionType } from "@/domain/statements/types";
 import { formatDate, formatShortDate } from "@/lib/format";
+import { useStatementReview } from "@/hooks/useStatementReview";
+import { REVIEW_TAB_HELP } from "@/lib/presenters/statementReview";
 import type { QueueItem } from "@/lib/statementQueue";
-import { useStatementImport } from "./StatementImportProvider";
-
-type Tab = "new" | "probable" | "imported" | "orphans";
 
 const TYPE_LABEL: Record<StatementTransactionType, string> = { expense: "Gasto", income: "Ingreso", internal_transfer: "Transferencia propia", card_payment: "Pago de tarjeta" };
-const CONFIDENCE: Record<"high" | "medium" | "low", { label: string; tone: "success" | "warning" | "muted" }> = { high: { label: "Muy probable", tone: "success" }, medium: { label: "Probable", tone: "warning" }, low: { label: "Posible", tone: "muted" } };
+const CONFIDENCE: Record<"high" | "medium" | "low", { label: string; variant: "success" | "warning" | "secondary" }> = { high: { label: "Muy probable", variant: "success" }, medium: { label: "Probable", variant: "warning" }, low: { label: "Posible", variant: "secondary" } };
 const SOURCE_LABEL: Record<string, string> = { manual: "capturado a mano", csv_import: "importado de CSV", telegram: "de Telegram", api: "de la API", statement_import: "de otro estado" };
-
-const TAB_HELP: Record<Tab, string> = {
-  new: "Movimientos del PDF que todavía no tienes en la app. Los marcados se van a crear.",
-  probable: "Estos movimientos del PDF se parecen a algo que ya registraste (mismo monto y fecha cercana). Por defecto se omiten para no duplicar. Vincular marca el tuyo como conciliado sin cambiar su categoría, notas ni nombre.",
-  imported: "Ya se importaron desde un estado anterior. No se vuelven a importar.",
-  orphans: "Solo informativo: movimientos tuyos de este periodo que el PDF no respalda. Revísalos por si hay un error de captura.",
-};
 
 const ACTION_OPTIONS = (hasMatch: boolean) => [
   ...(hasMatch ? [{ value: "link" as RowAction, label: "Es el mío: vincular" }] : []),
@@ -37,28 +29,13 @@ const ACTION_OPTIONS = (hasMatch: boolean) => [
 ];
 
 export function StatementReview({ item, categories }: { item: QueueItem; categories: CategoryOption[] }) {
-  const { dispatch, confirm } = useStatementImport();
-  const preview = item.preview;
-  const [tab, setTab] = useState<Tab>("new");
-  if (!preview) return null;
-
-  const busy = item.status === "confirming";
-  const summary = summarizeChoices(preview, item.choices);
-  const mismatch = !preview.validation.checks.every((check) => check.expected === check.actual);
-  const canConfirm = !busy && (!mismatch || item.acknowledgeMismatch) && summary.toImport + summary.toLink > 0;
-  const setChoices = (choices: typeof item.choices) => dispatch({ type: "setChoices", id: item.id, choices });
-  const highCount = preview.rows.filter((row) => row.status === "probable_match" && row.match?.confidence === "high").length;
-  const rows = preview.rows.filter((row) => (tab === "new" ? row.status === "new" : tab === "probable" ? row.status === "probable_match" : row.status === "already_imported"));
-  const tabs: Array<{ value: Tab; label: string }> = [
-    { value: "new", label: `Nuevos (${preview.counts.new})` },
-    { value: "probable", label: `Ya los tengo (${preview.counts.probableMatch})` },
-    { value: "imported", label: `Ya importados (${preview.counts.alreadyImported})` },
-    { value: "orphans", label: `Solo en mi app (${preview.unmatchedExisting.length})` },
-  ];
+  const review = useStatementReview(item);
+  if (!review) return null;
+  const { preview, tab, setTab, tabs, rows, busy, summary, mismatch, highCount, canConfirm, setChoices, acknowledge, discard, confirm } = review;
 
   return (
-    <Card className="gap-0 p-0" aria-label={`Revisión de ${item.file.name}`}>
-      <div className="flex flex-col gap-4 p-5">
+    <Card aria-label={`Revisión de ${item.file.name}`}>
+      <CardContent className="flex flex-col gap-4">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
             <Text weight="medium">
@@ -69,7 +46,7 @@ export function StatementReview({ item, categories }: { item: QueueItem; categor
               {formatDate(preview.periodStart)} al {formatDate(preview.periodEnd)} · {item.file.name} · {preview.rows.length} movimientos
             </Text>
           </div>
-          <Button size="sm" variant="ghost" isDisabled={busy} onPress={() => dispatch({ type: "remove", id: item.id })}>
+          <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={discard}>
             Descartar
           </Button>
         </div>
@@ -82,15 +59,15 @@ export function StatementReview({ item, categories }: { item: QueueItem; categor
         ))}
         {mismatch && (
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" className="size-4 accent-[var(--accent)]" checked={item.acknowledgeMismatch} onChange={(e) => dispatch({ type: "acknowledge", id: item.id, value: e.target.checked })} />
+            <Checkbox checked={item.acknowledgeMismatch} onCheckedChange={(checked) => acknowledge(checked === true)} />
             Entiendo que no cuadran y quiero importar de todos modos
           </label>
         )}
 
         <div className="flex flex-col gap-2">
-          <SegmentedButtons options={tabs} value={tab} onChange={setTab} activeClassName={ACTIVE_ACCENT} />
+          <SegmentedButtons options={tabs} value={tab} onChange={setTab} />
           <Text size="sm" tone="muted">
-            {TAB_HELP[tab]}
+            {REVIEW_TAB_HELP[tab]}
           </Text>
         </div>
 
@@ -98,20 +75,20 @@ export function StatementReview({ item, categories }: { item: QueueItem; categor
           <div className="flex flex-wrap gap-2">
             {tab === "new" && (
               <>
-                <Button size="sm" variant="secondary" onPress={() => setChoices(importAllNew(preview, item.choices, true))}>
+                <Button type="button" size="sm" variant="secondary" onClick={() => setChoices(importAllNew(preview, item.choices, true))}>
                   Seleccionar todos
                 </Button>
-                <Button size="sm" variant="secondary" onPress={() => setChoices(importAllNew(preview, item.choices, false))}>
+                <Button type="button" size="sm" variant="secondary" onClick={() => setChoices(importAllNew(preview, item.choices, false))}>
                   Quitar selección
                 </Button>
               </>
             )}
             {tab === "probable" && (
               <>
-                <Button size="sm" variant="secondary" isDisabled={highCount === 0} onPress={() => setChoices(linkAllHighConfidence(preview, item.choices))}>
+                <Button type="button" size="sm" variant="secondary" disabled={highCount === 0} onClick={() => setChoices(linkAllHighConfidence(preview, item.choices))}>
                   Vincular los muy probables ({highCount})
                 </Button>
-                <Button size="sm" variant="secondary" onPress={() => setChoices(skipAllProbable(preview, item.choices))}>
+                <Button type="button" size="sm" variant="secondary" onClick={() => setChoices(skipAllProbable(preview, item.choices))}>
                   Omitir todos
                 </Button>
               </>
@@ -125,7 +102,7 @@ export function StatementReview({ item, categories }: { item: QueueItem; categor
               Todo lo que registraste en este periodo aparece en el estado.
             </Text>
           ) : (
-            <ul className="flex max-h-[55vh] flex-col divide-y divide-separator overflow-y-auto rounded-2xl border border-separator">
+            <ul className="flex max-h-[55vh] flex-col divide-y divide-border overflow-y-auto rounded-2xl border border-border">
               {preview.unmatchedExisting.map((movement) => (
                 <li key={movement.id} className="flex items-center justify-between gap-3 px-4 py-3">
                   <Text size="sm">
@@ -141,15 +118,15 @@ export function StatementReview({ item, categories }: { item: QueueItem; categor
             Nada por aquí.
           </Text>
         ) : (
-          <ul className="flex max-h-[55vh] flex-col divide-y divide-separator overflow-y-auto rounded-2xl border border-separator">
+          <ul className="flex max-h-[55vh] flex-col divide-y divide-border overflow-y-auto rounded-2xl border border-border">
             {rows.map((row) => (
               <ReviewRow key={row.index} row={row} choice={item.choices[row.index]} categories={categories} disabled={busy} onAction={(action) => setChoices(setAction(item.choices, row.index, action))} onCategory={(id) => setChoices(setCategory(item.choices, row.index, id))} onType={(type) => setChoices(setType(item.choices, row.index, type))} onPair={(pair) => setChoices(setPair(preview, item.choices, row.index, pair))} />
             ))}
           </ul>
         )}
-      </div>
+      </CardContent>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-separator px-5 py-4">
+      <CardFooter className="flex flex-wrap items-center justify-between gap-3 border-t">
         <div className="flex flex-col">
           <Text size="sm" weight="medium">
             {summary.toImport} por crear · {summary.toLink} por vincular · {summary.toSkip} omitidos
@@ -160,10 +137,10 @@ export function StatementReview({ item, categories }: { item: QueueItem; categor
             </Text>
           )}
         </div>
-        <Button isDisabled={!canConfirm} onPress={() => void confirm(item.id)}>
+        <Button type="button" disabled={!canConfirm} onClick={confirm}>
           {busy ? "Importando…" : `Confirmar (${summary.toImport + summary.toLink})`}
         </Button>
-      </div>
+      </CardFooter>
     </Card>
   );
 }
@@ -186,7 +163,7 @@ function ReviewRow({ row, choice, categories, disabled, onAction, onCategory, on
   return (
     <li className={`flex flex-col gap-2 px-4 py-3 ${!selected && !row.locked && !match ? "opacity-60" : ""}`}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        {!match && !row.locked && <input type="checkbox" aria-label={`Importar ${transaction.description}`} disabled={disabled} className="size-4 accent-[var(--accent)]" checked={selected} onChange={(e) => onAction(e.target.checked ? "import" : "skip")} />}
+        {!match && !row.locked && <Checkbox aria-label={`Importar ${transaction.description}`} disabled={disabled} checked={selected} onCheckedChange={(checked) => onAction(checked === true ? "import" : "skip")} />}
         <div className="min-w-48 flex-1">
           <Text size="sm" weight="medium" className="break-words">
             {transaction.description}
@@ -200,17 +177,17 @@ function ReviewRow({ row, choice, categories, disabled, onAction, onCategory, on
         <CurrencyText cents={transaction.amountCents} weight="medium" tone={transaction.amountCents > 0 ? "success" : "default"} className="shrink-0" />
       </div>
 
-      {row.locked && <Chip tone="muted">Ya importado antes</Chip>}
+      {row.locked && <Badge variant="secondary">Ya importado antes</Badge>}
 
       {match && !row.locked && (
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <Chip tone={CONFIDENCE[match.confidence].tone}>{CONFIDENCE[match.confidence].label}</Chip>
+            <Badge variant={CONFIDENCE[match.confidence].variant}>{CONFIDENCE[match.confidence].label}</Badge>
             <Text size="xs" tone="muted">
               Ya tienes «{match.name}» del {formatShortDate(match.date)} ({SOURCE_LABEL[match.source] ?? match.source})
             </Text>
           </div>
-          <SegmentedButtons options={ACTION_OPTIONS(true)} value={choice.action} onChange={onAction} activeClassName={ACTIVE_ACCENT} />
+          <SegmentedButtons options={ACTION_OPTIONS(true)} value={choice.action} onChange={onAction} />
         </div>
       )}
 
@@ -218,7 +195,7 @@ function ReviewRow({ row, choice, categories, disabled, onAction, onCategory, on
 
       {!row.locked && row.pairSuggestion && (
         <label className="flex items-center gap-2 text-xs">
-          <input type="checkbox" className="size-4 accent-[var(--accent)]" disabled={disabled} checked={choice.pair} onChange={(e) => onPair(e.target.checked)} />
+          <Checkbox disabled={disabled} checked={choice.pair} onCheckedChange={(checked) => onPair(checked === true)} />
           Es el mismo dinero que el movimiento de {row.pairSuggestion.accountName} del {formatShortDate(row.pairSuggestion.date)}: emparejar como {row.pairSuggestion.kind === "cc_payment" ? "pago de tarjeta" : "transferencia propia"}
         </label>
       )}
@@ -242,22 +219,22 @@ interface EditorsProps {
 function RowEditors({ choice, categories, disabled, onCategory, onType }: EditorsProps) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Select uiSize="sm" aria-label="Tipo" disabled={disabled} value={choice.type} onChange={(e) => onType(e.target.value as StatementTransactionType)}>
+      <NativeSelect size="sm" aria-label="Tipo" disabled={disabled} value={choice.type} onChange={(e) => onType(e.target.value as StatementTransactionType)}>
         {(Object.keys(TYPE_LABEL) as StatementTransactionType[]).map((type) => (
           <option key={type} value={type}>
             {TYPE_LABEL[type]}
           </option>
         ))}
-      </Select>
+      </NativeSelect>
       {!isTransferType(choice.type) && (
-        <Select uiSize="sm" aria-label="Categoría" disabled={disabled} value={choice.categoryId ?? ""} onChange={(e) => onCategory(e.target.value ? Number(e.target.value) : null)}>
+        <NativeSelect size="sm" aria-label="Categoría" disabled={disabled} value={choice.categoryId ?? ""} onChange={(e) => onCategory(e.target.value ? Number(e.target.value) : null)}>
           <option value="">Categoría automática</option>
           {categories.map((category) => (
             <option key={category.id} value={category.id}>
               {category.label ?? category.name}
             </option>
           ))}
-        </Select>
+        </NativeSelect>
       )}
     </div>
   );

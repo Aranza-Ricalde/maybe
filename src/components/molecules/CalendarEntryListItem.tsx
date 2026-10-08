@@ -1,86 +1,95 @@
-import { Button } from "@heroui/react";
-import { Chip } from "@/components/atoms/Chip";
-import { CurrencyText } from "@/components/atoms/CurrencyText";
-import { Text } from "@/components/atoms/Text";
-import type { CalendarEntry } from "@/domain/calendar/rules";
-import type { OccurrenceDecision } from "@/domain/recurring/occurrences";
-import { formatShortDate } from "@/lib/format";
-import { OccurrencePaymentPicker, type PaymentCandidateView } from "./OccurrencePaymentPicker";
-import { FIELD } from "@/lib/formFields";
+"use client";
 
-const STATUS_CHIP: Record<CalendarEntry["status"], { tone: "success" | "danger" | "muted"; label: string }> = {
-  paid: { tone: "success", label: "Pagado" },
-  overdue: { tone: "danger", label: "Atrasado" },
-  pending: { tone: "muted", label: "Esperado" },
-  skipped: { tone: "muted", label: "Omitido" },
-};
+import type { FormAction } from "@/lib/actionResult";
+import { Check, EllipsisVertical } from "lucide-react";
+import { CurrencyText } from "@/components/atoms/CurrencyText";
+import { Icon } from "@/components/atoms/Icon";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@/components/ui/item";
+import type { CalendarEntry } from "@/domain/calendar/rules";
+import { useOccurrenceActions } from "@/hooks/useOccurrenceActions";
+import { formatShortDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import { DateTile } from "./DateTile";
+import { OccurrencePaymentPicker, type PaymentCandidateView } from "./OccurrencePaymentPicker";
 
 const SOURCE_LABEL: Record<CalendarEntry["source"], string> = { recurrente: "Recurrente", programado: "Programado", deuda: "Vencimiento de deuda" };
 
-const DECISIONS_BY_STATUS: Record<CalendarEntry["status"], { decision: OccurrenceDecision; label: string; primary?: boolean }[]> = {
-  pending: [
-    { decision: "mark_paid", label: "Marcar pagado", primary: true },
-    { decision: "skip", label: "Omitir" },
-  ],
-  overdue: [
-    { decision: "mark_paid", label: "Marcar pagado", primary: true },
-    { decision: "skip", label: "Omitir" },
-  ],
-  paid: [{ decision: "reopen", label: "Deshacer" }],
-  skipped: [{ decision: "reopen", label: "Restaurar" }],
+const STATUS_BADGE: Partial<Record<CalendarEntry["status"], { variant: "success" | "destructive" | "secondary"; label: string }>> = {
+  paid: { variant: "success", label: "Pagado" },
+  overdue: { variant: "destructive", label: "Atrasado" },
+  skipped: { variant: "secondary", label: "Omitido" },
 };
+
+const REOPEN_LABEL: Partial<Record<CalendarEntry["status"], string>> = { paid: "Deshacer", skipped: "Restaurar" };
 
 export interface CalendarEntryListItemProps {
   entry: CalendarEntry;
-  decisionAction: (formData: FormData) => void;
+  decisionAction: FormAction;
   listPaymentCandidates: (occurrenceId: number) => Promise<PaymentCandidateView[]>;
-  linkPaymentAction: (formData: FormData) => void;
+  linkPaymentAction: FormAction;
 }
 
 export function CalendarEntryListItem({ entry, decisionAction, listPaymentCandidates, linkPaymentAction }: CalendarEntryListItemProps) {
-  const chip = STATUS_CHIP[entry.status];
+  const { isPending, candidates, pickerOpen, setPickerOpen, decide, openPicker } = useOccurrenceActions({ occurrenceId: entry.occurrenceId, decisionAction, listPaymentCandidates });
+  const badge = STATUS_BADGE[entry.status];
   const isPaid = entry.status === "paid";
   const isMuted = isPaid || entry.status === "skipped";
-  const decisions = entry.occurrenceId != null ? DECISIONS_BY_STATUS[entry.status] : [];
-  const canPickPayment = entry.occurrenceId != null && (entry.status === "pending" || entry.status === "overdue");
+  const occurrenceId = entry.occurrenceId;
+  const isOpen = entry.status === "pending" || entry.status === "overdue";
+  const shownDate = isPaid && entry.actualDate ? entry.actualDate : entry.expectedDate;
 
   return (
-    <li className="py-2.5">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className={`text-sm font-medium ${isMuted ? "text-muted" : ""} ${isPaid ? "line-through" : ""}`}>{entry.name}</p>
-          <Text size="xs" tone="muted">
-            {SOURCE_LABEL[entry.source]} ·{" "}
-            {isPaid && entry.actualDate ? `Real: ${formatShortDate(entry.actualDate)}` : `Esperado: ${formatShortDate(entry.expectedDate)}`}
+    <li>
+      <Item size="sm" className={cn("px-0", isPending && "opacity-60")}>
+        <ItemMedia>
+          <DateTile isoDate={shownDate} muted={isMuted} />
+        </ItemMedia>
+        <ItemContent>
+          <ItemTitle className={cn(isMuted && "text-muted-foreground", isPaid && "line-through")}>
+            {entry.name}
+            {badge && (
+              <Badge variant={badge.variant}>
+                {isPaid && <Check data-icon="inline-start" />}
+                {badge.label}
+              </Badge>
+            )}
+          </ItemTitle>
+          <ItemDescription>
+            {SOURCE_LABEL[entry.source]} · {isPaid && entry.actualDate ? `Pagado el ${formatShortDate(entry.actualDate)}` : `Esperado el ${formatShortDate(entry.expectedDate)}`}
             {entry.isManual && " · Marcado por ti"}
-          </Text>
-        </div>
-        <div className="flex items-center gap-2">
-          <CurrencyText
-            cents={isPaid && entry.actualAmountCents != null ? entry.actualAmountCents : entry.expectedAmountCents}
-            absolute
-            weight="semibold"
-            tone={isMuted ? "muted" : "default"}
-          />
-          <Chip tone={chip.tone}>{chip.label}</Chip>
-        </div>
-      </div>
-      {decisions.length > 0 && (
-        <div className="mt-1.5 flex flex-wrap justify-end gap-1.5">
-          {canPickPayment && (
-            <OccurrencePaymentPicker occurrenceId={entry.occurrenceId as number} listCandidates={listPaymentCandidates} linkAction={linkPaymentAction} />
+          </ItemDescription>
+        </ItemContent>
+        <ItemActions>
+          <CurrencyText cents={isPaid && entry.actualAmountCents != null ? entry.actualAmountCents : entry.expectedAmountCents} absolute weight="semibold" tone={isMuted ? "muted" : "default"} />
+          {occurrenceId != null && isOpen && (
+            <Button type="button" size="sm" disabled={isPending} onClick={() => decide("mark_paid")}>
+              Marcar pagado
+            </Button>
           )}
-          {decisions.map((d) => (
-            <form key={d.decision} action={decisionAction}>
-              <input type="hidden" name={FIELD.occurrenceId} value={entry.occurrenceId as number} />
-              <input type="hidden" name={FIELD.decision} value={d.decision} />
-              <Button type="submit" size="sm" variant={d.primary ? "primary" : "ghost"}>
-                {d.label}
-              </Button>
-            </form>
-          ))}
-        </div>
-      )}
+          {occurrenceId != null && (isOpen || REOPEN_LABEL[entry.status]) && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="ghost" size="icon-sm" aria-label={`Más acciones de ${entry.name}`} disabled={isPending}>
+                  <Icon icon={EllipsisVertical} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {isOpen && (
+                  <>
+                    <DropdownMenuItem onSelect={openPicker}>Elegir movimiento</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => decide("skip")}>Omitir</DropdownMenuItem>
+                  </>
+                )}
+                {REOPEN_LABEL[entry.status] && <DropdownMenuItem onSelect={() => decide("reopen")}>{REOPEN_LABEL[entry.status]}</DropdownMenuItem>}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </ItemActions>
+      </Item>
+      {occurrenceId != null && <OccurrencePaymentPicker occurrenceId={occurrenceId} candidates={candidates} open={pickerOpen} onOpenChange={setPickerOpen} linkAction={linkPaymentAction} />}
     </li>
   );
 }

@@ -14,7 +14,7 @@ export function AvailableToSpendDetailModal({ detail }: AvailableToSpendDetailMo
 
   return (
     <DetailModal title="Disponible para gastar">
-      <div className="rounded-xl bg-accent/5 p-4">
+      <div className="rounded-xl bg-primary/5 p-4">
         <CurrencyText cents={availableCents} size="base" weight="semibold" tone={availableCents < 0 ? "danger" : "default"} className="text-2xl" />
         <Text size="xs" tone="muted" className="mt-1.5">
           {formatCurrency(liquidBalanceCents)} de saldo líquido {commitmentsCents >= 0 ? "+" : "−"} {formatCurrency(Math.abs(commitmentsCents))} en
@@ -25,7 +25,7 @@ export function AvailableToSpendDetailModal({ detail }: AvailableToSpendDetailMo
       {liquidAccounts.length > 0 && (
         <div>
           <SectionLabel>Saldo líquido por cuenta</SectionLabel>
-          <ul className="flex flex-col divide-y divide-separator">
+          <ul className="flex flex-col divide-y divide-border">
             {liquidAccounts.map((a) => (
               <li key={a.name} className="flex items-center justify-between py-2.5 text-sm">
                 <p className="font-medium text-foreground">{a.name}</p>
@@ -43,7 +43,7 @@ export function AvailableToSpendDetailModal({ detail }: AvailableToSpendDetailMo
             No tienes compromisos próximos registrados todavía.
           </Text>
         ) : (
-          <ul className="flex flex-col divide-y divide-separator">
+          <ul className="flex flex-col divide-y divide-border">
             {commitments.map((c, i) => (
               <li key={`${c.name}-${c.date}-${i}`} className="flex items-center justify-between py-2.5">
                 <div>

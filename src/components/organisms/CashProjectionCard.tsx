@@ -1,29 +1,32 @@
-import { Card } from "@heroui/react";
+import type { FormAction } from "@/lib/actionResult";
+import { ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Text } from "@/components/atoms/Text";
 import type { CashProjectionView } from "@/application/getCashProjection";
 import { sumEventsCents } from "@/domain/cashflow/daily";
-import { formatPesos, formatShortDate } from "@/lib/format";
+import { formatPesos, formatShortDate, formatSignedPesos } from "@/lib/format";
 import { FinancialStatusBanner } from "./FinancialStatusBanner";
 import { LineEvolutionChart } from "./LineEvolutionChart";
 import { MinimumBalanceModal } from "./MinimumBalanceModal";
 
 const MAX_LISTED_EVENTS = 12;
-const signed = (cents: number) => `${cents >= 0 ? "+" : "−"}${formatPesos(Math.abs(cents))}`;
 const tone = (cents: number) => (cents > 0 ? "text-success" : "text-foreground");
 
-export function CashProjectionCard({ view, minimumAction }: { view: CashProjectionView; minimumAction: (formData: FormData) => Promise<void> | void }) {
+export function CashProjectionCard({ view, minimumAction }: { view: CashProjectionView; minimumAction: FormAction }) {
   const { projection, assumptions } = view;
   const listed = projection.events.slice(0, MAX_LISTED_EVENTS);
   const hidden = projection.events.length - listed.length;
   const last = projection.series[projection.series.length - 1];
 
   return (
-    <Card className="p-5">
-      <Card.Header>
-        <Card.Title>Tu saldo en los próximos {view.days} días</Card.Title>
-        <Card.Description>Desde tu saldo en cuentas de débito y efectivo, con lo que esperas que entre y salga.</Card.Description>
-      </Card.Header>
-      <Card.Content className="flex flex-col gap-4">
+    <Card>
+      <CardHeader>
+        <CardTitle>Tu saldo en los próximos {view.days} días</CardTitle>
+        <CardDescription>Desde tu saldo en cuentas de débito y efectivo, con lo que esperas que entre y salga.</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
         <FinancialStatusBanner status={view.status} />
 
         <LineEvolutionChart
@@ -33,31 +36,48 @@ export function CashProjectionCard({ view, minimumAction }: { view: CashProjecti
           tableCaption={`Saldo proyectado a ${view.days} días`}
         />
 
-        <ul className="flex flex-col divide-y divide-separator text-sm">
-          <li className="flex items-center justify-between py-2 first:pt-0">
-            <span className="font-medium">Hoy</span>
-            <span className="font-semibold tabular-nums">{formatPesos(assumptions.startBalanceCents)}</span>
-          </li>
-          {listed.map((e, i) => (
-            <li key={`${e.date}-${e.label}-${i}`} className="flex items-center justify-between gap-3 py-2">
-              <span className="min-w-0 truncate">
-                {e.label} <span className="text-xs text-muted">· {formatShortDate(e.date)}</span>
-              </span>
-              <span className={`shrink-0 tabular-nums ${tone(e.amountCents)}`}>{signed(e.amountCents)}</span>
-            </li>
-          ))}
-          {hidden > 0 && (
-            <li className="py-2 text-xs text-muted">y {hidden} {hidden === 1 ? "movimiento esperado más" : "movimientos esperados más"} ({signed(sumEventsCents(projection.events.slice(MAX_LISTED_EVENTS)))})</li>
-          )}
-          <li className="flex items-center justify-between py-2">
-            <span>Gasto variable estimado</span>
-            <span className="tabular-nums">{signed(projection.variableCents)}</span>
-          </li>
-          <li className="flex items-center justify-between py-2 last:pb-0">
-            <span className="font-medium">Saldo proyectado al {formatShortDate(last.date)}</span>
-            <span className={`font-semibold tabular-nums ${projection.endBalanceCents < view.minimumCents ? "text-danger" : ""}`}>{formatPesos(projection.endBalanceCents)}</span>
-          </li>
-        </ul>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="flex flex-col gap-0.5">
+            <Text size="xs" tone="muted">Hoy</Text>
+            <p className="text-xl font-semibold tabular-nums">{formatPesos(assumptions.startBalanceCents)}</p>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <Text size="xs" tone="muted">Cambio esperado</Text>
+            <p className={`text-xl font-semibold tabular-nums ${projection.endBalanceCents - assumptions.startBalanceCents >= 0 ? "text-success" : ""}`}>{formatSignedPesos(projection.endBalanceCents - assumptions.startBalanceCents)}</p>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <Text size="xs" tone="muted">Saldo al {formatShortDate(last.date)}</Text>
+            <p className={`text-xl font-semibold tabular-nums ${projection.endBalanceCents < view.minimumCents ? "text-danger" : ""}`}>{formatPesos(projection.endBalanceCents)}</p>
+          </div>
+        </div>
+
+        <Collapsible>
+          <CollapsibleTrigger asChild>
+            <Button type="button" variant="ghost" size="sm" className="group w-fit">
+              Ver los {projection.events.length} movimientos esperados
+              <ChevronDown className="transition-transform group-data-[state=open]:rotate-180" />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <ul className="mt-2 flex flex-col divide-y divide-border text-sm">
+              {listed.map((e, i) => (
+                <li key={`${e.date}-${e.label}-${i}`} className="flex items-center justify-between gap-3 py-2">
+                  <span className="min-w-0 truncate">
+                    {e.label} <span className="text-xs text-muted-foreground">· {formatShortDate(e.date)}</span>
+                  </span>
+                  <span className={`shrink-0 tabular-nums ${tone(e.amountCents)}`}>{formatSignedPesos(e.amountCents)}</span>
+                </li>
+              ))}
+              {hidden > 0 && (
+                <li className="py-2 text-xs text-muted-foreground">y {hidden} {hidden === 1 ? "movimiento esperado más" : "movimientos esperados más"} ({formatSignedPesos(sumEventsCents(projection.events.slice(MAX_LISTED_EVENTS)))})</li>
+              )}
+              <li className="flex items-center justify-between py-2">
+                <span>Gasto variable estimado</span>
+                <span className="tabular-nums">{formatSignedPesos(projection.variableCents)}</span>
+              </li>
+            </ul>
+          </CollapsibleContent>
+        </Collapsible>
 
         <div className="flex flex-col gap-1">
           <Text size="xs" tone="muted">
@@ -75,7 +95,7 @@ export function CashProjectionCard({ view, minimumAction }: { view: CashProjecti
             <MinimumBalanceModal minimumCents={view.minimumCents} action={minimumAction} />
           </div>
         </div>
-      </Card.Content>
+      </CardContent>
     </Card>
   );
 }

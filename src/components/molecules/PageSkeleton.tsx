@@ -1,4 +1,4 @@
-import { Skeleton } from "@heroui/react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export interface PageSkeletonProps {
   rows?: number;
@@ -16,7 +16,7 @@ export function PageSkeleton({ rows = 5, withActionButton = true }: PageSkeleton
         {withActionButton && <Skeleton className="h-9 w-40 rounded-full" />}
       </div>
 
-      <div className="rounded-xl border border-separator bg-surface p-5">
+      <div className="rounded-xl border border-border bg-card p-5">
         <div className="flex flex-col gap-4">
           {Array.from({ length: rows }).map((_, i) => (
             <div key={i} className="flex items-center justify-between gap-4">

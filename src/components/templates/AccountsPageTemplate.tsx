@@ -1,6 +1,11 @@
-import { Card } from "@heroui/react";
+import type { FormAction } from "@/lib/actionResult";
+import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/molecules/EmptyState";
 import { CreateAccountModal } from "@/components/molecules/CreateAccountModal";
+import { StatBlock } from "@/components/molecules/StatBlock";
+import { StatBlockRow } from "@/components/molecules/StatBlockRow";
+import { formatCurrency } from "@/lib/format";
+import type { AccountsTotals } from "@/domain/accounts/rules";
 import { PageHeader } from "@/components/molecules/PageHeader";
 import { AccountExplorerCard, type FetchAccountMovements, type LoadBalanceHistory } from "@/components/organisms/AccountExplorerCard";
 import { AccountsTable, type AccountRow } from "@/components/organisms/AccountsTable";
@@ -9,20 +14,22 @@ import type { EvolutionPoint } from "@/domain/evolution/rules";
 import type { AccountOption } from "@/components/viewModels";
 
 export interface AccountsPageTemplateProps {
+  totals: AccountsTotals;
   accounts: AccountRow[];
   archivedAccounts: ArchivedAccountInput[];
   initialBalanceSeries: EvolutionPoint[];
   loadBalanceHistory: LoadBalanceHistory;
   today: string;
-  createAccountAction: (formData: FormData) => Promise<void> | void;
-  updateAccountAction: (formData: FormData) => Promise<void> | void;
-  deleteAccountAction: (formData: FormData) => Promise<void> | void;
-  restoreAccountAction: (formData: FormData) => Promise<void> | void;
+  createAccountAction: FormAction;
+  updateAccountAction: FormAction;
+  deleteAccountAction: FormAction;
+  restoreAccountAction: FormAction;
   fetchTransactionsPage: FetchAccountMovements;
 }
 
 export function AccountsPageTemplate({
   accounts,
+  totals,
   archivedAccounts,
   initialBalanceSeries,
   loadBalanceHistory,
@@ -49,11 +56,19 @@ export function AccountsPageTemplate({
       />
 
       {accounts.length === 0 ? (
-        <Card className="p-5">
-          <EmptyState title="Todavía no tienes cuentas" description="Agrega tu primera cuenta para empezar a registrar movimientos." />
+        <Card>
+          <CardContent>
+            <EmptyState title="Todavía no tienes cuentas" description="Agrega tu primera cuenta para empezar a registrar movimientos." />
+          </CardContent>
         </Card>
       ) : (
         <>
+          <StatBlockRow>
+            <StatBlock label="Lo que tienes" value={formatCurrency(totals.assetsCents)} tooltip="Suma de tus cuentas de ahorro, cheques, efectivo y demás activos." />
+            <StatBlock label="Lo que debes" value={formatCurrency(totals.liabilitiesCents)} tone={totals.liabilitiesCents > 0 ? "danger" : "default"} tooltip="Suma de tus tarjetas de crédito, préstamos y otros pasivos." />
+            <StatBlock label="Patrimonio neto" value={formatCurrency(totals.netCents)} tone={totals.netCents < 0 ? "danger" : "default"} tooltip="Lo que tienes menos lo que debes." />
+          </StatBlockRow>
+
           <AccountsTable rows={accounts} updateAccountAction={updateAccountAction} deleteAccountAction={deleteAccountAction} />
           <AccountExplorerCard
             accounts={explorerAccounts}

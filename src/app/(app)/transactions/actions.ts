@@ -41,6 +41,7 @@ export async function createTransaction(formData: FormData) {
       const transaction = await recordTransactionUseCase.execute({ ...input, source: "manual" });
       after(() => resolveTransactionConceptUseCase.execute(transaction.id, user.familyId).catch((error) => logFailure("resolveTransactionConcept falló", error)));
     },
+    success: "Movimiento registrado",
     revalidate: REVALIDATE.transactions,
   });
 }
@@ -50,6 +51,7 @@ export async function updateTransactionAction(formData: FormData) {
     schema: updateTransactionForm,
     owns: [ownsTransaction((input) => input.id), ownsAccount((input) => input.accountId), ownsCategory((input) => input.categoryId)],
     run: (input) => updateTransactionUseCase.execute(input),
+    success: "Movimiento actualizado",
     revalidate: REVALIDATE.transactions,
   });
 }
@@ -59,6 +61,7 @@ export async function deleteTransactionAction(formData: FormData) {
     schema: idForm,
     owns: [ownsTransaction((input) => input.id)],
     run: (input) => deleteTransactionUseCase.execute(input.id),
+    success: "Movimiento eliminado",
     revalidate: REVALIDATE.transactions,
   });
 }
@@ -68,6 +71,7 @@ export async function recordTransfer(formData: FormData) {
     schema: transferForm,
     owns: [ownsAccount((input) => input.fromAccountId), ownsAccount((input) => input.toAccountId)],
     run: (input) => recordTransferUseCase.execute(input),
+    success: "Transferencia registrada",
     revalidate: REVALIDATE.transactions,
   });
 }
@@ -84,6 +88,7 @@ export async function confirmTransferPairAction(formData: FormData) {
   return runFormAction(formData, {
     schema: confirmTransferPairForm,
     run: (input, user) => resolveTransferSuggestionUseCase.confirmPair(user.familyId, input.outflowId, input.inflowId, input.kind),
+    success: "Transferencia confirmada",
     revalidate: REVALIDATE.transferReview,
     tolerate: [InvalidTransferReviewError],
   });
@@ -93,6 +98,7 @@ export async function dismissTransferPairAction(formData: FormData) {
   return runFormAction(formData, {
     schema: dismissTransferPairForm,
     run: (input, user) => resolveTransferSuggestionUseCase.dismissPair(user.familyId, input.outflowId, input.inflowId),
+    success: "Sugerencia descartada",
     revalidate: REVALIDATE.transferReview,
     tolerate: [InvalidTransferReviewError],
   });
@@ -103,6 +109,7 @@ export async function confirmCaptureAction(formData: FormData) {
     schema: confirmCaptureForm,
     owns: [ownsTransaction((input) => input.transactionId), ownsCategory((input) => input.categoryId)],
     run: (input, user) => confirmCaptureUseCase.execute(user.familyId, input.transactionId, input.categoryId),
+    success: "Movimiento confirmado",
     revalidate: REVALIDATE.captureReview,
     tolerate: [InvalidCaptureError],
   });
@@ -112,6 +119,7 @@ export async function confirmTransferSingleAction(formData: FormData) {
   return runFormAction(formData, {
     schema: confirmTransferSingleForm,
     run: (input, user) => resolveTransferSuggestionUseCase.confirmSingle(user.familyId, input.transactionId, input.kind),
+    success: "Movimiento marcado como transferencia",
     revalidate: REVALIDATE.transferReview,
     tolerate: [InvalidTransferReviewError],
   });
@@ -121,6 +129,7 @@ export async function dismissTransferSingleAction(formData: FormData) {
   return runFormAction(formData, {
     schema: transactionIdForm,
     run: (input, user) => resolveTransferSuggestionUseCase.dismissSingle(user.familyId, input.transactionId),
+    success: "Sugerencia descartada",
     revalidate: REVALIDATE.transferReview,
     tolerate: [InvalidTransferReviewError],
   });
@@ -130,6 +139,7 @@ export async function undoTransferAction(formData: FormData) {
   return runFormAction(formData, {
     schema: transactionIdForm,
     run: (input, user) => resolveTransferSuggestionUseCase.undoConfirmed(user.familyId, input.transactionId),
+    success: "Transferencia deshecha",
     revalidate: REVALIDATE.transferReview,
     tolerate: [InvalidTransferReviewError],
   });

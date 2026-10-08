@@ -1,9 +1,10 @@
 "use client";
 
+import type { FormAction } from "@/lib/actionResult";
 import { useCallback, useState } from "react";
 import type { TransactionFilters, TransactionSort } from "@/domain/ledger/filters";
 import type { AccountOption, CategoryOption, TransactionRowView } from "@/components/viewModels";
-import { Chip } from "@/components/atoms/Chip";
+import { Badge } from "@/components/ui/badge";
 import { CurrencyText } from "@/components/atoms/CurrencyText";
 import { Text } from "@/components/atoms/Text";
 import { DataTable, type DataTableColumn, type DataTableSortDescriptor } from "./DataTable";
@@ -31,10 +32,10 @@ export interface TransactionsExplorerProps {
     page: number,
     pageSize: number,
   ) => Promise<{ rows: TransactionRow[]; total: number }>;
-  updateTransactionAction: (formData: FormData) => Promise<void> | void;
-  deleteTransactionAction: (formData: FormData) => Promise<void> | void;
-  undoTransferAction?: (formData: FormData) => Promise<void> | void;
-  markTransferAction?: (formData: FormData) => Promise<void> | void;
+  updateTransactionAction: FormAction;
+  deleteTransactionAction: FormAction;
+  undoTransferAction?: FormAction;
+  markTransferAction?: FormAction;
   refreshSignal?: number;
   initialFilters?: Partial<TransactionFiltersValue>;
 }
@@ -71,9 +72,10 @@ export function TransactionsExplorer({
     refreshSignal,
   });
 
-  const thenRefetch = (action: ((formData: FormData) => Promise<void> | void) | undefined) => async (formData: FormData) => {
-    await action?.(formData);
+  const thenRefetch = (action: FormAction | undefined): FormAction => async (formData) => {
+    const result = await action?.(formData);
     await refetch();
+    return result;
   };
 
   function handleSortChange(descriptor: DataTableSortDescriptor) {
@@ -91,7 +93,7 @@ export function TransactionsExplorer({
         <>
           <span className="flex flex-wrap items-center gap-2">
             <Text weight="medium">{t.name}</Text>
-            {KIND_CHIP[t.kind] && <Chip tone="muted">{KIND_CHIP[t.kind]}</Chip>}
+            {KIND_CHIP[t.kind] && <Badge variant="secondary">{KIND_CHIP[t.kind]}</Badge>}
           </span>
           <Text size="xs" tone="muted">
             {t.accountName}
@@ -137,6 +139,7 @@ export function TransactionsExplorer({
         columns={columns}
         rows={rows}
         getRowId={(t) => t.id}
+        mobileGroup={{ getKey: (t) => t.date, getLabel: formatDate, hiddenColumnKeys: ["date"] }}
         totalItems={total}
         page={page}
         pageSize={pageSize}

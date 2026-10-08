@@ -1,4 +1,4 @@
-import { Button } from "@heroui/react";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Text } from "@/components/atoms/Text";
 import { PageHeader } from "@/components/molecules/PageHeader";
@@ -21,7 +21,7 @@ export function DashboardHeader({ userName, periodLabel, periods, selectedIds }:
         title={`${greetingForHour(currentHour())}, ${userName}`}
         action={
           <Link href={ROUTES.transactions}>
-            <Button variant="primary">+ Registrar movimiento</Button>
+            <Button type="button" >+ Registrar movimiento</Button>
           </Link>
         }
       />

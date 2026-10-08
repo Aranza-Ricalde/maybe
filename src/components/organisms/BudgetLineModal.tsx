@@ -1,4 +1,5 @@
-import { Pencil } from "@gravity-ui/icons";
+import type { FormAction } from "@/lib/actionResult";
+import { Pencil } from "lucide-react";
 import { SelectField, TextInput } from "@/components/molecules/FormField";
 import { FormModal } from "./FormModal";
 import type { BudgetCadence } from "@/domain/budget/rules";
@@ -10,7 +11,7 @@ export interface BudgetLineModalProps {
   categoryName: string;
   cadence: BudgetCadence;
   budgetedAmountCents: number;
-  action: (formData: FormData) => Promise<void> | void;
+  action: FormAction;
 }
 
 export function BudgetLineModal({ categoryId, categoryName, cadence, budgetedAmountCents, action }: BudgetLineModalProps) {
@@ -23,9 +24,10 @@ export function BudgetLineModal({ categoryId, categoryName, cadence, budgetedAmo
       action={action}
     >
       <input type="hidden" name={FIELD.categoryId} value={categoryId} />
-      <SelectField label="Cadencia" name={FIELD.cadence} defaultValue={cadence} options={BUDGET_CADENCE_OPTIONS} />
+      <SelectField label="Cadencia" description="Cada cuánto se repite este presupuesto." name={FIELD.cadence} defaultValue={cadence} options={BUDGET_CADENCE_OPTIONS} />
       <TextInput
         label="Monto presupuestado"
+        prefix="$"
         name={FIELD.amount}
         type="number"
         step="0.01"

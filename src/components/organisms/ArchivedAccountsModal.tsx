@@ -1,4 +1,6 @@
-import { Alert } from "@heroui/react";
+import type { FormAction } from "@/lib/actionResult";
+import { Info } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Text } from "@/components/atoms/Text";
 import { DetailModal } from "@/components/molecules/DetailModal";
 import { RestoreAccountButton } from "@/components/molecules/RestoreAccountButton";
@@ -13,7 +15,7 @@ export interface ArchivedAccountInput {
 
 export interface ArchivedAccountsModalProps {
   accounts: ArchivedAccountInput[];
-  restoreAccountAction: (formData: FormData) => Promise<void> | void;
+  restoreAccountAction: FormAction;
 }
 
 export function ArchivedAccountsModal({ accounts, restoreAccountAction }: ArchivedAccountsModalProps) {
@@ -21,17 +23,12 @@ export function ArchivedAccountsModal({ accounts, restoreAccountAction }: Archiv
 
   return (
     <DetailModal title="Cuentas archivadas" triggerLabel={`Ver cuentas archivadas (${accounts.length})`}>
-      <Alert status="accent">
-        <Alert.Indicator />
-        <Alert.Content>
-          <Alert.Title>Se archivaron, no se borraron</Alert.Title>
-          <Alert.Description>
-            Estas cuentas ya tenían movimientos registrados, así que su historial sigue intacto. Reactívalas para que vuelvan a aparecer en
-            Cuentas.
-          </Alert.Description>
-        </Alert.Content>
+      <Alert variant="info">
+        <Info />
+        <AlertTitle>Se archivaron, no se borraron</AlertTitle>
+        <AlertDescription>Estas cuentas ya tenían movimientos registrados, así que su historial sigue intacto. Reactívalas para que vuelvan a aparecer en Cuentas.</AlertDescription>
       </Alert>
-      <ul className="flex flex-col divide-y divide-separator">
+      <ul className="flex flex-col divide-y divide-border">
         {accounts.map((a) => (
           <li key={a.id} className="flex items-center justify-between gap-3 py-2.5">
             <div>

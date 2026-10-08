@@ -1,8 +1,8 @@
 "use client";
 
-import { Select } from "@heroui/react";
 import { InlinePrefixLabel } from "@/components/atoms/Label";
-import { SelectOptionsPopover } from "./SelectOptionsPopover";
+import { fromSelectValue, toSelectValue } from "@/lib/selectValue";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export interface FilterSelectOption {
   id: string;
@@ -16,17 +16,22 @@ export interface FilterSelectProps {
   onChange: (value: string) => void;
 }
 
-export const FILTER_PILL_MODIFIERS = "gap-1.5 rounded-full text-xs";
+export const FILTER_PILL_CLASS = "h-8 w-auto gap-1.5 rounded-full text-xs";
 
 export function FilterSelect({ label, options, value, onChange }: FilterSelectProps) {
   return (
-    <Select.Root aria-label={label} selectedKey={value} onSelectionChange={(key) => onChange(String(key))}>
-      <Select.Trigger className={FILTER_PILL_MODIFIERS}>
+    <Select value={toSelectValue(value)} onValueChange={(next) => onChange(fromSelectValue(next))}>
+      <SelectTrigger size="sm" aria-label={label} className={FILTER_PILL_CLASS}>
         <InlinePrefixLabel>{label}:</InlinePrefixLabel>
-        <Select.Value className="text-xs!" />
-        <Select.Indicator className="size-3.5" />
-      </Select.Trigger>
-      <SelectOptionsPopover options={options} />
-    </Select.Root>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {options.map((option) => (
+          <SelectItem key={option.id} value={toSelectValue(option.id)}>
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

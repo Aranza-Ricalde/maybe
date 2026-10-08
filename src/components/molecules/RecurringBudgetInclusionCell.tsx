@@ -1,5 +1,6 @@
 "use client";
 
+import type { FormAction } from "@/lib/actionResult";
 import { FormSwitch } from "./FormSwitch";
 import { FIELD } from "@/lib/formFields";
 
@@ -7,11 +8,11 @@ export interface RecurringBudgetInclusionCellProps {
   itemId: number;
   isRelevant: boolean;
   budgetInclusion: "included" | "excluded" | null;
-  action: (formData: FormData) => Promise<void> | void;
+  action: FormAction;
 }
 
 export function RecurringBudgetInclusionCell({ itemId, isRelevant, budgetInclusion, action }: RecurringBudgetInclusionCellProps) {
-  if (!isRelevant) return <span className="text-xs text-muted">—</span>;
+  if (!isRelevant) return <span className="text-xs text-muted-foreground">—</span>;
   const counts = budgetInclusion !== "excluded";
 
   return (

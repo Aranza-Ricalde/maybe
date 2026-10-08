@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import type { FormAction } from "@/lib/actionResult";
 import { Text } from "@/components/atoms/Text";
 import { EntityFormModal } from "@/components/organisms/EntityFormModal";
 import { RangeCalendarField } from "@/components/molecules/RangeCalendarField";
 import { periodLabel } from "@/domain/payPeriod/rules";
-import { todayIso } from "@/lib/today";
+import { usePayPeriodRange } from "@/hooks/usePayPeriodRange";
 import { ENTITY } from "@/lib/entityLabels";
 import { FIELD } from "@/lib/formFields";
 
@@ -15,15 +15,11 @@ export interface PayPeriodModalProps {
   editTitle?: string;
   defaultStart?: string;
   defaultEnd?: string;
-  action: (formData: FormData) => Promise<void> | void;
+  action: FormAction;
 }
 
 export function PayPeriodModal({ mode, initialValues, editTitle, defaultStart, defaultEnd, action }: PayPeriodModalProps) {
-  const today = todayIso();
-  const [range, setRange] = useState({
-    start: initialValues?.start ?? defaultStart ?? today,
-    end: initialValues?.end ?? defaultEnd ?? today,
-  });
+  const [range, setRange] = usePayPeriodRange({ initialStart: initialValues?.start, initialEnd: initialValues?.end, defaultStart, defaultEnd });
 
   return (
     <EntityFormModal mode={mode} labels={ENTITY.payPeriod} entityId={initialValues?.id} editTitle={editTitle ?? `Editar Quincena ${initialValues?.index}`} size="sm" action={action}>
@@ -31,7 +27,10 @@ export function PayPeriodModal({ mode, initialValues, editTitle, defaultStart, d
       <input type="hidden" name={FIELD.end} value={range.end} />
       <div className="flex flex-col items-center gap-2">
         <Text weight="medium">{periodLabel(range.start, range.end)}</Text>
-        <RangeCalendarField ariaLabel="Fechas del periodo" value={range} onChange={setRange} />
+        <RangeCalendarField ariaLabel="Fechas del periodo" value={range} onChange={setRange} commitPartial />
+        <Text size="xs" tone="muted">
+          Haz clic en el primer día y luego en el último.
+        </Text>
       </div>
     </EntityFormModal>
   );

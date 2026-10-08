@@ -26,7 +26,7 @@ export function SavingsGoalsModal({ savingsTotalCents, goals }: SavingsGoalsModa
 
   return (
     <DetailModal title="Ahorro y metas">
-      <div className="rounded-xl bg-accent/5 p-4">
+      <div className="rounded-xl bg-primary/5 p-4">
         <CurrencyText cents={savingsTotalCents} size="base" weight="semibold" className="text-2xl" />
         <Text size="xs" tone="muted" className="mt-1.5">
           Suma de todas tus cuentas de ahorro.
@@ -56,7 +56,7 @@ export function SavingsGoalsModal({ savingsTotalCents, goals }: SavingsGoalsModa
         </div>
       </div>
 
-      <Link href={ROUTES.goals} className="text-sm text-accent hover:underline">
+      <Link href={ROUTES.goals} className="text-sm text-primary hover:underline">
         Ver todas tus metas →
       </Link>
     </DetailModal>

@@ -1,11 +1,6 @@
-export { Button, type ButtonProps } from "./Button";
-export { Chip, type ChipProps, type ChipTone } from "./Chip";
 export { CurrencyText, type CurrencyTextProps } from "./CurrencyText";
 export { EyebrowLabel, type EyebrowLabelProps } from "./EyebrowLabel";
 export { Heading, type HeadingProps, type HeadingTone } from "./Heading";
 export { Icon, type IconProps, type IconSize } from "./Icon";
-export { Input, type InputProps } from "./Input";
-export { InlinePrefixLabel, Label, type LabelProps } from "./Label";
-export { Select, type SelectProps } from "./Select";
+export { InlinePrefixLabel, Label } from "./Label";
 export { Text, type TextProps, type TextSize, type TextTone } from "./Text";
-export { Alert, type AlertProps, type AlertStatus } from "./Alert";

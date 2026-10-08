@@ -6,7 +6,6 @@ import { DashboardHeader } from "@/components/organisms/DashboardHeader";
 import { DashboardKpiRow } from "@/components/organisms/DashboardKpiRow";
 import { ExplorerCard } from "@/components/organisms/ExplorerCard";
 import { FinancialCalendarCard } from "@/components/organisms/FinancialCalendarCard";
-import { FinancialStatusBanner } from "@/components/organisms/FinancialStatusBanner";
 import { InsightsCard } from "@/components/organisms/InsightsCard";
 import { RecurringCandidatesCard } from "@/components/organisms/RecurringCandidatesCard";
 import { TabbedSections } from "@/components/organisms/TabbedSections";
@@ -31,13 +30,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     <>
       <DashboardHeader {...header} />
 
-      <FinancialStatusBanner status={summary.financialStatus} />
-
       <AvailableToSpendCard
         availableCents={summary.availableToSpend.availableCents}
         upcomingCommitmentsCents={summary.availableToSpend.upcomingCommitmentsCents}
         runway={summary.runway}
         detail={summary.availableToSpendDetail}
+        status={summary.financialStatus}
       />
 
       <DashboardKpiRow

@@ -1,9 +1,14 @@
 "use client";
 
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Card } from "@heroui/react";
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { formatCurrency, formatCurrencyCompact, formatMonthYearShort } from "@/lib/format";
-import { useIsClient } from "@/hooks/useIsClient";
+
+const CONFIG = {
+  baseline: { label: "Sin cambios", color: "var(--muted-foreground)" },
+  scenario: { label: "Con tu escenario", color: "var(--chart-1)" },
+} satisfies ChartConfig;
 
 export interface ProjectionChartPoint {
   label: string;
@@ -12,34 +17,29 @@ export interface ProjectionChartPoint {
 }
 
 export function ProjectionBalanceChart({ data, basisMonths, hasScenario }: { data: ProjectionChartPoint[]; basisMonths: string[]; hasScenario: boolean }) {
-  const mounted = useIsClient();
-
   return (
-    <Card className="min-w-0 p-5">
-      <Card.Header>
-        <Card.Title>Hacia dónde va tu saldo</Card.Title>
-        <Card.Description>
+    <Card className="min-w-0">
+      <CardHeader>
+        <CardTitle>Hacia dónde va tu saldo</CardTitle>
+        <CardDescription>
           {basisMonths.length > 0
             ? `Con el promedio de ${basisMonths.length} ${basisMonths.length === 1 ? "mes completo" : "meses completos"}: ${basisMonths.map((m) => formatMonthYearShort(m)).join(", ")}.`
             : "Todavía no hay meses completos con movimientos para promediar."}
-        </Card.Description>
-      </Card.Header>
-      <Card.Content>
-        <div className="h-72 w-full">
-          {mounted && (
-            <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={280} initialDimension={{ width: 600, height: 280 }}>
-              <LineChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
-                <CartesianGrid stroke="var(--separator)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 12, fill: "var(--muted)" }} tickLine={false} axisLine={false} />
-                <YAxis tickFormatter={(v: number) => formatCurrencyCompact(v)} tick={{ fontSize: 12, fill: "var(--muted)" }} tickLine={false} axisLine={false} width={64} />
-                <Tooltip formatter={(v) => formatCurrency(Number(v))} contentStyle={{ borderRadius: 12, border: "1px solid var(--separator)", background: "var(--surface)" }} />
-                <Line type="monotone" dataKey="baseline" name="Sin cambios" stroke="var(--muted)" strokeWidth={2} dot={false} isAnimationActive={false} strokeDasharray={hasScenario ? "5 4" : undefined} />
-                {hasScenario && <Line type="monotone" dataKey="scenario" name="Con tu escenario" stroke="var(--accent)" strokeWidth={2.5} dot={false} isAnimationActive={false} />}
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </Card.Content>
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ChartContainer config={CONFIG} className="h-72 w-full">
+          <LineChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
+            <CartesianGrid vertical={false} />
+            <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} />
+            <YAxis tickFormatter={(v: number) => formatCurrencyCompact(v)} tickLine={false} axisLine={false} width={64} />
+            <ChartTooltip content={<ChartTooltipContent formatter={(value, name) => <span className="flex w-full justify-between gap-4"><span className="text-muted-foreground">{CONFIG[name as keyof typeof CONFIG]?.label ?? name}</span><span className="font-medium tabular-nums">{formatCurrency(Number(value))}</span></span>} />} />
+            {hasScenario && <ChartLegend content={<ChartLegendContent />} />}
+            <Line type="monotone" dataKey="baseline" stroke="var(--color-baseline)" strokeWidth={2} dot={false} isAnimationActive={false} strokeDasharray={hasScenario ? "5 4" : undefined} />
+            {hasScenario && <Line type="monotone" dataKey="scenario" stroke="var(--color-scenario)" strokeWidth={2.5} dot={false} isAnimationActive={false} />}
+          </LineChart>
+        </ChartContainer>
+      </CardContent>
     </Card>
   );
 }

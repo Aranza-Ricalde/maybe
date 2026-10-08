@@ -1,4 +1,5 @@
-import { Card } from "@heroui/react";
+import type { FormAction } from "@/lib/actionResult";
+import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/molecules/EmptyState";
 import { PageHeader } from "@/components/molecules/PageHeader";
 import type { EmergencyFundView } from "@/application/getEmergencyFund";
@@ -11,9 +12,9 @@ export interface GoalsPageTemplateProps {
   rows: GoalRow[];
   accounts: AccountOption[];
   emergencyFund: EmergencyFundView;
-  createAction: (formData: FormData) => Promise<void> | void;
-  updateAction: (formData: FormData) => Promise<void> | void;
-  deleteAction: (formData: FormData) => Promise<void> | void;
+  createAction: FormAction;
+  updateAction: FormAction;
+  deleteAction: FormAction;
 }
 
 export function GoalsPageTemplate({ rows, accounts, emergencyFund, createAction, updateAction, deleteAction }: GoalsPageTemplateProps) {
@@ -24,8 +25,10 @@ export function GoalsPageTemplate({ rows, accounts, emergencyFund, createAction,
       <EmergencyFundCard emergencyFund={emergencyFund} />
 
       {rows.length === 0 ? (
-        <Card className="p-5">
-          <EmptyState title="Sin metas todavía" description="Crea tu primera meta de ahorro arriba." />
+        <Card>
+          <CardContent>
+            <EmptyState title="Sin metas todavía" description="Crea tu primera meta de ahorro arriba." />
+          </CardContent>
         </Card>
       ) : (
         <GoalsTable rows={rows} accounts={accounts} updateAction={updateAction} deleteAction={deleteAction} />

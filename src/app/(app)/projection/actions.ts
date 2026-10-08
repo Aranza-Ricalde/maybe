@@ -11,6 +11,7 @@ export async function setMinimumBalance(formData: FormData) {
   return runFormAction(formData, {
     schema: minimumBalanceForm,
     run: (input, user) => setMinimumBalanceUseCase.execute(user.familyId, pesosToCents(input.minimum)),
+    success: "Saldo mínimo actualizado",
     revalidate: REVALIDATE.projection,
     tolerate: [InvalidSettingError],
   });

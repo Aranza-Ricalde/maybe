@@ -1,6 +1,7 @@
 "use client";
 
-import { Chip } from "@/components/atoms/Chip";
+import type { FormAction } from "@/lib/actionResult";
+import { Badge } from "@/components/ui/badge";
 import { Text } from "@/components/atoms/Text";
 import { PayPeriodModal } from "@/components/molecules/PayPeriodModal";
 import { periodLabel } from "@/domain/payPeriod/rules";
@@ -18,7 +19,7 @@ export interface PayMonthRow {
 
 export interface PayMonthsTableProps {
   rows: PayMonthRow[];
-  updateAction: (formData: FormData) => Promise<void> | void;
+  updateAction: FormAction;
 }
 
 export function PayMonthsTable({ rows, updateAction }: PayMonthsTableProps) {
@@ -31,9 +32,9 @@ export function PayMonthsTable({ rows, updateAction }: PayMonthsTableProps) {
         <div className="flex items-center gap-2">
           <span className="font-medium">{m.name}</span>
           {m.isCurrent && (
-            <Chip tone="success" className="text-xs">
+            <Badge variant="success">
               Actual
-            </Chip>
+            </Badge>
           )}
         </div>
       ),

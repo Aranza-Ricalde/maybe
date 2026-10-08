@@ -1,42 +1,11 @@
-import { Button, Card } from "@heroui/react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { SelectField, TextInput } from "@/components/molecules/FormField";
-import { DEFAULT_PROJECTION_MONTHS, type ProjectionBase, type ProjectionResult, type ScenarioAdjustment } from "@/domain/projection/rules";
+import { DEFAULT_PROJECTION_MONTHS, type ProjectionBase, type ProjectionResult } from "@/domain/projection/rules";
 import type { useScenarioBuilder } from "@/hooks/useScenarioBuilder";
+import { DIRECTIONS, KINDS, MONTH_OPTIONS, REPEAT_OPTIONS, describeAdjustment } from "@/lib/presenters/projectionScenario";
 import { formatPesos } from "@/lib/format";
 import { FIELD } from "@/lib/formFields";
-
-const KINDS = [
-  { value: "cut_category", label: "Recortar una categoría" },
-  { value: "cut_discretionary", label: "Recortar todo lo discrecional" },
-  { value: "monthly_change", label: "Gasto o ingreso nuevo cada mes" },
-  { value: "one_time", label: "Gasto o ingreso de una sola vez" },
-  { value: "allocate_debt", label: "Pagar deuda extra" },
-  { value: "allocate_savings", label: "Ahorrar extra" },
-];
-const DIRECTIONS = [
-  { value: "expense", label: "Gasto" },
-  { value: "income", label: "Ingreso" },
-];
-const REPEAT_OPTIONS = [
-  { value: "monthly", label: "Cada mes" },
-  { value: "once", label: "Una sola vez" },
-];
-const MONTH_OPTIONS = Array.from({ length: DEFAULT_PROJECTION_MONTHS }, (_, i) => ({ value: String(i + 1), label: i === 0 ? "El mes siguiente" : `En ${i + 1} meses` }));
-
-function describe(a: ScenarioAdjustment, categoryName: (id: number) => string): string {
-  switch (a.kind) {
-    case "cut_category":
-      return `Recortar ${categoryName(a.categoryId)} ${a.percent}%`;
-    case "cut_discretionary":
-      return `Recortar lo discrecional ${a.percent}%`;
-    case "monthly_change":
-      return `${a.amountCents < 0 ? "Gasto" : "Ingreso"} de ${formatPesos(Math.abs(a.amountCents))} al mes desde el mes ${a.fromMonth}`;
-    case "one_time":
-      return `${a.amountCents < 0 ? "Gasto" : "Ingreso"} único de ${formatPesos(Math.abs(a.amountCents))} en el mes ${a.month}`;
-    case "allocate":
-      return `${a.target === "debt" ? "Pagar" : "Ahorrar"} ${formatPesos(a.amountCents)} extra ${a.repeat ? `cada mes desde el mes ${a.fromMonth}` : `una sola vez en el mes ${a.fromMonth}`}${a.target === "debt" ? " de deuda" : ""}`;
-  }
-}
 
 export interface ProjectionScenarioFormProps {
   base: ProjectionBase;
@@ -50,12 +19,12 @@ export function ProjectionScenarioForm({ base, builder, result }: ProjectionScen
   const last = result.months[result.months.length - 1];
 
   return (
-    <Card className="min-w-0 p-5">
-      <Card.Header>
-        <Card.Title>Simula una decisión</Card.Title>
-        <Card.Description>Prueba un cambio y mira cuánto mueve tu saldo. No se guarda ni cambia tus datos.</Card.Description>
-      </Card.Header>
-      <Card.Content className="flex flex-col gap-4">
+    <Card className="min-w-0">
+      <CardHeader>
+        <CardTitle>Simula una decisión</CardTitle>
+        <CardDescription>Prueba un cambio y mira cuánto mueve tu saldo. No se guarda ni cambia tus datos.</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 [&>*]:min-w-0">
           <SelectField label="¿Qué pasa si…?" options={KINDS} value={values.kind} onChange={(v) => setValue("kind", v)} />
           {values.kind === "cut_category" && (
@@ -85,18 +54,18 @@ export function ProjectionScenarioForm({ base, builder, result }: ProjectionScen
           )}
         </div>
         <div>
-          <Button size="sm" variant="primary" isDisabled={!canAdd} onPress={add}>
+          <Button type="button" size="sm" disabled={!canAdd} onClick={add}>
             Agregar al escenario
           </Button>
         </div>
 
         {entries.length > 0 && (
-          <div className="flex flex-col gap-2 border-t border-separator pt-4">
+          <div className="flex flex-col gap-2 border-t border-border pt-4">
             <ul className="flex flex-col gap-1.5">
               {entries.map(({ id, adjustment }) => (
-                <li key={id} className="flex items-center justify-between gap-3 rounded-lg bg-surface-secondary px-3 py-2 text-sm">
-                  <span>{describe(adjustment, categoryName)}</span>
-                  <Button size="sm" variant="ghost" aria-label={`Quitar: ${describe(adjustment, categoryName)}`} onPress={() => remove(id)}>
+                <li key={id} className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2 text-sm">
+                  <span>{describeAdjustment(adjustment, categoryName)}</span>
+                  <Button type="button" size="sm" variant="ghost" aria-label={`Quitar: ${describeAdjustment(adjustment, categoryName)}`} onClick={() => remove(id)}>
                     Quitar
                   </Button>
                 </li>
@@ -107,18 +76,18 @@ export function ProjectionScenarioForm({ base, builder, result }: ProjectionScen
               {last && <> y en {DEFAULT_PROJECTION_MONTHS} meses tendrías <span className="font-semibold">{formatPesos(result.finalScenarioCents)}</span> de saldo líquido</>}.
             </p>
             {(result.allocatedToDebtCents > 0 || result.allocatedToSavingsCents > 0) && (
-              <p className="text-xs text-muted">
+              <p className="text-xs text-muted-foreground">
                 {[result.allocatedToDebtCents > 0 && `${formatPesos(result.allocatedToDebtCents)} irían a pagar deuda`, result.allocatedToSavingsCents > 0 && `${formatPesos(result.allocatedToSavingsCents)} a tus ahorros`].filter(Boolean).join(" y ")}. Ese dinero sigue siendo tuyo: sale de tu saldo líquido, pero tu patrimonio no baja.
               </p>
             )}
             <div>
-              <Button size="sm" variant="ghost" onPress={clear}>
+              <Button type="button" size="sm" variant="ghost" onClick={clear}>
                 Limpiar escenario
               </Button>
             </div>
           </div>
         )}
-      </Card.Content>
+      </CardContent>
     </Card>
   );
 }

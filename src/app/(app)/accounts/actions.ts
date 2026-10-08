@@ -15,6 +15,7 @@ export async function createAccount(formData: FormData) {
   return runFormAction(formData, {
     schema: accountCreateForm,
     run: (input, user) => createAccountUseCase.execute({ familyId: user.familyId, ...input }),
+    success: "Cuenta creada",
     revalidate: REVALIDATE.accounts,
   });
 }
@@ -24,6 +25,7 @@ export async function updateAccount(formData: FormData) {
     schema: accountUpdateForm,
     owns: [ownsAccount((input) => input.accountId)],
     run: ({ accountId, ...changes }) => updateAccountUseCase.execute({ id: accountId, ...changes }),
+    success: "Cuenta actualizada",
     revalidate: REVALIDATE.accounts,
     tolerate: [InvalidDebtTermsError],
   });
@@ -34,6 +36,7 @@ export async function archiveOrDeleteAccount(formData: FormData) {
     schema: accountIdForm,
     owns: [ownsAccount((input) => input.accountId)],
     run: ({ accountId }) => archiveOrDeleteAccountUseCase.execute(accountId),
+    success: (_input, removal) => (removal === "archive" ? "Cuenta archivada: tiene movimientos, su historial se conserva" : "Cuenta eliminada"),
     revalidate: REVALIDATE.accounts,
   });
 }
@@ -43,6 +46,7 @@ export async function restoreAccount(formData: FormData) {
     schema: accountIdForm,
     owns: [ownsAccount((input) => input.accountId)],
     run: ({ accountId }) => restoreAccountUseCase.execute(accountId),
+    success: "Cuenta reactivada",
     revalidate: REVALIDATE.accounts,
   });
 }

@@ -1,7 +1,10 @@
-import { Card } from "@heroui/react";
+import type { FormAction } from "@/lib/actionResult";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/molecules/PageHeader";
+import { PageSection } from "@/components/molecules/PageSection";
 import { PayPeriodModal } from "@/components/molecules/PayPeriodModal";
 import { PeriodViewSwitch } from "@/components/molecules/PeriodViewSwitch";
+import { ThemeSwitch } from "@/components/molecules/ThemeSwitch";
 import { TelegramLinkInfo } from "@/components/molecules/TelegramLinkInfo";
 import { CategoriesTable, type CategoryRow } from "@/components/organisms/CategoriesTable";
 import { CategoryModal } from "@/components/organisms/CategoryModal";
@@ -19,19 +22,19 @@ export interface SettingsPageTemplateProps {
   apiOrigin: string;
   generateApiTokenAction: (previous: ApiTokenState, formData: FormData) => Promise<ApiTokenState>;
   categories: CategoryRow[];
-  createCategoryAction: (formData: FormData) => Promise<void> | void;
-  updateCategoryAction: (formData: FormData) => Promise<void> | void;
-  deleteCategoryAction: (formData: FormData) => Promise<void> | void;
+  createCategoryAction: FormAction;
+  updateCategoryAction: FormAction;
+  deleteCategoryAction: FormAction;
   periods: PayPeriodRow[];
   months: PayMonthRow[];
   periodView: PeriodView;
-  setPeriodViewAction: (formData: FormData) => Promise<void> | void;
-  updatePayMonthAction: (formData: FormData) => Promise<void> | void;
+  setPeriodViewAction: FormAction;
+  updatePayMonthAction: FormAction;
   nextPeriodDefaultStart: string;
   nextPeriodDefaultEnd: string;
-  createPeriodAction: (formData: FormData) => Promise<void> | void;
-  updatePeriodAction: (formData: FormData) => Promise<void> | void;
-  deletePeriodAction: (formData: FormData) => Promise<void> | void;
+  createPeriodAction: FormAction;
+  updatePeriodAction: FormAction;
+  deletePeriodAction: FormAction;
 }
 
 export function SettingsPageTemplate({
@@ -61,65 +64,85 @@ export function SettingsPageTemplate({
     <>
       <PageHeader title="Configuración" />
 
-      <Card className="p-5">
-        <Card.Header>
-          <Card.Title>Tu cuenta</Card.Title>
-        </Card.Header>
-        <Card.Content className="flex flex-col gap-2 text-sm">
-          <p>
-            <span className="text-muted">Nombre:</span> {userName}
-          </p>
-          <p>
-            <span className="text-muted">Email:</span> {userEmail}
-          </p>
-          <div className="flex items-center gap-2">
-            <span className="text-muted">Telegram:</span>
-            <TelegramLinkInfo isLinked={isTelegramLinked} linkCode={telegramLinkCode} />
-          </div>
-        </Card.Content>
-      </Card>
+      <PageSection id="cuenta" title="Cuenta" description="Tus datos y cómo se ve la app.">
+        <Card>
+          <CardHeader>
+            <CardTitle>Tu cuenta</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2 text-sm">
+            <p>
+              <span className="text-muted-foreground">Nombre:</span> {userName}
+            </p>
+            <p>
+              <span className="text-muted-foreground">Email:</span> {userEmail}
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">Telegram:</span>
+              <TelegramLinkInfo isLinked={isTelegramLinked} linkCode={telegramLinkCode} />
+            </div>
+          </CardContent>
+        </Card>
 
-      <ApiTokenCard info={apiToken} origin={apiOrigin} generateAction={generateApiTokenAction} />
+        <Card>
+          <CardHeader>
+            <CardTitle>Apariencia</CardTitle>
+            <CardDescription>Elige el tema de la app; “Sistema” sigue el de tu dispositivo.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ThemeSwitch />
+          </CardContent>
+        </Card>
 
-      <Card className="p-5">
-        <Card.Header className="flex-row! items-center justify-between">
-          <Card.Title>Categorías</Card.Title>
-          <CategoryModal
-            mode="create"
-            action={createCategoryAction}
-            parentOptions={categories.filter((c) => c.depth === 0).map((c) => ({ value: String(c.id), label: c.name }))}
-          />
-        </Card.Header>
-        <Card.Content>
-          <CategoriesTable rows={categories} updateAction={updateCategoryAction} deleteAction={deleteCategoryAction} />
-        </Card.Content>
-      </Card>
+      </PageSection>
 
-      <Card className="p-5">
-        <Card.Header>
-          <Card.Title>Cómo ver tus periodos</Card.Title>
-        </Card.Header>
-        <Card.Content>
-          <PeriodViewSwitch value={periodView} action={setPeriodViewAction} />
-        </Card.Content>
-      </Card>
+      <PageSection id="integraciones" title="Integraciones" description="Registra movimientos desde tu teléfono.">
+        <ApiTokenCard info={apiToken} origin={apiOrigin} generateAction={generateApiTokenAction} />
+      </PageSection>
 
-      <Card className="p-5">
-        <Card.Header className="flex-row! items-center justify-between">
-          <Card.Title>{periodView === "monthly" ? "Meses de pago" : "Periodos de pago"}</Card.Title>
-          {periodView === "biweekly" && <PayPeriodModal mode="create" action={createPeriodAction} defaultStart={nextPeriodDefaultStart} defaultEnd={nextPeriodDefaultEnd} />}
-        </Card.Header>
-        <Card.Content className="flex flex-col gap-3">
-          {periodView === "monthly" ? (
-            <>
-              <p className="text-sm text-muted">Cada mes agrupa las quincenas que terminan en él. Edita las fechas de inicio y fin del mes; para agregar o quitar quincenas cambia a la vista Quincenal.</p>
-              <PayMonthsTable rows={months} updateAction={updatePayMonthAction} />
-            </>
-          ) : (
-            <PayPeriodsTable rows={periods} updateAction={updatePeriodAction} deleteAction={deletePeriodAction} />
-          )}
-        </Card.Content>
-      </Card>
+      <PageSection id="categorias" title="Categorías" description="Cómo se clasifican tus movimientos.">
+        <Card>
+          <CardHeader className="items-center justify-between">
+            <CardTitle>Categorías</CardTitle>
+            <CategoryModal
+              mode="create"
+              action={createCategoryAction}
+              parentOptions={categories.filter((c) => c.depth === 0).map((c) => ({ value: String(c.id), label: c.name }))}
+            />
+          </CardHeader>
+          <CardContent>
+            <CategoriesTable rows={categories} updateAction={updateCategoryAction} deleteAction={deleteCategoryAction} />
+          </CardContent>
+        </Card>
+
+      </PageSection>
+
+      <PageSection id="periodos" title="Periodos" description="Cómo agrupas tu dinero en el tiempo.">
+        <Card>
+          <CardHeader>
+            <CardTitle>Cómo ver tus periodos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PeriodViewSwitch value={periodView} action={setPeriodViewAction} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="items-center justify-between">
+            <CardTitle>{periodView === "monthly" ? "Meses de pago" : "Periodos de pago"}</CardTitle>
+            {periodView === "biweekly" && <PayPeriodModal mode="create" action={createPeriodAction} defaultStart={nextPeriodDefaultStart} defaultEnd={nextPeriodDefaultEnd} />}
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {periodView === "monthly" ? (
+              <>
+                <p className="text-sm text-muted-foreground">Cada mes agrupa las quincenas que terminan en él. Edita las fechas de inicio y fin del mes; para agregar o quitar quincenas cambia a la vista Quincenal.</p>
+                <PayMonthsTable rows={months} updateAction={updatePayMonthAction} />
+              </>
+            ) : (
+              <PayPeriodsTable rows={periods} updateAction={updatePeriodAction} deleteAction={deletePeriodAction} />
+            )}
+          </CardContent>
+        </Card>
+      </PageSection>
     </>
   );
 }

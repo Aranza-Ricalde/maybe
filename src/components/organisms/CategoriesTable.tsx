@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo } from "react";
-import { Chip } from "@/components/atoms/Chip";
+import type { FormAction } from "@/lib/actionResult";
+import { parentOptionsFor } from "@/lib/presenters/categories";
+import { Badge } from "@/components/ui/badge";
 import { SPENDING_NATURE_LABELS, type SpendingNature } from "@/domain/categories/nature";
 import { CategoryModal } from "./CategoryModal";
-import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
+import { DeleteEntityButton } from "./DeleteEntityButton";
 import { ClientDataTable } from "./ClientDataTable";
 import type { DataTableColumn } from "./DataTable";
-import { FIELD } from "@/lib/formFields";
 import { CategoryNameCell } from "@/components/molecules/CategoryNameCell";
 
 export interface CategoryRow {
@@ -26,13 +26,11 @@ export interface CategoryRow {
 
 export interface CategoriesTableProps {
   rows: CategoryRow[];
-  updateAction: (formData: FormData) => Promise<void> | void;
-  deleteAction: (formData: FormData) => Promise<void> | void;
+  updateAction: FormAction;
+  deleteAction: FormAction;
 }
 
 export function CategoriesTable({ rows, updateAction, deleteAction }: CategoriesTableProps) {
-  const topLevel = useMemo(() => rows.filter((r) => r.depth === 0), [rows]);
-
   const columns: DataTableColumn<CategoryRow>[] = [
     {
       key: "name",
@@ -46,26 +44,26 @@ export function CategoriesTable({ rows, updateAction, deleteAction }: Categories
       cell: (c) =>
         c.descriptionText ? (
           <div className="flex max-w-md flex-col gap-1">
-            <span className="text-xs text-muted">{c.descriptionText}</span>
-            {c.descriptionIsSuggested && <span className="text-[11px] text-muted/70">Sugerida · edítala para personalizarla</span>}
+            <span className="text-xs text-muted-foreground">{c.descriptionText}</span>
+            {c.descriptionIsSuggested && <span className="text-[11px] text-muted-foreground/70">Sugerida · edítala para personalizarla</span>}
           </div>
         ) : (
-          <span className="text-xs text-muted">Sin descripción</span>
+          <span className="text-xs text-muted-foreground">Sin descripción</span>
         ),
     },
     {
       key: "type",
       header: "Tipo",
-      cell: (c) => <Chip tone={c.classification === "income" ? "success" : "muted"}>{c.classification === "income" ? "Ingreso" : "Gasto"}</Chip>,
+      cell: (c) => <Badge variant={c.classification === "income" ? "success" : "secondary"}>{c.classification === "income" ? "Ingreso" : "Gasto"}</Badge>,
     },
     {
       key: "nature",
       header: "Naturaleza",
       cell: (c) =>
         c.classification === "expense" && c.nature ? (
-          <Chip tone={c.nature === "essential" ? "success" : "muted"}>{SPENDING_NATURE_LABELS[c.nature]}</Chip>
+          <Badge variant={c.nature === "essential" ? "success" : "secondary"}>{SPENDING_NATURE_LABELS[c.nature]}</Badge>
         ) : (
-          <span className="text-xs text-muted">{c.classification === "expense" ? "—" : ""}</span>
+          <span className="text-xs text-muted-foreground">{c.classification === "expense" ? "—" : ""}</span>
         ),
     },
     {
@@ -78,18 +76,10 @@ export function CategoriesTable({ rows, updateAction, deleteAction }: Categories
             mode="edit"
             action={updateAction}
             initialValues={{ id: c.id, name: c.name, classification: c.classification, color: c.color, parentId: c.parentId, nature: c.nature, description: c.description }}
-            parentOptions={c.hasChildren ? [] : topLevel.filter((p) => p.id !== c.id).map((p) => ({ value: String(p.id), label: p.name }))}
+            parentOptions={parentOptionsFor(rows, c.id, c.hasChildren)}
           />
-          <ConfirmDeleteButton
-            title="Eliminar categoría"
-            triggerAriaLabel={`Eliminar ${c.name}`}
-            confirmQuestion={
-              <>
-                ¿Eliminar <span className="font-semibold">&ldquo;{c.name}&rdquo;</span>?
-              </>
-            }
+          <DeleteEntityButton noun="categoría" name={c.name} id={c.id}
             helperText="Los movimientos, recurrentes o presupuestos que la usaban se quedan sin categoría — no se pierde ningún movimiento."
-            hiddenFields={{ [FIELD.id]: c.id }}
             action={deleteAction}
           />
         </div>

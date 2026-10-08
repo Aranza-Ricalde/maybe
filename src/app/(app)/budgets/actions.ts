@@ -11,6 +11,7 @@ export async function setBudgetLine(formData: FormData) {
     schema: budgetLineForm,
     owns: [ownsCategory((input) => input.categoryId)],
     run: (input, user) => setBudgetLineUseCase.execute({ familyId: user.familyId, ...input }),
+    success: "Presupuesto guardado",
     revalidate: REVALIDATE.budgetLines,
   });
 }
@@ -20,6 +21,7 @@ export async function deleteBudgetLine(formData: FormData) {
     schema: categoryIdForm,
     owns: [ownsCategory((input) => input.categoryId)],
     run: (input, user) => deleteBudgetLineUseCase.execute(user.familyId, input.categoryId),
+    success: "Presupuesto quitado",
     revalidate: REVALIDATE.budgetLines,
   });
 }

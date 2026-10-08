@@ -1,6 +1,7 @@
 "use client";
 
-import { Xmark } from "@gravity-ui/icons";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/atoms/Icon";
 import { Text } from "@/components/atoms/Text";
 
@@ -17,14 +18,9 @@ export function FilterPopoverHeader({ title, clearAriaLabel, onClear }: FilterPo
         {title}
       </Text>
       {onClear && (
-        <button
-          type="button"
-          aria-label={clearAriaLabel}
-          className="rounded-full p-1 text-muted hover:bg-separator hover:text-foreground"
-          onClick={onClear}
-        >
-          <Icon icon={Xmark} size="sm" />
-        </button>
+        <Button type="button" variant="ghost" size="icon-xs" aria-label={clearAriaLabel} onClick={onClear}>
+          <Icon icon={X} size="sm" />
+        </Button>
       )}
     </div>
   );

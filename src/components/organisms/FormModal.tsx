@@ -1,10 +1,12 @@
 "use client";
 
-import { Modal, Spinner } from "@heroui/react";
+import type { FormAction } from "@/lib/actionResult";
 import type { ReactNode } from "react";
-import { Button } from "@/components/atoms/Button";
+import { Spinner } from "@/components/ui/spinner";
+import { Button } from "@/components/ui/button";
 import { Icon, type IconProps } from "@/components/atoms/Icon";
 import { Text } from "@/components/atoms/Text";
+import { ResponsiveDialog } from "@/components/molecules/ResponsiveDialog";
 import { useFormModalController } from "@/hooks/useFormModalController";
 
 export type IconTriggerTone = "neutral" | "danger";
@@ -15,23 +17,22 @@ export interface IconTrigger {
   tone?: IconTriggerTone;
 }
 
-const ICON_TRIGGER_BASE = "inline-flex! size-7 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface-secondary";
 const ICON_TRIGGER_TONE: Record<IconTriggerTone, string> = {
-  neutral: `${ICON_TRIGGER_BASE} hover:text-foreground`,
-  danger: `${ICON_TRIGGER_BASE} hover:text-danger`,
+  neutral: "text-muted-foreground",
+  danger: "text-muted-foreground hover:text-destructive",
 };
 
 export interface FormModalProps {
   title: string;
   trigger?: ReactNode;
   iconTrigger?: IconTrigger;
-  triggerVariant?: "primary" | "ghost";
+  triggerVariant?: "default" | "ghost" | "outline";
   triggerClassName?: string;
   submitLabel: string;
-  submitVariant?: "primary" | "danger";
+  submitVariant?: "default" | "destructive";
   pendingLabel?: string;
   size?: "sm" | "md" | "lg";
-  action: (formData: FormData) => Promise<void> | void;
+  action: FormAction;
   children: ReactNode;
 }
 
@@ -39,10 +40,10 @@ export function FormModal({
   title,
   trigger,
   iconTrigger,
-  triggerVariant = "primary",
+  triggerVariant = "default",
   triggerClassName,
   submitLabel,
-  submitVariant = "primary",
+  submitVariant = "default",
   pendingLabel = "Guardando…",
   size = "lg",
   action,
@@ -50,44 +51,31 @@ export function FormModal({
 }: FormModalProps) {
   const { isOpen, setIsOpen, isPending, handleSubmit } = useFormModalController({ action });
 
+  const triggerButton = iconTrigger ? (
+    <Button type="button" variant="ghost" size="icon-sm" aria-label={iconTrigger.label} className={ICON_TRIGGER_TONE[iconTrigger.tone ?? "neutral"]}>
+      <Icon icon={iconTrigger.icon} />
+    </Button>
+  ) : (
+    <Button type="button" variant={triggerVariant} className={triggerClassName}>
+      {trigger}
+    </Button>
+  );
+
   return (
-    <>
-      {iconTrigger ? (
-        <Button type="button" variant="ghost" isIconOnly aria-label={iconTrigger.label} className={ICON_TRIGGER_TONE[iconTrigger.tone ?? "neutral"]} onPress={() => setIsOpen(true)}>
-          <Icon icon={iconTrigger.icon} />
-        </Button>
+    <ResponsiveDialog title={title} size={size} open={isOpen} onOpenChange={(open) => !isPending && setIsOpen(open)} trigger={triggerButton} hideClose={isPending}>
+      {isPending ? (
+        <div className="flex flex-col items-center justify-center gap-2 py-6">
+          <Spinner className="size-6 text-primary" />
+          <Text tone="muted">{pendingLabel}</Text>
+        </div>
       ) : (
-        <Button type="button" variant={triggerVariant} className={triggerClassName} onPress={() => setIsOpen(true)}>
-          {trigger}
-        </Button>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {children}
+          <Button type="submit" variant={submitVariant}>
+            {submitLabel}
+          </Button>
+        </form>
       )}
-      <Modal.Root isOpen={isOpen} onOpenChange={setIsOpen}>
-        <Modal.Backdrop>
-          <Modal.Container size={size}>
-            <Modal.Dialog>
-              <Modal.Header>
-                <Modal.Heading>{title}</Modal.Heading>
-                <Modal.CloseTrigger isDisabled={isPending} />
-              </Modal.Header>
-              <Modal.Body>
-                {isPending ? (
-                  <div className="flex flex-col items-center justify-center gap-2 py-6">
-                    <Spinner size="md" />
-                    <Text tone="muted">{pendingLabel}</Text>
-                  </div>
-                ) : (
-                  <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                    {children}
-                    <Button type="submit" variant={submitVariant}>
-                      {submitLabel}
-                    </Button>
-                  </form>
-                )}
-              </Modal.Body>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal.Root>
-    </>
+    </ResponsiveDialog>
   );
 }

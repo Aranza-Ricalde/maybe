@@ -1,4 +1,5 @@
-import { Pencil } from "@gravity-ui/icons";
+import type { FormAction } from "@/lib/actionResult";
+import { Pencil } from "lucide-react";
 import { TransactionFormFields } from "@/components/molecules/TransactionFormFields";
 import type { AccountOption, CategoryOption } from "@/components/viewModels";
 import { centsToInputValue } from "@/lib/format";
@@ -18,7 +19,7 @@ export interface EditTransactionModalProps {
   initialValues: EditTransactionFormValues;
   accounts: AccountOption[];
   categories: CategoryOption[];
-  action: (formData: FormData) => Promise<void> | void;
+  action: FormAction;
 }
 
 export function EditTransactionModal({ initialValues, accounts, categories, action }: EditTransactionModalProps) {

@@ -1,7 +1,8 @@
 "use client";
 
-import { Modal } from "@heroui/react";
 import type { ReactNode } from "react";
+import { Button } from "@/components/ui/button";
+import { ResponsiveDialog } from "./ResponsiveDialog";
 
 export interface DetailModalProps {
   title: string;
@@ -13,19 +14,15 @@ export interface DetailModalProps {
 
 export function DetailModal({ title, triggerLabel = "Ver detalle →", trigger, triggerClassName, children }: DetailModalProps) {
   return (
-    <Modal.Root>
-      <Modal.Trigger className={triggerClassName ?? "text-xs text-accent hover:underline"}>{trigger ?? triggerLabel}</Modal.Trigger>
-      <Modal.Backdrop>
-        <Modal.Container size="lg">
-          <Modal.Dialog>
-            <Modal.Header>
-              <Modal.Heading>{title}</Modal.Heading>
-              <Modal.CloseTrigger />
-            </Modal.Header>
-            <Modal.Body className="flex flex-col gap-5">{children}</Modal.Body>
-          </Modal.Dialog>
-        </Modal.Container>
-      </Modal.Backdrop>
-    </Modal.Root>
+    <ResponsiveDialog
+      title={title}
+      trigger={
+        <Button type="button" variant="link" size="sm" className={triggerClassName}>
+          {trigger ?? triggerLabel}
+        </Button>
+      }
+    >
+      <div className="flex flex-col gap-5">{children}</div>
+    </ResponsiveDialog>
   );
 }

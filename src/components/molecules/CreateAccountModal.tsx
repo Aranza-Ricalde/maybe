@@ -1,8 +1,9 @@
+import type { FormAction } from "@/lib/actionResult";
 import { AccountFormFields } from "@/components/molecules/AccountFormFields";
 import { FormModal } from "@/components/organisms/FormModal";
 
 export interface CreateAccountModalProps {
-  createAccountAction: (formData: FormData) => Promise<void> | void;
+  createAccountAction: FormAction;
 }
 
 export function CreateAccountModal({ createAccountAction }: CreateAccountModalProps) {

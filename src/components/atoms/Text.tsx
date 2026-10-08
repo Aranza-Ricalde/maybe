@@ -1,32 +1,27 @@
-import { Typography } from "@heroui/react";
 import type { ComponentProps } from "react";
+import { cn } from "@/lib/utils";
 
 export type TextTone = "default" | "muted" | "success" | "warning" | "danger" | "accent";
 export type TextSize = "xs" | "sm" | "base";
+export type TextWeight = "normal" | "medium" | "semibold";
 
-const EXTENDED_TONE_CLASS: Record<Exclude<TextTone, "default" | "muted">, string> = {
-  success: "text-success!",
-  warning: "text-warning!",
-  danger: "text-danger!",
-  accent: "text-accent!",
+const TONE_CLASS: Record<TextTone, string> = {
+  default: "text-foreground",
+  muted: "text-muted-foreground",
+  success: "text-success",
+  warning: "text-warning",
+  danger: "text-danger",
+  accent: "text-primary",
 };
+const SIZE_CLASS: Record<TextSize, string> = { xs: "text-xs", sm: "text-sm", base: "text-base" };
+const WEIGHT_CLASS: Record<TextWeight, string> = { normal: "font-normal", medium: "font-medium", semibold: "font-semibold" };
 
-const NATIVE_TONES = new Set<TextTone>(["default", "muted"]);
-
-export interface TextProps extends Omit<ComponentProps<typeof Typography.Paragraph>, "size" | "color"> {
+export interface TextProps extends ComponentProps<"p"> {
   tone?: TextTone;
   size?: TextSize;
+  weight?: TextWeight;
 }
 
-export function Text({ tone = "default", size = "sm", className = "", ...props }: TextProps) {
-  const isNativeTone = NATIVE_TONES.has(tone);
-  const toneClass = isNativeTone ? "" : EXTENDED_TONE_CLASS[tone as Exclude<TextTone, "default" | "muted">];
-  return (
-    <Typography.Paragraph
-      size={size}
-      color={isNativeTone ? (tone as "default" | "muted") : "default"}
-      className={`${toneClass} ${className}`.trim()}
-      {...props}
-    />
-  );
+export function Text({ tone = "default", size = "sm", weight = "normal", className, ...props }: TextProps) {
+  return <p className={cn(SIZE_CLASS[size], WEIGHT_CLASS[weight], TONE_CLASS[tone], className)} {...props} />;
 }

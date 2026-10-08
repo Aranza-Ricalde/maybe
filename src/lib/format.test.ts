@@ -19,3 +19,16 @@ test("formatPercent y formatSignedPercent: redondean, y el signo solo aparece si
   assert.equal(formatSignedPercent(-0.05), "−5%");
   assert.equal(formatSignedPercent(0), "0%");
 });
+
+test("los pesos con signo siempre muestran el signo, incluso el menos tipográfico", async () => {
+  const { formatSignedPesos } = await import("./format");
+  assert.match(formatSignedPesos(150000), /^\+/);
+  assert.match(formatSignedPesos(-150000), /^−/);
+  assert.doesNotMatch(formatSignedPesos(0), /^[+−]/);
+});
+
+test("un rango de un solo día se muestra como una fecha", async () => {
+  const { formatDateRange, formatShortDate } = await import("./format");
+  assert.equal(formatDateRange("2026-10-01", "2026-10-01"), formatShortDate("2026-10-01"));
+  assert.match(formatDateRange("2026-10-01", "2026-10-14"), / – /);
+});

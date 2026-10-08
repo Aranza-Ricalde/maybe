@@ -1,9 +1,8 @@
 "use server";
 
-import { runFormAction } from "@/app/lib/actionRunner";
+import { runFormAction, runUserAction } from "@/app/lib/actionRunner";
 import { ownsAccount, ownsCategory, ownsRecurringCandidate, ownsRecurringItem } from "@/app/lib/ownership";
 import { REVALIDATE } from "@/app/lib/revalidation";
-import { requireUser } from "@/app/lib/dal";
 import { InvalidBudgetDecisionError } from "@/domain/recurring/budgetInclusion";
 import { dayOfMonthOf } from "@/domain/payPeriod/rules";
 import {
@@ -13,11 +12,11 @@ import {
   deleteRecurringItemUseCase,
   dismissRecurringCandidateUseCase,
   resetRecurringBudgetPolicyUseCase,
+  savePayrollUseCase,
   toggleRecurringItemStatusUseCase,
   updateRecurringItemUseCase,
 } from "@/infrastructure/container";
-import { decideRecurringBudgetForm, idForm, recurringItemForm, recurringItemUpdateForm, toggleRecurringForm } from "@/lib/schemas";
-import { revalidateRoutes } from "@/app/lib/revalidation";
+import { decideRecurringBudgetForm, payrollForm, idForm, recurringItemForm, recurringItemUpdateForm, toggleRecurringForm } from "@/lib/schemas";
 import { todayIso } from "@/lib/today";
 
 export async function createRecurringItem(formData: FormData) {
@@ -25,6 +24,7 @@ export async function createRecurringItem(formData: FormData) {
     schema: recurringItemForm,
     owns: [ownsCategory((input) => input.categoryId), ownsAccount((input) => input.accountId)],
     run: (input, user) => createRecurringItemUseCase.execute({ familyId: user.familyId, ...input }),
+    success: "Recurrente creado",
     revalidate: REVALIDATE.recurring,
   });
 }
@@ -34,6 +34,7 @@ export async function updateRecurringItem(formData: FormData) {
     schema: recurringItemUpdateForm,
     owns: [ownsRecurringItem((input) => input.id), ownsCategory((input) => input.categoryId), ownsAccount((input) => input.accountId)],
     run: (input) => updateRecurringItemUseCase.execute(input),
+    success: "Recurrente actualizado",
     revalidate: REVALIDATE.recurring,
   });
 }
@@ -43,6 +44,7 @@ export async function deleteRecurringItem(formData: FormData) {
     schema: idForm,
     owns: [ownsRecurringItem((input) => input.id)],
     run: (input) => deleteRecurringItemUseCase.execute(input.id),
+    success: "Recurrente eliminado",
     revalidate: REVALIDATE.recurring,
   });
 }
@@ -52,6 +54,7 @@ export async function acceptCandidate(formData: FormData) {
     schema: idForm,
     owns: [ownsRecurringCandidate((input) => input.id)],
     run: (input) => acceptRecurringCandidateUseCase.execute(input.id, dayOfMonthOf(todayIso())),
+    success: "Recurrente confirmado",
     revalidate: REVALIDATE.recurring,
   });
 }
@@ -61,6 +64,7 @@ export async function dismissCandidate(formData: FormData) {
     schema: idForm,
     owns: [ownsRecurringCandidate((input) => input.id)],
     run: (input) => dismissRecurringCandidateUseCase.execute(input.id),
+    success: "Sugerencia descartada",
     revalidate: REVALIDATE.recurring,
   });
 }
@@ -70,6 +74,7 @@ export async function toggleRecurringItem(formData: FormData) {
     schema: toggleRecurringForm,
     owns: [ownsRecurringItem((input) => input.id)],
     run: (input) => toggleRecurringItemStatusUseCase.execute(input.id, input.nextStatus === "active" ? "active" : "paused"),
+    success: (input) => (input.nextStatus === "active" ? "Recurrente activado" : "Recurrente pausado"),
     revalidate: REVALIDATE.recurring,
   });
 }
@@ -84,13 +89,26 @@ export async function decideRecurringBudget(formData: FormData) {
         decision: input.decision,
         rememberForAll: input.rememberForAll,
       }),
+    success: "Decisión guardada",
     revalidate: REVALIDATE.recurringBudget,
     tolerate: [InvalidBudgetDecisionError],
   });
 }
 
 export async function resetRecurringBudgetPolicy() {
-  const user = await requireUser();
-  await resetRecurringBudgetPolicyUseCase.execute(user.familyId);
-  revalidateRoutes(REVALIDATE.recurringPolicy);
+  return runUserAction({
+    run: (user) => resetRecurringBudgetPolicyUseCase.execute(user.familyId),
+    success: "Te volveremos a preguntar por los recurrentes nuevos",
+    revalidate: REVALIDATE.recurringPolicy,
+  });
+}
+
+export async function savePayroll(formData: FormData) {
+  return runFormAction(formData, {
+    schema: payrollForm,
+    owns: [ownsAccount((input) => input.accountId), ownsCategory((input) => input.categoryId)],
+    run: (input, user) => savePayrollUseCase.execute({ familyId: user.familyId, ...input, today: todayIso() }),
+    success: "Nómina guardada",
+    revalidate: REVALIDATE.recurring,
+  });
 }

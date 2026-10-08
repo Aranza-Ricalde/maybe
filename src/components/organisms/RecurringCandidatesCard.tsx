@@ -1,11 +1,12 @@
+import type { FormAction } from "@/lib/actionResult";
 import type { RecurringCandidateView } from "@/components/viewModels";
 import { formatCurrency } from "@/lib/format";
 import { SuggestionListCard } from "./SuggestionListCard";
 
 export interface RecurringCandidatesCardProps {
   candidates: RecurringCandidateView[];
-  acceptAction: (formData: FormData) => Promise<void> | void;
-  dismissAction: (formData: FormData) => Promise<void> | void;
+  acceptAction: FormAction;
+  dismissAction: FormAction;
 }
 
 export function RecurringCandidatesCard({ candidates, acceptAction, dismissAction }: RecurringCandidatesCardProps) {

@@ -22,6 +22,7 @@ export async function confirmConceptSuggestionAction(formData: FormData) {
     schema: idForm,
     owns: [ownsConceptSuggestion((input) => input.id)],
     run: (input) => confirmConceptSuggestionUseCase.execute(input.id),
+    success: "Comercio confirmado",
     revalidate: REVALIDATE.conceptConfirmed,
   });
 }
@@ -31,6 +32,7 @@ export async function rejectConceptSuggestionAction(formData: FormData) {
     schema: idForm,
     owns: [ownsConceptSuggestion((input) => input.id)],
     run: (input) => rejectConceptSuggestionUseCase.execute(input.id),
+    success: "Sugerencia descartada",
     revalidate: REVALIDATE.dashboard,
   });
 }
@@ -42,6 +44,7 @@ export async function resolveOccurrenceAction(formData: FormData) {
       assertValidOccurrenceDecision(input.decision);
       return resolveRecurringOccurrenceUseCase.execute(user.familyId, input.occurrenceId, input.decision);
     },
+    success: (input) => ({ mark_paid: "Marcado como pagado", skip: "Omitido en este periodo", reopen: "Restaurado" })[String(input.decision)] ?? "Actualizado",
     revalidate: REVALIDATE.dashboard,
     tolerate: [InvalidOccurrenceDecisionError],
   });
@@ -51,6 +54,7 @@ export async function linkPaymentAction(formData: FormData) {
   return runFormAction(formData, {
     schema: linkPaymentForm,
     run: (input, user) => linkOccurrenceTransactionUseCase.execute(user.familyId, input.occurrenceId, input.transactionId),
+    success: "Pago vinculado al movimiento",
     revalidate: REVALIDATE.dashboard,
     tolerate: [InvalidOccurrenceLinkError],
   });

@@ -1,4 +1,4 @@
-import { Chip } from "@/components/atoms/Chip";
+import { Badge } from "@/components/ui/badge";
 import { Text } from "@/components/atoms/Text";
 import type { StatementCheck } from "@/domain/statements/types";
 import { formatCurrency } from "@/lib/format";
@@ -11,7 +11,7 @@ export function StatementTotalsCheck({ checks }: { checks: StatementCheck[] }) {
     return (
       <details className="rounded-lg bg-success/10 px-3 py-2">
         <summary className="flex cursor-pointer items-center gap-2 text-sm">
-          <Chip tone="success">Verificado</Chip>
+          <Badge variant="success">Verificado</Badge>
           Los totales del PDF coinciden con lo que leímos.
         </summary>
         <ul className="mt-2 flex flex-col gap-1">

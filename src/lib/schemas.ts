@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PAYROLL_FREQUENCIES, PAYROLL_MODES } from "@/domain/recurring/payroll";
 import { MAX_CATEGORY_DESCRIPTION_LENGTH } from "@/domain/categories/descriptions";
 import { PERIOD_VIEWS } from "@/domain/payPeriod/periodView";
 import { ACCOUNT_TYPES } from "@/domain/accounts/rules";
@@ -147,6 +148,25 @@ const toRecurringItemInput = (form: z.output<z.ZodObject<typeof recurringItemSha
   categoryId: form[FIELD.categoryId],
   accountId: form[FIELD.accountId],
 });
+const optionalDayField = z.preprocess(emptyToUndefined, z.coerce.number().int().min(1).max(31).optional());
+export const payrollForm = z
+  .object({
+    [FIELD.estimatedAmount]: positivePesosField,
+    [FIELD.payrollFrequency]: z.enum(PAYROLL_FREQUENCIES),
+    [FIELD.payrollMode]: z.enum(PAYROLL_MODES),
+    [FIELD.payrollFirstDay]: optionalDayField,
+    [FIELD.payrollSecondDay]: optionalDayField,
+    [FIELD.accountId]: optionalIdField,
+    [FIELD.categoryId]: optionalIdField,
+  })
+  .transform((form) => ({
+    categoryId: form[FIELD.categoryId],
+    amount: form[FIELD.estimatedAmount],
+    frequency: form[FIELD.payrollFrequency],
+    mode: form[FIELD.payrollMode],
+    manualDays: [form[FIELD.payrollFirstDay], form[FIELD.payrollSecondDay]].filter((day): day is number => day !== undefined),
+    accountId: form[FIELD.accountId],
+  }));
 export const recurringItemForm = z.object(recurringItemShape).transform(toRecurringItemInput);
 export const recurringItemUpdateForm = withId(recurringItemShape).transform((form) => ({ id: form[FIELD.id], ...toRecurringItemInput(form) }));
 export const toggleRecurringForm = z.object({ [FIELD.id]: idField, [FIELD.nextStatus]: z.string() });

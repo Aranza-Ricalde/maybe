@@ -13,7 +13,7 @@ export function PageHeader({ title, subtitle, subtitleClassName = "", action }: 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div>
-        <Heading level={1} className="text-2xl!">
+        <Heading level={1}>
           {title}
         </Heading>
         {subtitle && (

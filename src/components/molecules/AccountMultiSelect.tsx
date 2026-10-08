@@ -1,38 +1,49 @@
 "use client";
 
-import { Select } from "@heroui/react";
+import { ChevronDown } from "lucide-react";
 import { useState } from "react";
-import type { Key } from "react-aria-components";
-import { Label } from "@/components/atoms/Label";
+import { Icon } from "@/components/atoms/Icon";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { AccountOption } from "@/components/viewModels";
-import { SelectOptionsPopover } from "./SelectOptionsPopover";
 
 export interface AccountMultiSelectProps {
   label?: string;
+  description?: string;
   name: string;
   options: AccountOption[];
   defaultValue?: number[];
 }
 
-export function AccountMultiSelect({ label, name, options, defaultValue = [] }: AccountMultiSelectProps) {
-  const [selected, setSelected] = useState<Key[]>(defaultValue);
+export function AccountMultiSelect({ label, description, name, options, defaultValue = [] }: AccountMultiSelectProps) {
+  const [selected, setSelected] = useState<number[]>(defaultValue);
+  const toggle = (id: number, checked: boolean) => setSelected((current) => (checked ? [...current, id] : current.filter((value) => value !== id)));
 
   return (
-    <div className="flex flex-col gap-1.5">
-      {label && <Label>{label}</Label>}
-      <Select.Root
-        aria-label={label ?? "Cuentas vinculadas"}
-        name={name}
-        selectionMode="multiple"
-        value={selected}
-        onChange={setSelected}
-      >
-        <Select.Trigger className="w-full justify-between">
-          <Select.Value>{selected.length === 0 ? "Ninguna cuenta" : `${selected.length} cuenta${selected.length === 1 ? "" : "s"}`}</Select.Value>
-          <Select.Indicator />
-        </Select.Trigger>
-        <SelectOptionsPopover options={options.map((option) => ({ id: option.id, label: option.name }))} />
-      </Select.Root>
-    </div>
+    <Field>
+      {label && <FieldLabel>{label}</FieldLabel>}
+      {selected.map((id) => (
+        <input key={id} type="hidden" name={name} value={id} />
+      ))}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button type="button" variant="outline" aria-label={label ?? "Cuentas vinculadas"} className="w-full justify-between font-normal">
+            {selected.length === 0 ? "Ninguna cuenta" : `${selected.length} cuenta${selected.length === 1 ? "" : "s"}`}
+            <Icon icon={ChevronDown} />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="flex max-h-60 w-(--radix-popover-trigger-width) flex-col gap-1 overflow-y-auto">
+          {options.map((option) => (
+            <label key={option.id} className="flex min-h-9 cursor-pointer items-center gap-2 rounded-md px-2 text-sm hover:bg-muted">
+              <Checkbox checked={selected.includes(option.id)} onCheckedChange={(checked) => toggle(option.id, checked === true)} />
+              {option.name}
+            </label>
+          ))}
+        </PopoverContent>
+      </Popover>
+      {description && <FieldDescription>{description}</FieldDescription>}
+    </Field>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { Text } from "@/components/atoms/Text";
+import { Progress } from "@/components/ui/progress";
 import type { ExplorerShare } from "@/domain/explorer/rules";
 import { formatPercent, formatPesos } from "@/lib/format";
 
@@ -34,22 +35,20 @@ export function ExplorerBreakdown({ title, shares, onSelect, selectLabel, footer
         const content = (
           <>
             <span className="flex min-w-0 items-center gap-2">
-              <span className="size-2.5 shrink-0 rounded-full" style={{ background: share.color ?? "var(--muted)" }} />
+              <span className="size-2.5 shrink-0 rounded-full" style={{ background: share.color ?? "var(--muted-foreground)" }} />
               <span className="truncate text-sm font-medium">{share.name}</span>
-              <span className="shrink-0 text-xs text-muted">{share.count === 1 ? "1 mov." : `${share.count} mov.`}</span>
+              <span className="shrink-0 text-xs text-muted-foreground">{share.count === 1 ? "1 mov." : `${share.count} mov.`}</span>
             </span>
-            <span className="shrink-0 text-sm tabular-nums text-muted">
+            <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
               {formatPesos(share.totalCents)} · {formatPercent(share.share)}
             </span>
-            <span className="col-span-2 h-1.5 overflow-hidden rounded-full bg-separator">
-              <span className="block h-full rounded-full" style={{ width: `${max > 0 ? (share.totalCents / max) * 100 : 0}%`, background: share.color ?? "var(--accent)" }} />
-            </span>
+            <Progress value={max > 0 ? (share.totalCents / max) * 100 : 0} indicatorColor={share.color ?? undefined} aria-label={share.name} className="col-span-2 h-1.5" />
           </>
         );
         return (
           <li key={share.key}>
             {selectable ? (
-              <button type="button" aria-label={selectLabel(share)} onClick={() => onSelect(share)} className="grid w-full grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-separator">
+              <button type="button" aria-label={selectLabel(share)} onClick={() => onSelect(share)} className="grid w-full grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-muted">
                 {content}
               </button>
             ) : (

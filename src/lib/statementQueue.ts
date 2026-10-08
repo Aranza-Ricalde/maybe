@@ -113,3 +113,43 @@ export function queueProgress(items: QueueItem[]): { done: number; total: number
   const relevant = items.filter((item) => item.status !== "configuring");
   return { done: relevant.filter((item) => item.status === "ready" || item.status === "done" || item.status === "error" || item.status === "password").length, total: relevant.length };
 }
+
+export interface GroupedQueue {
+  pending: QueueItem[];
+  reviewable: QueueItem[];
+  finished: QueueItem[];
+}
+
+export function groupQueue(items: QueueItem[]): GroupedQueue {
+  return {
+    pending: items.filter((item) => item.status === "configuring" || item.status === "error" || item.status === "password"),
+    reviewable: items.filter((item) => item.status === "ready" || item.status === "confirming"),
+    finished: items.filter((item) => item.status === "done"),
+  };
+}
+
+export interface ProgressPanelState {
+  visible: QueueItem[];
+  allDone: boolean;
+  busy: boolean;
+  closable: boolean;
+  needsReview: boolean;
+}
+
+export function progressPanelState(items: QueueItem[], onImportPage: boolean): ProgressPanelState {
+  const visible = items.filter((item) => item.status !== "configuring" && (!onImportPage || isBusy(item)));
+  return {
+    visible,
+    allDone: visible.length > 0 && visible.every((item) => item.status === "done"),
+    busy: visible.some(isBusy),
+    closable: visible.every((item) => item.status === "done" || item.status === "error"),
+    needsReview: visible.some((item) => item.status === "ready" || item.status === "password" || item.status === "error"),
+  };
+}
+
+export function currentImportStep(grouped: GroupedQueue): 0 | 1 | 2 | 3 {
+  if (grouped.reviewable.length > 0) return 2;
+  if (grouped.pending.length > 0) return 1;
+  if (grouped.finished.length > 0) return 3;
+  return 0;
+}

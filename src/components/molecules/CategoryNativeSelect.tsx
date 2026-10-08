@@ -1,4 +1,5 @@
 import type { CategoryOption } from "@/components/viewModels";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 
 export interface CategoryNativeSelectProps {
   name: string;
@@ -8,18 +9,13 @@ export interface CategoryNativeSelectProps {
 
 export function CategoryNativeSelect({ name, options, defaultValue }: CategoryNativeSelectProps) {
   return (
-    <select
-      name={name}
-      defaultValue={defaultValue != null ? String(defaultValue) : ""}
-      aria-label="Categoría"
-      className="h-8 max-w-48 rounded-lg border border-separator bg-surface px-2 text-xs text-foreground focus:outline-2 focus:outline-accent"
-    >
-      <option value="">Sin categoría</option>
+    <NativeSelect size="sm" name={name} defaultValue={defaultValue != null ? String(defaultValue) : ""} aria-label="Categoría" className="max-w-48">
+      <NativeSelectOption value="">Sin categoría</NativeSelectOption>
       {options.map((option) => (
-        <option key={option.id} value={option.id}>
+        <NativeSelectOption key={option.id} value={option.id}>
           {option.label ?? option.name}
-        </option>
+        </NativeSelectOption>
       ))}
-    </select>
+    </NativeSelect>
   );
 }

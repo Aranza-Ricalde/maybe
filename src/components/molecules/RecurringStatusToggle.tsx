@@ -1,12 +1,13 @@
 "use client";
 
+import type { FormAction } from "@/lib/actionResult";
 import { FormSwitch } from "./FormSwitch";
 import { FIELD } from "@/lib/formFields";
 
 export interface RecurringStatusToggleProps {
   itemId: number;
   isActive: boolean;
-  toggleAction: (formData: FormData) => Promise<void> | void;
+  toggleAction: FormAction;
 }
 
 export function RecurringStatusToggle({ itemId, isActive, toggleAction }: RecurringStatusToggleProps) {

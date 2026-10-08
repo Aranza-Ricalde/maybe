@@ -22,6 +22,14 @@ export function formatPesos(cents: number, currency = "MXN"): string {
   return new Intl.NumberFormat("es-MX", { style: "currency", currency, maximumFractionDigits: 0 }).format(Math.round(cents / 100) === 0 ? 0 : cents / 100);
 }
 
+export function formatSignedPesos(cents: number): string {
+  return `${cents > 0 ? "+" : cents < 0 ? "−" : ""}${formatPesos(Math.abs(cents))}`;
+}
+
+export function formatDateRange(from: string, to: string): string {
+  return from === to ? formatShortDate(from) : `${formatShortDate(from)} – ${formatShortDate(to)}`;
+}
+
 export function centsToInputValue(cents: number | null | undefined): string | undefined {
   return cents != null ? (cents / 100).toFixed(2) : undefined;
 }

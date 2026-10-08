@@ -1,23 +1,20 @@
-import { Alert } from "@heroui/react";
-import { STATUS_THEME } from "@/components/molecules/StatusTheme";
+import { CircleAlert, CircleCheck, TriangleAlert } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { FinancialStatusLevel, FinancialStatusResult } from "@/domain/dashboard/rules";
 
-const ALERT_STATUS: Record<FinancialStatusLevel, "success" | "warning" | "danger"> = {
-  green: "success",
-  yellow: "warning",
-  red: "danger",
-};
+const ALERT_BY_LEVEL = {
+  green: { variant: "success", Icon: CircleCheck },
+  yellow: { variant: "warning", Icon: TriangleAlert },
+  red: { variant: "destructive", Icon: CircleAlert },
+} as const satisfies Record<FinancialStatusLevel, { variant: string; Icon: unknown }>;
 
 export function FinancialStatusBanner({ status }: { status: FinancialStatusResult }) {
-  const theme = STATUS_THEME[status.level];
-
+  const { variant, Icon } = ALERT_BY_LEVEL[status.level];
   return (
-    <Alert status={ALERT_STATUS[status.level]} className={`gap-3 border py-2.5 ${theme.banner}`}>
-      <Alert.Indicator />
-      <Alert.Content>
-        <Alert.Title>{status.message}</Alert.Title>
-        <Alert.Description>{status.detail}</Alert.Description>
-      </Alert.Content>
+    <Alert variant={variant}>
+      <Icon />
+      <AlertTitle>{status.message}</AlertTitle>
+      <AlertDescription>{status.detail}</AlertDescription>
     </Alert>
   );
 }

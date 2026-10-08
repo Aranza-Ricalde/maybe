@@ -11,6 +11,7 @@ export async function createGoal(formData: FormData) {
     schema: goalForm,
     owns: [ownsAccounts((input) => input.accountIds)],
     run: (input, user) => createGoalUseCase.execute({ familyId: user.familyId, ...input }),
+    success: "Meta creada",
     revalidate: REVALIDATE.goals,
   });
 }
@@ -20,6 +21,7 @@ export async function updateGoal(formData: FormData) {
     schema: goalUpdateForm,
     owns: [ownsGoal((input) => input.id), ownsAccounts((input) => input.accountIds)],
     run: (input) => updateGoalUseCase.execute(input),
+    success: "Meta actualizada",
     revalidate: REVALIDATE.goals,
   });
 }
@@ -29,6 +31,7 @@ export async function deleteGoal(formData: FormData) {
     schema: idForm,
     owns: [ownsGoal((input) => input.id)],
     run: (input) => deleteGoalUseCase.execute(input.id),
+    success: "Meta eliminada",
     revalidate: REVALIDATE.goals,
   });
 }

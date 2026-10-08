@@ -39,6 +39,10 @@ export const FIELD = {
   targetDate: "targetDate",
   estimatedAmount: "estimatedAmount",
   dayOfMonth: "dayOfMonth",
+  payrollFrequency: "payrollFrequency",
+  payrollMode: "payrollMode",
+  payrollFirstDay: "payrollFirstDay",
+  payrollSecondDay: "payrollSecondDay",
 } as const;
 
 export type FieldName = (typeof FIELD)[keyof typeof FIELD];

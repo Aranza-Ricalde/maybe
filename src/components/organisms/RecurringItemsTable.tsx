@@ -1,16 +1,17 @@
 "use client";
 
+import type { FormAction } from "@/lib/actionResult";
 import { CurrencyText } from "@/components/atoms/CurrencyText";
 import { Text } from "@/components/atoms/Text";
-import { ConfirmDeleteButton } from "./ConfirmDeleteButton";
+import { DeleteEntityButton } from "./DeleteEntityButton";
 import { ClientDataTable } from "./ClientDataTable";
 import type { DataTableColumn } from "./DataTable";
 import { RecurringItemModal } from "./RecurringItemModal";
 import { RecurringBudgetInclusionCell } from "@/components/molecules/RecurringBudgetInclusionCell";
 import { RecurringStatusToggle } from "@/components/molecules/RecurringStatusToggle";
+import { PERIOD_START_DAY } from "@/domain/payPeriod/rules";
 import { isBudgetRelevant, type BudgetInclusion } from "@/domain/recurring/budgetInclusion";
 import { amountSignTone } from "@/lib/format";
-import { FIELD } from "@/lib/formFields";
 import type { AccountOption, CategoryOption } from "@/components/viewModels";
 
 export interface RecurringItemRow {
@@ -30,10 +31,10 @@ export interface RecurringItemsTableProps {
   rows: RecurringItemRow[];
   accounts: AccountOption[];
   categories: CategoryOption[];
-  updateAction: (formData: FormData) => Promise<void> | void;
-  deleteAction: (formData: FormData) => Promise<void> | void;
-  toggleAction: (formData: FormData) => Promise<void> | void;
-  budgetDecisionAction: (formData: FormData) => void;
+  updateAction: FormAction;
+  deleteAction: FormAction;
+  toggleAction: FormAction;
+  budgetDecisionAction: FormAction;
 }
 
 export function RecurringItemsTable({ rows, accounts, categories, updateAction, deleteAction, toggleAction, budgetDecisionAction }: RecurringItemsTableProps) {
@@ -48,7 +49,7 @@ export function RecurringItemsTable({ rows, accounts, categories, updateAction, 
       align: "right",
       cell: (item) => <CurrencyText cents={item.estimatedAmountCents} withSign weight="medium" tone={amountSignTone(item.estimatedAmountCents)} />,
     },
-    { key: "day", header: "Día", cell: (item) => `Día ${item.dayOfMonth}` },
+    { key: "day", header: "Día", cell: (item) => (item.dayOfMonth === PERIOD_START_DAY ? "Inicio de cada periodo" : `Día ${item.dayOfMonth}`) },
     {
       key: "detail",
       header: "Cuenta / Categoría",
@@ -77,31 +78,27 @@ export function RecurringItemsTable({ rows, accounts, categories, updateAction, 
       align: "right",
       cell: (item) => (
         <div className="flex items-center justify-end gap-1">
-          <RecurringItemModal
-            mode="edit"
-            accounts={accounts}
-            categories={categories}
-            action={updateAction}
-            initialValues={{
-              id: item.id,
-              name: item.name,
-              flow: item.flow,
-              estimatedAmount: item.estimatedAmountCents / 100,
-              categoryId: item.categoryId,
-              accountId: item.accountId,
-              dayOfMonth: item.dayOfMonth,
-            }}
-          />
-          <ConfirmDeleteButton
-            title="Eliminar recurrente"
-            triggerAriaLabel={`Eliminar ${item.name}`}
-            confirmQuestion={
-              <>
-                ¿Eliminar <span className="font-semibold">&ldquo;{item.name}&rdquo;</span>?
-              </>
-            }
+          {item.dayOfMonth === PERIOD_START_DAY ? (
+            <Text size="xs" tone="muted">Se edita en Nómina</Text>
+          ) : (
+            <RecurringItemModal
+              mode="edit"
+              accounts={accounts}
+              categories={categories}
+              action={updateAction}
+              initialValues={{
+                id: item.id,
+                name: item.name,
+                flow: item.flow,
+                estimatedAmount: item.estimatedAmountCents / 100,
+                categoryId: item.categoryId,
+                accountId: item.accountId,
+                dayOfMonth: item.dayOfMonth,
+              }}
+            />
+          )}
+          <DeleteEntityButton noun="recurrente" name={item.name} id={item.id}
             helperText="No afecta los movimientos que ya registraste, solo deja de proyectarse hacia adelante."
-            hiddenFields={{ [FIELD.id]: item.id }}
             action={deleteAction}
           />
         </div>

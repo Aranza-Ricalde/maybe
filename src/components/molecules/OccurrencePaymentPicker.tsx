@@ -1,9 +1,13 @@
 "use client";
 
-import { Button } from "@heroui/react";
-import { useState, useTransition } from "react";
+import { ActionForm } from "@/components/molecules/ActionForm";
+import type { FormAction } from "@/lib/actionResult";
+import { Button } from "@/components/ui/button";
+import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemSeparator, ItemTitle } from "@/components/ui/item";
+import { Fragment } from "react";
 import { formatCurrency, formatShortDate } from "@/lib/format";
 import { FIELD } from "@/lib/formFields";
+import { ResponsiveDialog } from "./ResponsiveDialog";
 
 export interface PaymentCandidateView {
   id: number;
@@ -17,8 +21,10 @@ export interface PaymentCandidateView {
 
 export interface OccurrencePaymentPickerProps {
   occurrenceId: number;
-  listCandidates: (occurrenceId: number) => Promise<PaymentCandidateView[]>;
-  linkAction: (formData: FormData) => void;
+  candidates: PaymentCandidateView[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  linkAction: FormAction;
 }
 
 function describeFit(c: PaymentCandidateView): string {
@@ -27,57 +33,38 @@ function describeFit(c: PaymentCandidateView): string {
   return `${amount} · ${days}`;
 }
 
-export function OccurrencePaymentPicker({ occurrenceId, listCandidates, linkAction }: OccurrencePaymentPickerProps) {
-  const [candidates, setCandidates] = useState<PaymentCandidateView[] | null>(null);
-  const [isPending, startTransition] = useTransition();
-
-  if (candidates === null) {
-    return (
-      <Button
-        size="sm"
-        variant="ghost"
-        isDisabled={isPending}
-        onPress={() => startTransition(async () => setCandidates(await listCandidates(occurrenceId)))}
-      >
-        {isPending ? "Buscando…" : "Elegir movimiento"}
-      </Button>
-    );
-  }
-
+export function OccurrencePaymentPicker({ occurrenceId, candidates, open, onOpenChange, linkAction }: OccurrencePaymentPickerProps) {
   return (
-    <div className="order-last mt-1 basis-full rounded-lg border border-separator bg-surface-secondary p-3 text-left">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <p className="text-xs font-medium">¿Cuál movimiento fue?</p>
-        <Button size="sm" variant="ghost" onPress={() => setCandidates(null)}>
-          Cerrar
-        </Button>
-      </div>
+    <ResponsiveDialog title="¿Cuál movimiento fue?" description="Elige el movimiento que ya pagó esta ocurrencia." open={open} onOpenChange={onOpenChange} size="md">
       {candidates.length === 0 ? (
-        <p className="text-xs text-muted">No hay movimientos cercanos que puedan ser este pago. Puedes usar “Marcar pagado” sin elegir uno.</p>
+        <p className="text-sm text-muted-foreground">No hay movimientos cercanos que puedan ser este pago. Puedes usar “Marcar pagado” sin elegir uno.</p>
       ) : (
-        <ul className="flex flex-col divide-y divide-separator">
-          {candidates.map((c) => (
-            <li key={c.id} className="flex items-center justify-between gap-3 py-2">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-medium">{c.name}</p>
-                <p className="text-xs text-muted">
-                  {c.accountName} · {formatShortDate(c.date)} · {describeFit(c)}
-                </p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <span className="text-sm font-semibold tabular-nums">{formatCurrency(Math.abs(c.amountCents))}</span>
-                <form action={linkAction}>
-                  <input type="hidden" name={FIELD.occurrenceId} value={occurrenceId} />
-                  <input type="hidden" name={FIELD.transactionId} value={c.id} />
-                  <Button type="submit" size="sm" variant="primary">
-                    Es este
-                  </Button>
-                </form>
-              </div>
-            </li>
+        <ItemGroup>
+          {candidates.map((c, index) => (
+            <Fragment key={c.id}>
+              {index > 0 && <ItemSeparator />}
+              <Item size="sm">
+                <ItemContent>
+                  <ItemTitle>{c.name}</ItemTitle>
+                  <ItemDescription>
+                    {c.accountName} · {formatShortDate(c.date)} · {describeFit(c)}
+                  </ItemDescription>
+                </ItemContent>
+                <ItemActions>
+                  <span className="text-sm font-semibold tabular-nums">{formatCurrency(Math.abs(c.amountCents))}</span>
+                  <ActionForm action={linkAction}>
+                    <input type="hidden" name={FIELD.occurrenceId} value={occurrenceId} />
+                    <input type="hidden" name={FIELD.transactionId} value={c.id} />
+                    <Button type="submit" size="sm">
+                      Es este
+                    </Button>
+                  </ActionForm>
+                </ItemActions>
+              </Item>
+            </Fragment>
           ))}
-        </ul>
+        </ItemGroup>
       )}
-    </div>
+    </ResponsiveDialog>
   );
 }

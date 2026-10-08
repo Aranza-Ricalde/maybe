@@ -1,19 +1,15 @@
-import { Label as HeroLabel } from "@heroui/react";
-import type { ComponentProps, ReactNode } from "react";
+import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
-export type LabelProps = ComponentProps<typeof HeroLabel>;
-
-export function Label({ className = "", ...props }: LabelProps) {
-  return <HeroLabel className={`text-sm font-medium text-foreground ${className}`.trim()} {...props} />;
-}
+export { Label } from "@/components/ui/label";
 
 export type InlinePrefixLabelTone = "muted" | "strong";
 
 const INLINE_PREFIX_LABEL_CLASS: Record<InlinePrefixLabelTone, string> = {
-  muted: "text-muted",
+  muted: "text-muted-foreground",
   strong: "text-sm font-medium text-foreground",
 };
 
 export function InlinePrefixLabel({ children, tone = "muted" }: { children: ReactNode; tone?: InlinePrefixLabelTone }) {
-  return <span className={INLINE_PREFIX_LABEL_CLASS[tone]}>{children}</span>;
+  return <span className={cn(INLINE_PREFIX_LABEL_CLASS[tone])}>{children}</span>;
 }

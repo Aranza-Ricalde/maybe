@@ -78,3 +78,31 @@ test("el progreso ignora los archivos sin configurar", () => {
   const items = run([{ type: "configure", id: "a", bank: "bbva_debito", accountId: 1 }, { type: "enqueue", id: "a" }, { type: "start", id: "a" }, { type: "parsed", id: "a", preview }], added("a", "b"));
   assert.deepEqual(queueProgress(items), { done: 1, total: 1 });
 });
+
+test("agrupa la cola por lo que el usuario debe hacer con cada archivo", async () => {
+  const { groupQueue } = await import("./statementQueue");
+  const make = (status: string) => ({ status }) as never;
+  const grouped = groupQueue([make("configuring"), make("error"), make("ready"), make("confirming"), make("done"), make("reading")]);
+  assert.equal(grouped.pending.length, 2);
+  assert.equal(grouped.reviewable.length, 2);
+  assert.equal(grouped.finished.length, 1);
+});
+
+test("el panel de progreso oculta lo que aún se configura y, en Importar, lo que ya no está ocupado", async () => {
+  const { progressPanelState } = await import("./statementQueue");
+  const make = (status: string) => ({ status }) as never;
+  const items = [make("configuring"), make("reading"), make("done")];
+  assert.equal(progressPanelState(items, false).visible.length, 2);
+  assert.equal(progressPanelState(items, true).visible.length, 1);
+  assert.equal(progressPanelState([make("done")], false).allDone, true);
+  assert.equal(progressPanelState([make("ready")], false).needsReview, true);
+});
+
+test("el paso actual de importación sigue el avance de la cola", async () => {
+  const { currentImportStep, groupQueue } = await import("./statementQueue");
+  const step = (...statuses: string[]) => currentImportStep(groupQueue(statuses.map((status) => ({ status }) as never)));
+  assert.equal(step(), 0);
+  assert.equal(step("configuring"), 1);
+  assert.equal(step("configuring", "ready"), 2);
+  assert.equal(step("done"), 3);
+});

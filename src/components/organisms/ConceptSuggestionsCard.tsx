@@ -1,11 +1,12 @@
+import type { FormAction } from "@/lib/actionResult";
 import type { ConceptSuggestionView } from "@/components/viewModels";
 import { formatCurrency } from "@/lib/format";
 import { SuggestionListCard } from "./SuggestionListCard";
 
 export interface ConceptSuggestionsCardProps {
   suggestions: ConceptSuggestionView[];
-  confirmAction: (formData: FormData) => Promise<void> | void;
-  rejectAction: (formData: FormData) => Promise<void> | void;
+  confirmAction: FormAction;
+  rejectAction: FormAction;
 }
 
 export function ConceptSuggestionsCard({ suggestions, confirmAction, rejectAction }: ConceptSuggestionsCardProps) {

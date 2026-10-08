@@ -1,4 +1,4 @@
-import { Pencil } from "@gravity-ui/icons";
+import { Pencil } from "lucide-react";
 import type { ReactNode } from "react";
 import { type EntityLabels, SAVE_CHANGES_LABEL } from "@/lib/entityLabels";
 import { FIELD } from "@/lib/formFields";

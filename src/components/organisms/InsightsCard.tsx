@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Card } from "@heroui/react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusDot } from "@/components/molecules/StatusDot";
 import type { StatusLevel } from "@/components/molecules/StatusTheme";
 import { Text } from "@/components/atoms/Text";
@@ -11,13 +11,13 @@ export function InsightsCard({ insights }: { insights: Insight[] }) {
   if (insights.length === 0) return null;
 
   return (
-    <Card className="p-5">
-      <Card.Header>
-        <Card.Title>¿Qué está pasando?</Card.Title>
-        <Card.Description>Lo que cambió en tus finanzas, con los datos que lo respaldan.</Card.Description>
-      </Card.Header>
-      <Card.Content>
-        <ul className="flex flex-col divide-y divide-separator">
+    <Card>
+      <CardHeader>
+        <CardTitle>¿Qué está pasando?</CardTitle>
+        <CardDescription>Lo que cambió en tus finanzas, con los datos que lo respaldan.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ul className="flex flex-col divide-y divide-border">
           {insights.map((insight) => (
             <li key={insight.id} className="flex items-start gap-3 py-2.5 first:pt-0 last:pb-0">
               {insight.tone === "goal" ? (
@@ -36,14 +36,14 @@ export function InsightsCard({ insights }: { insights: Insight[] }) {
                 )}
               </div>
               {insight.href && (
-                <Link href={insight.href} className="shrink-0 text-xs text-accent hover:underline">
+                <Link href={insight.href} className="shrink-0 text-xs text-primary hover:underline">
                   Ver movimientos →
                 </Link>
               )}
             </li>
           ))}
         </ul>
-      </Card.Content>
+      </CardContent>
     </Card>
   );
 }

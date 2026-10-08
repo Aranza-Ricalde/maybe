@@ -1,4 +1,5 @@
-import { Card } from "@heroui/react";
+import type { FormAction } from "@/lib/actionResult";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CalendarEntryListItem } from "@/components/molecules/CalendarEntryListItem";
 import { EyebrowLabel } from "@/components/atoms/EyebrowLabel";
 import type { PaymentCandidateView } from "@/components/molecules/OccurrencePaymentPicker";
@@ -6,9 +7,9 @@ import { groupCalendarEntriesByStatus, type CalendarEntry } from "@/domain/calen
 
 export interface FinancialCalendarCardProps {
   entries: CalendarEntry[];
-  decisionAction: (formData: FormData) => void;
+  decisionAction: FormAction;
   listPaymentCandidates: (occurrenceId: number) => Promise<PaymentCandidateView[]>;
-  linkPaymentAction: (formData: FormData) => void;
+  linkPaymentAction: FormAction;
 }
 
 const entryKey = (e: CalendarEntry) => (e.occurrenceId != null ? `occ-${e.occurrenceId}` : `${e.source}-${e.name}-${e.expectedDate}`);
@@ -24,23 +25,23 @@ export function FinancialCalendarCard({ entries, decisionAction, listPaymentCand
   ].filter((s) => s.items.length > 0);
 
   return (
-    <Card className="p-5">
-      <Card.Header>
-        <Card.Title>Calendario del periodo</Card.Title>
-        <Card.Description>Esperado vs. real de este periodo.</Card.Description>
-      </Card.Header>
-      <Card.Content className="flex flex-col gap-4">
+    <Card>
+      <CardHeader>
+        <CardTitle>Calendario del periodo</CardTitle>
+        <CardDescription>Esperado vs. real de este periodo.</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
         {sections.map((section) => (
           <div key={section.label}>
             <EyebrowLabel>{section.label}</EyebrowLabel>
-            <ul className="mt-1 flex flex-col divide-y divide-separator">
+            <ul className="mt-1 flex flex-col divide-y divide-border">
               {section.items.map((e) => (
                 <CalendarEntryListItem key={entryKey(e)} entry={e} decisionAction={decisionAction} listPaymentCandidates={listPaymentCandidates} linkPaymentAction={linkPaymentAction} />
               ))}
             </ul>
           </div>
         ))}
-      </Card.Content>
+      </CardContent>
     </Card>
   );
 }

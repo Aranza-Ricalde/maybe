@@ -1,4 +1,4 @@
-import { Card } from "@heroui/react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Text } from "@/components/atoms/Text";
 import { StatBlock } from "@/components/molecules/StatBlock";
 import { StatBlockRow } from "@/components/molecules/StatBlockRow";
@@ -57,12 +57,12 @@ export function ProjectionSummary({ base, result, hasScenario, assumptions, basi
         />
       </StatBlockRow>
 
-      <Card className="p-5" data-testid="projection-assumptions">
-        <Card.Header>
-          <Card.Title>Qué supone esta proyección</Card.Title>
-          <Card.Description>{basisMonthsLabel}</Card.Description>
-        </Card.Header>
-        <Card.Content className="grid gap-4 text-sm sm:grid-cols-2">
+      <Card  data-testid="projection-assumptions">
+        <CardHeader>
+          <CardTitle>Qué supone esta proyección</CardTitle>
+          <CardDescription>{basisMonthsLabel}</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 text-sm sm:grid-cols-2">
           <div>
             <p className="font-medium">Ingresos: {formatPesos(base.monthlyIncomeCents)} al mes</p>
             <Text size="xs" tone="muted" className="block">
@@ -82,7 +82,7 @@ export function ProjectionSummary({ base, result, hasScenario, assumptions, basi
           <Text size="xs" tone="muted" className="block sm:col-span-2">
             Parte de tu saldo en cuentas líquidas (corriente, débito y efectivo) y suma lo que falta del mes en curso. No incluye inflación, intereses ni cambios de sueldo; los escenarios de abajo mueven estos números.
           </Text>
-        </Card.Content>
+        </CardContent>
       </Card>
     </>
   );

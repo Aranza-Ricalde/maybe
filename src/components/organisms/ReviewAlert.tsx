@@ -1,7 +1,9 @@
 "use client";
 
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "@gravity-ui/icons";
-import { Button } from "@heroui/react";
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { useState, type ComponentType, type ReactNode, type SVGProps } from "react";
 import { Icon } from "@/components/atoms/Icon";
 
@@ -19,7 +21,8 @@ export function ReviewAlert({ ariaLabel, icon, itemKey, position, children, acti
   const [showDetails, setShowDetails] = useState(false);
 
   return (
-    <section aria-label={ariaLabel} className="rounded-xl border border-l-[3px] border-separator border-l-warning bg-surface px-4 py-3">
+    <Card role="region" aria-label={ariaLabel} className="border-l-4 border-l-warning">
+      <CardContent>
       <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
         <div className="flex min-w-0 flex-1 basis-80 items-start gap-3">
           <span className="mt-0.5 shrink-0 text-warning">
@@ -35,26 +38,32 @@ export function ReviewAlert({ ariaLabel, icon, itemKey, position, children, acti
         <div className="flex items-center gap-0.5">
           {position.total > 1 && (
             <>
-              <Button isIconOnly size="sm" variant="ghost" aria-label="Anterior" onPress={() => position.onGo(-1)}>
+              <Button type="button" size="icon-sm" variant="ghost" aria-label="Anterior" onClick={() => position.onGo(-1)}>
                 <Icon icon={ChevronLeft} />
               </Button>
-              <span className="min-w-10 text-center text-xs tabular-nums text-muted">
+              <span className="min-w-10 text-center text-xs tabular-nums text-muted-foreground">
                 {position.current + 1}/{position.total}
               </span>
-              <Button isIconOnly size="sm" variant="ghost" aria-label="Siguiente" onPress={() => position.onGo(1)}>
+              <Button type="button" size="icon-sm" variant="ghost" aria-label="Siguiente" onClick={() => position.onGo(1)}>
                 <Icon icon={ChevronRight} />
               </Button>
             </>
           )}
           {details && (
-            <Button isIconOnly size="sm" variant="ghost" aria-label={showDetails ? "Ocultar detalles" : "Ver detalles"} aria-expanded={showDetails} onPress={() => setShowDetails((v) => !v)}>
+            <Button type="button" size="icon-sm" variant="ghost" aria-label={showDetails ? "Ocultar detalles" : "Ver detalles"} aria-expanded={showDetails} onClick={() => setShowDetails((v) => !v)}>
               <Icon icon={showDetails ? ChevronUp : ChevronDown} />
             </Button>
           )}
         </div>
       </div>
 
-      {details && showDetails && <div className="mt-3 space-y-1 border-t border-separator pt-3 text-xs text-muted">{details}</div>}
-    </section>
+      {details && showDetails && (
+        <>
+          <Separator className="my-3" />
+          <div className="space-y-1 text-xs text-muted-foreground">{details}</div>
+        </>
+      )}
+      </CardContent>
+    </Card>
   );
 }
