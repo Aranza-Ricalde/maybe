@@ -22,7 +22,10 @@ describe("Selector de periodo del dashboard", () => {
 
     cy.contains("button", "Aplicar").click();
 
-    cy.location("search", { timeout: 10000 }).should("include", "periods=3");
+    cy.task("dbQuery", `select id::text as value from pay_periods order by "start" offset 2 limit 1`).then((rows) => {
+      const thirdPeriodId = (rows as { value: string }[])[0].value;
+      cy.location("search", { timeout: 10000 }).should("include", thirdPeriodId);
+    });
 
     cy.contains("sep").should("be.visible");
 
@@ -30,25 +33,25 @@ describe("Selector de periodo del dashboard", () => {
     cy.contains("button", "Cambiar periodo").should("not.be.disabled");
   });
 
-  it("la 'X' del popover lo cierra sin aplicar ningún cambio", () => {
+  it("Escape cierra el popover sin aplicar ningún cambio", () => {
     cy.visit("/");
 
     cy.contains("button", "Cambiar periodo").click();
     cy.contains(/Periodos/).should("be.visible");
 
-    cy.get('[data-slot="close-button"]').click();
+    cy.get("body").type("{esc}");
 
     cy.contains(/Periodos/).should("not.exist");
     cy.location("search").should("eq", "");
   });
 
-  it("'Volver a la quincena actual' resetea la selección sin cerrar el popover", () => {
+  it("'Volver al periodo actual' resetea la selección sin cerrar el popover", () => {
     cy.visit("/");
 
     cy.contains("button", "Cambiar periodo").click();
     cy.contains(/^Quincena 3 ·/).click();
 
-    cy.contains("Volver a la quincena actual").click();
+    cy.contains("Volver al periodo actual").click();
 
     // El popover sigue abierto — esto es un reset del borrador, no un cierre.
     cy.contains(/Periodos/).should("be.visible");

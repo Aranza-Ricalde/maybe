@@ -14,7 +14,7 @@ describe("Gasto por categoría — suscripciones y comercios", () => {
   beforeEach(() => {
     cy.task("mintAccessToken", 1).then((token) => cy.setCookie("access_token", token as string));
     cy.visit("/spending");
-    cy.contains("button", /^Suscripciones \(/).click();
+    cy.contains('[role="tab"]', /^Suscripciones/).click();
     cy.contains("Tus suscripciones").should("be.visible");
   });
 
@@ -22,7 +22,7 @@ describe("Gasto por categoría — suscripciones y comercios", () => {
     cy.contains("¿Son la misma suscripción?").should("be.visible");
     cy.contains("«Xbox Game Pass» y «Xbox suscription»").should("be.visible");
     cy.contains("«Amazon Prime» y «prime video»").should("be.visible");
-    cy.get('input[aria-label="Elegir Xbox Game Pass para fusionar"]').closest(".items-start").should("contain", "$219 /mes");
+    cy.get('[role="checkbox"][aria-label="Elegir Xbox Game Pass para fusionar"]').closest(".items-start").should("contain", "$219 /mes");
   });
 
   it("fusionar con la sugerencia deja Xbox en $219/mes y recuerda la regla; deshacer la revierte", () => {
@@ -36,20 +36,20 @@ describe("Gasto por categoría — suscripciones y comercios", () => {
   });
 
   it("fusiona a mano Apple + Amazon Prime + prime video en una sola suscripción de $99/mes", () => {
-    cy.get('input[type="checkbox"][aria-label="Elegir Apple para fusionar"]').check();
-    cy.get('input[type="checkbox"][aria-label="Elegir Amazon Prime para fusionar"]').check();
-    cy.get('input[type="checkbox"][aria-label="Elegir prime video para fusionar"]').check();
+    cy.get('[role="checkbox"][aria-label="Elegir Apple para fusionar"]').click();
+    cy.get('[role="checkbox"][aria-label="Elegir Amazon Prime para fusionar"]').click();
+    cy.get('[role="checkbox"][aria-label="Elegir prime video para fusionar"]').click();
     cy.get(`${MERGE_FORM} input[name="name"]`).type("Amazon Prime (vía Apple)");
     cy.get(MERGE_FORM).contains("button", "Fusionar las elegidas").click();
 
-    cy.get('input[aria-label="Elegir Amazon Prime (vía Apple) para fusionar"]').closest(".items-start").should("contain", "$99 /mes");
+    cy.get('[role="checkbox"][aria-label="Elegir Amazon Prime (vía Apple) para fusionar"]').closest(".items-start").should("contain", "$99 /mes");
     cy.contains("Incluye: Amazon Prime, Apple, prime video").should("be.visible");
     cy.task("dbQuery", "select count(*)::int as n from subscription_aliases").then((rows) => expect((rows as { n: number }[])[0].n).to.equal(3));
     cy.contains("button", "Deshacer fusión").click();
   });
 
   it("'Comercios que más consumen' no trata como comercio lo que no tiene proveedor identificado", () => {
-    cy.contains("button", /^Comercios \(/).click();
+    cy.contains('[role="tab"]', /^Comercios/).click();
     cy.contains("Sin comercio identificado").should("be.visible");
     cy.contains("Incluye pagos a personas y descripciones libres").should("be.visible");
   });

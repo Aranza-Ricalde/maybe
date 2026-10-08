@@ -3,7 +3,7 @@ describe("Transacciones: transferencias entre cuentas", () => {
     cy.task("mintAccessToken", 1).then((token) => cy.setCookie("access_token", token as string));
     cy.visit("/transactions");
     cy.get("table").should("be.visible");
-    cy.get('[data-slot="modal-backdrop"]').should("not.exist");
+    cy.get('[data-slot="dialog-overlay"]').should("not.exist");
   });
 
   function openTransferModal() {
@@ -12,8 +12,7 @@ describe("Transacciones: transferencias entre cuentas", () => {
   }
 
   function selectKind(label: string) {
-    cy.get('[role="dialog"]').contains("span", "Tipo").parent().find("button").click();
-    cy.contains('[role="option"], li', label).click();
+    cy.chooseOption("Tipo", label);
   }
 
   it("registra una transferencia simple entre cuentas y crea DOS movimientos vinculados", () => {
@@ -85,8 +84,7 @@ describe("Transacciones: transferencias entre cuentas", () => {
 
   it("al elegir la misma cuenta origen y destino, el formulario no permite guardar (o la app lo rechaza)", () => {
     openTransferModal();
-    cy.contains("span", "Cuenta destino").parent().find("button").click();
-    cy.contains('[role="option"], li', "Nu Débito").click();
+    cy.chooseOption("Cuenta destino", "Nu Débito");
     cy.get('input[name="amount"]').type("50.00");
     cy.get('[role="dialog"]').contains("button", "Registrar").click();
     // La cuenta origen por defecto también es Nu Débito -> el use case debe rechazarlo.

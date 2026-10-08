@@ -31,7 +31,7 @@ describe("BalanceSummaryRow", () => {
     cy.contains("Nu TDC").should("be.visible");
     cy.contains("Préstamo Auto").should("be.visible");
     cy.contains(/Has pagado .* este periodo/).should("be.visible");
-    cy.get('[data-slot="modal-close-trigger"]').first().click();
+    cy.get('[data-slot="dialog-close"]').first().click();
     cy.get('[role="dialog"]').should("not.exist");
   });
 

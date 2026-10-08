@@ -1,5 +1,5 @@
 import { defineConfig } from "cypress";
-import { eq, sql } from "drizzle-orm";
+import { eq, like, sql } from "drizzle-orm";
 import { JoseAccessTokenIssuer, loadAuthSecret } from "./src/infrastructure/auth/accessTokens";
 import { db } from "./src/infrastructure/db/client";
 import { DeleteTransactionUseCase } from "./src/application/deleteTransaction";
@@ -7,6 +7,7 @@ import { RecordTransactionUseCase } from "./src/application/recordTransaction";
 import { shiftMonth } from "./src/domain/dashboard/rules";
 import { monthStart } from "./src/domain/ledger/rules";
 import { DrizzleLedgerUnitOfWork } from "./src/infrastructure/db/ledger";
+import { recurringItems } from "./src/infrastructure/db/schema/budgeting";
 import { categories } from "./src/infrastructure/db/schema/classification";
 import { users } from "./src/infrastructure/db/schema/core";
 import { apiTokens } from "./src/infrastructure/db/schema/security";
@@ -88,6 +89,10 @@ export default defineConfig({
           const rows = await db.select({ id: transactions.id }).from(transactions).where(eq(transactions.source, "api"));
           for (const row of rows) await remove.execute(row.id);
           await db.delete(apiTokens);
+          return null;
+        },
+        async cleanupPayroll() {
+          await db.delete(recurringItems).where(like(recurringItems.name, "Nómina%"));
           return null;
         },
         async cleanupSubscriptionScenario() {

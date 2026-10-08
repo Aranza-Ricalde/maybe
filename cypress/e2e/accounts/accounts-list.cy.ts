@@ -61,7 +61,7 @@ describe("/accounts — lista, saldos y explorador", () => {
       cy.contains("Efectivo").should("be.visible");
       cy.contains("button", "Reactivar").should("be.visible");
     });
-    cy.get('[data-slot="modal-close-trigger"]').click();
+    cy.get('[data-slot="dialog-close"]').click();
     cy.contains("Cuentas archivadas").should("not.exist");
   });
 
@@ -76,7 +76,7 @@ describe("/accounts — lista, saldos y explorador", () => {
   it("el explorador permite cambiar de rango (30 días / 3 meses / 6 meses / 1 año)", () => {
     for (const label of ["30 días", "3 meses", "6 meses", "1 año"]) {
       cy.contains("button", label).click();
-      cy.contains("button", label).should("have.class", "bg-separator");
+      cy.contains("button", label).should("have.attr", "data-state", "active");
     }
   });
 

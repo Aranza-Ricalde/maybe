@@ -62,7 +62,7 @@ describe("Presupuestos (/budgets)", () => {
       }
       return Math.round(right);
     };
-    cy.get('[aria-label="Presupuesto por categoría"] th[scope="col"]').then(($headers) => {
+    cy.get('[aria-label="Presupuesto por categoría"] thead th').then(($headers) => {
       const titles = [...$headers].map((header) => header.textContent?.trim());
       const CHIP_PADDING_PX = 12;
       const tolerance: Record<string, number> = { Gastado: 2, Presupuestado: 2, Progreso: CHIP_PADDING_PX };
@@ -163,7 +163,7 @@ describe("Presupuestos (/budgets)", () => {
       cy.get('[aria-label="Editar presupuesto de Alimentación"]').click();
     });
     cy.get('input[name="amount"]').clear().type("999999");
-    cy.get('[data-slot="modal-close-trigger"]').click();
+    cy.get('[data-slot="dialog-close"]').click();
     cy.contains("Presupuesto — Alimentación").should("not.exist");
     cy.task("dbQuery", "select budgeted_amount_cents from budget_category_settings where category_id = 3").then((rows) => {
       expect(Number((rows as Array<{ budgeted_amount_cents: string; n: string }>)[0].budgeted_amount_cents)).to.equal(300000);
@@ -190,7 +190,7 @@ describe("Presupuestos (/budgets)", () => {
       cy.contains("tr", "Alimentación").within(() => {
         cy.get('[aria-label="Quitar presupuesto de Alimentación"]').click();
       });
-      cy.get('[data-slot="modal-close-trigger"]').click();
+      cy.get('[data-slot="dialog-close"]').click();
       cy.task("dbQuery", "select count(*) as n from budget_category_settings where category_id = 3").then((after) => {
         expect((after as Array<{ budgeted_amount_cents: string; n: string }>)[0].n).to.equal((before as Array<{ budgeted_amount_cents: string; n: string }>)[0].n);
       });

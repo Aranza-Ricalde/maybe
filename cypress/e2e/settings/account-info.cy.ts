@@ -26,7 +26,7 @@ describe("Settings — Tu cuenta y Telegram", () => {
     cy.contains(/\/link [A-F0-9]{10}/).should("be.visible");
     cy.contains("/link").should("be.visible");
 
-    cy.get('[data-slot="modal-close-trigger"], [data-slot="close-button"]').first().click();
+    cy.get('[data-slot="dialog-close"]').first().click();
     cy.contains("Vincular Telegram").should("not.exist");
   });
 

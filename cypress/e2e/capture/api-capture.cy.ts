@@ -35,12 +35,12 @@ describe("Registro por API — token, endpoint y confirmación", () => {
     cy.get("[role=status]").should("not.exist");
 
     cy.visit("/transactions");
-    cy.get('section[aria-label="Movimientos por confirmar"]').within(() => {
+    cy.get('[aria-label="Movimientos por confirmar"]').within(() => {
       cy.contains("Zzxq Tienda Rara").should("be.visible");
       cy.get('select[aria-label="Categoría"]').select("Alimentación");
       cy.contains("button", "Confirmar").click();
     });
-    cy.get('section[aria-label="Movimientos por confirmar"]').should("not.exist");
+    cy.get('[aria-label="Movimientos por confirmar"]').should("not.exist");
 
     cy.task("dbQuery", "select c.name as category from transactions t join categories c on c.id = t.category_id where t.name = 'Zzxq Tienda Rara'").then((rows) => {
       expect((rows as { category: string }[])[0].category).to.eq("Alimentación");

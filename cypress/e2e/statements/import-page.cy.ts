@@ -15,8 +15,8 @@ describe("Importar estados — pantalla", () => {
       cy.get("select[aria-label^='Banco de']").select("bbva_debito");
       cy.get("select[aria-label^='Cuenta de']").find("option").eq(1).then((option) => cy.get("select[aria-label^='Cuenta de']").select(option.val() as string));
       cy.contains("No se reconoce el formato", { timeout: 15000 });
-      cy.contains("[role=alert]", "No se pudo leer el estado").should("be.visible");
-      cy.get("[role=alert]", { timeout: 12000 }).should("not.exist");
+      cy.contains("[data-sonner-toast]", "No se pudo leer el estado").should("be.visible");
+      cy.get("[data-sonner-toast]", { timeout: 12000 }).should("not.exist");
       cy.get("aside[aria-label='Progreso de importación']").should("not.exist");
       cy.get("nav").contains("Resumen").click();
       cy.get("aside[aria-label='Progreso de importación']").should("be.visible");

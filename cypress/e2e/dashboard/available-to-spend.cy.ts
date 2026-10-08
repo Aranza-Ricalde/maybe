@@ -21,7 +21,7 @@ describe("AvailableToSpendCard", () => {
     cy.contains(/Ver detalle/).first().click();
     cy.contains("Saldo líquido por cuenta").should("be.visible");
     cy.contains("Compromisos conocidos").should("be.visible");
-    cy.get('[data-slot="close-button"], [slot="close"]').first().click();
+    cy.get('[data-slot="dialog-close"]').first().click();
     cy.contains("Saldo líquido por cuenta").should("not.exist");
   });
 

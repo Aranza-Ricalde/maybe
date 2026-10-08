@@ -40,7 +40,7 @@ describe("Settings — Categorías", () => {
     cy.get('input[name="name"]').type(name);
     // classification por defecto ya es "expense" (Gasto), y el color por defecto es el primero de la paleta.
     cy.contains("button", "Crear categoría").click();
-    cy.get('[data-slot="modal-backdrop"]').should("not.exist");
+    cy.get('[data-slot="dialog-overlay"]').should("not.exist");
 
     cy.contains("tr", name).should("be.visible");
     cy.task("dbQuery", `select classification, color from categories where name = '${name}'`).then((rows) => {
@@ -87,7 +87,7 @@ describe("Settings — Categorías", () => {
     cy.get('[aria-label="Tipo"]').click();
     cy.contains('[role="option"], li', "Ingreso").click();
     cy.contains("button", "Crear categoría").click();
-    cy.get('[data-slot="modal-backdrop"]').should("not.exist");
+    cy.get('[data-slot="dialog-overlay"]').should("not.exist");
 
     cy.contains("tr", name).within(() => cy.contains("Ingreso").should("be.visible"));
     cy.task("dbQuery", `select classification from categories where name = '${name}'`).then((rows) => {
@@ -106,8 +106,8 @@ describe("Settings — Categorías", () => {
 
       cy.contains("button", "+ Nueva categoría").click();
       cy.get('input[name="name"]').type("No debería guardarse");
-      cy.get('[data-slot="modal-close-trigger"]').click();
-      cy.get('[data-slot="modal-backdrop"]').should("not.exist");
+      cy.get('[data-slot="dialog-close"]').click();
+      cy.get('[data-slot="dialog-overlay"]').should("not.exist");
 
       cy.task("dbQuery", "select count(*) as n from categories").then((after) => {
         expect((after as { n: string }[])[0].n).to.equal(countBefore);

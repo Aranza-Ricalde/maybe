@@ -35,7 +35,7 @@ describe("Settings — Periodos de pago", () => {
       });
 
       cy.contains("button", "Crear periodo").click();
-      cy.get('[data-slot="modal-backdrop"]').should("not.exist");
+      cy.get('[data-slot="dialog-overlay"]').should("not.exist");
 
       cy.task("dbQuery", "select count(*) as n from pay_periods").then((afterRows) => {
         expect((afterRows as { n: string }[])[0].n).to.equal("27");
@@ -48,7 +48,7 @@ describe("Settings — Periodos de pago", () => {
   it("al abrir el calendario del nuevo periodo y hacer clic en otro día, el encabezado de fechas se actualiza (el picker responde a interacción real)", () => {
     cy.contains("button", "+ Nuevo periodo").click();
     cy.get('input[name="start"]').invoke("val").then((initialStart) => {
-      cy.get('[aria-label^="Fechas del periodo"] td [role="button"]:not([aria-disabled="true"])')
+      cy.get('[aria-label^="Fechas del periodo"] td button:not([disabled])')
         .first()
         .click();
       cy.get('input[name="start"]').invoke("val").should((newStart) => {
@@ -57,7 +57,7 @@ describe("Settings — Periodos de pago", () => {
       });
       void initialStart;
     });
-    cy.get('[data-slot="modal-close-trigger"]').click();
+    cy.get('[data-slot="dialog-close"]').click();
   });
 
   it("edita un periodo (sin tocar el calendario) y lo elimina, verificando contra la base en cada paso", () => {
@@ -89,8 +89,8 @@ describe("Settings — Periodos de pago", () => {
     cy.task("dbQuery", "select count(*) as n from pay_periods").then((before) => {
       const countBefore = (before as { n: string }[])[0].n;
       cy.contains("button", "+ Nuevo periodo").click();
-      cy.get('[data-slot="modal-close-trigger"]').click();
-      cy.get('[data-slot="modal-backdrop"]').should("not.exist");
+      cy.get('[data-slot="dialog-close"]').click();
+      cy.get('[data-slot="dialog-overlay"]').should("not.exist");
       cy.task("dbQuery", "select count(*) as n from pay_periods").then((after) => {
         expect((after as { n: string }[])[0].n).to.equal(countBefore);
       });
@@ -109,8 +109,8 @@ describe("Settings — Periodos de pago: sin traslapes", () => {
       const countBefore = (before as { n: string }[])[0].n;
       cy.contains("button", "+ Nuevo periodo").click();
       cy.get('input[name="start"]').invoke("val").then(() => {
-        cy.get('[aria-label^="Fechas del periodo"] td [role="button"]:not([aria-disabled="true"])').first().click();
-        cy.get('[aria-label^="Fechas del periodo"] td [role="button"]:not([aria-disabled="true"])').first().click();
+        cy.get('[aria-label^="Fechas del periodo"] td button:not([disabled])').first().click();
+        cy.get('[aria-label^="Fechas del periodo"] td button:not([disabled])').first().click();
       });
       cy.contains("button", "Crear periodo").click();
       cy.task("dbQuery", "select count(*) as n from pay_periods").then((after) => {

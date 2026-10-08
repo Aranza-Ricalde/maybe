@@ -11,7 +11,7 @@ describe("Settings — Vista de periodos (quincenal o mensual)", () => {
 
   it("por defecto es mensual: el selector del presupuesto lista meses y la tabla de configuración muestra meses de pago", () => {
     cy.visit("/settings");
-    cy.contains("h2, h3, [class*=title]", "Meses de pago").should("be.visible");
+    cy.contains('[data-slot="card-title"]', "Meses de pago").should("be.visible");
     cy.get('[aria-label="Meses de pago"]').within(() => cy.contains("Actual").should("have.length", 1));
 
     cy.visit("/budgets");

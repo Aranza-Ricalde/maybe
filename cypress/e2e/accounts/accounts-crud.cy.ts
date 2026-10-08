@@ -7,12 +7,12 @@ describe("/accounts — crear, editar, archivar/restaurar", () => {
   it("el selector de tipo de cuenta en 'Nueva cuenta' incluye todos los tipos soportados", () => {
     cy.contains("button", "+ Nueva cuenta").click();
     cy.contains("Nueva cuenta").should("be.visible");
-    cy.get('[aria-label="Tipo"], [role="combobox"]').first().click();
+    cy.get('[role="dialog"] [role="combobox"]').first().click();
     for (const label of ["Cuenta de cheques", "Ahorro", "Tarjeta de crédito", "Efectivo", "Préstamo", "Propiedad", "Vehículo", "Otro activo", "Otro pasivo"]) {
       cy.contains('[role="option"], li', label).should("exist");
     }
     cy.get("body").type("{esc}");
-    cy.get('[data-slot="modal-close-trigger"]').click();
+    cy.get('[data-slot="dialog-close"]').click();
   });
 
   it("crea una cuenta nueva, aparece en la tabla con saldo $0.00, y queda persistida en la base", () => {
@@ -49,8 +49,7 @@ describe("/accounts — crear, editar, archivar/restaurar", () => {
 
     cy.contains("button", "+ Nueva cuenta").click();
     cy.get('input[name="name"]').type(name);
-    cy.get('[aria-label="Tipo"], [role="combobox"]').first().click();
-    cy.contains('[role="option"], li', "Tarjeta de crédito").click();
+    cy.chooseOption("Tipo", "Tarjeta de crédito");
     cy.get('input[name="creditLimitCents"]').type("15000");
     cy.contains("button", "Crear cuenta").click();
 
@@ -70,8 +69,7 @@ describe("/accounts — crear, editar, archivar/restaurar", () => {
 
     cy.contains("button", "+ Nueva cuenta").click();
     cy.get('input[name="name"]').type(name);
-    cy.get('[aria-label="Tipo"], [role="combobox"]').first().click();
-    cy.contains('[role="option"], li', "Tarjeta de débito").click();
+    cy.chooseOption("Tipo", "Tarjeta de débito");
     cy.contains("button", "Crear cuenta").click();
 
     cy.contains("tr", name).should("be.visible").within(() => {
@@ -113,7 +111,7 @@ describe("/accounts — crear, editar, archivar/restaurar", () => {
   it("el modal de eliminar advierte que, si la cuenta tiene movimientos, se archiva en vez de borrarse", () => {
     cy.contains("tr", "Nu Débito").within(() => cy.get('button[aria-label^="Eliminar"]').click());
     cy.contains("se archivará en vez de borrarse").should("be.visible");
-    cy.get('[data-slot="modal-close-trigger"]').click();
+    cy.get('[data-slot="dialog-close"]').click();
   });
 
   it("restaura la cuenta archivada 'Efectivo': reaparece activa en la tabla y en la base", () => {

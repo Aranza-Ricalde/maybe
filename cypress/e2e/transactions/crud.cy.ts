@@ -3,7 +3,7 @@ describe("Transacciones: crear, editar, eliminar", () => {
     cy.task("mintAccessToken", 1).then((token) => cy.setCookie("access_token", token as string));
     cy.visit("/transactions");
     cy.get("table").should("be.visible");
-    cy.get('[data-slot="modal-backdrop"]').should("not.exist");
+    cy.get('[data-slot="dialog-overlay"]').should("not.exist");
   });
 
   it("crea un movimiento con categoría y lo persiste correctamente en la base", () => {
@@ -12,9 +12,8 @@ describe("Transacciones: crear, editar, eliminar", () => {
     cy.contains("Registrar movimiento").should("be.visible");
 
     cy.get('input[name="name"]').type(name);
-    cy.get('input[name="amount"]').type("-123.45");
-    cy.contains("span", "Categoría (opcional)").parent().find("button").click();
-    cy.contains('[role="option"], li', "Transporte").click();
+    cy.get('[data-testid="amount-display"]').type("123.45");
+    cy.chooseOption("Categoría", "Transporte");
     cy.get('[role="dialog"]').contains("button", "Registrar").click();
 
     cy.contains(name, { timeout: 10000 }).should("be.visible");
@@ -31,7 +30,8 @@ describe("Transacciones: crear, editar, eliminar", () => {
     const name = `E2E ingreso prueba ${Date.now()}`;
     cy.contains("button", "+ Registrar movimiento").click();
     cy.get('input[name="name"]').type(name);
-    cy.get('input[name="amount"]').type("777.77");
+    cy.contains("button", "Ingreso").click();
+    cy.get('[data-testid="amount-display"]').type("777.77");
     cy.get('[role="dialog"]').contains("button", "Registrar").click();
 
     cy.contains(name, { timeout: 10000 }).should("be.visible");
@@ -75,7 +75,7 @@ describe("Transacciones: crear, editar, eliminar", () => {
     const name = `E2E a borrar ${Date.now()}`;
     cy.contains("button", "+ Registrar movimiento").click();
     cy.get('input[name="name"]').type(name);
-    cy.get('input[name="amount"]').type("-10.00");
+    cy.get('[data-testid="amount-display"]').type("10.00");
     cy.get('[role="dialog"]').contains("button", "Registrar").click();
     cy.contains(name, { timeout: 10000 }).should("be.visible");
 
@@ -95,13 +95,13 @@ describe("Transacciones: crear, editar, eliminar", () => {
 
   it("no permite registrar sin descripción (campo requerido)", () => {
     cy.contains("button", "+ Registrar movimiento").click();
-    cy.get('input[name="amount"]').type("-10.00");
+    cy.get('[data-testid="amount-display"]').type("10.00");
     cy.get('input[name="name"]:invalid').should("exist");
   });
 
   it("no permite registrar sin monto (campo requerido)", () => {
     cy.contains("button", "+ Registrar movimiento").click();
     cy.get('input[name="name"]').type("Sin monto");
-    cy.get('input[name="amount"]:invalid').should("exist");
+    cy.get('[data-testid="amount-display"]:invalid').should("exist");
   });
 });
