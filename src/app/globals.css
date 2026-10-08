@@ -1,17 +1,33 @@
-@import "@heroui/styles";
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-/*
- * Tokens de marca de Maybe sobre el sistema de HeroUI. El resto de
- * variables (hover, soft, radius, sombras) se calculan solas a partir de
- * estas — no se tocan directamente (ver node_modules/@heroui/styles/README.md).
- */
+@custom-variant dark (&:is([data-theme="dark"] *));
+
 :root {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
-  /* Acento: verde ledger — finanzas, crecimiento, confianza. No el azul/morado genérico. */
-  --accent: #0d7d6f;
-  --accent-foreground: #f6fbfa;
+  --radius: 0.625rem;
+
+  --background: oklch(0.9702 0 0);
+  --foreground: oklch(0.2103 0.0059 285.89);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2103 0.0059 285.89);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2103 0.0059 285.89);
+  --primary: #0d7d6f;
+  --primary-foreground: #f6fbfa;
+  --secondary: oklch(0.94 0.001 286.375);
+  --secondary-foreground: oklch(0.2103 0.0059 285.89);
+  --muted: oklch(0.9524 0.0013 286.37);
+  --muted-foreground: oklch(0.5517 0.0138 285.94);
+  --accent: oklch(0.9524 0.0013 286.37);
+  --accent-foreground: oklch(0.2103 0.0059 285.89);
+  --destructive: #be123c;
+  --border: oklch(0.92 0.004 286.32);
+  --input: oklch(0.9 0.004 286.32);
+  --ring: #0d7d6f;
 
   --success: #16a34a;
   --success-foreground: #f6fbfa;
@@ -20,25 +36,126 @@
   --danger: #be123c;
   --danger-foreground: #fff1f2;
 
-  --radius: 0.625rem;
+  --chart-1: #0d7d6f;
+  --chart-2: #2563eb;
+  --chart-3: #d97706;
+  --chart-4: #db2777;
+  --chart-5: #7c3aed;
+
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.2103 0.0059 285.89);
+  --sidebar-primary: #0d7d6f;
+  --sidebar-primary-foreground: #f6fbfa;
+  --sidebar-accent: color-mix(in oklab, #0d7d6f 12%, transparent);
+  --sidebar-accent-foreground: #0d7d6f;
+  --sidebar-border: oklch(0.92 0.004 286.32);
+  --sidebar-ring: #0d7d6f;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --accent: #2dd4bf;
-    --accent-foreground: #042f2a;
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: oklch(0.12 0.005 285.823);
+  --foreground: oklch(0.9911 0 0);
+  --card: oklch(0.2103 0.0059 285.89);
+  --card-foreground: oklch(0.9911 0 0);
+  --popover: oklch(0.2103 0.0059 285.89);
+  --popover-foreground: oklch(0.9911 0 0);
+  --primary: #2dd4bf;
+  --primary-foreground: #042f2a;
+  --secondary: oklch(0.274 0.006 286.033);
+  --secondary-foreground: oklch(0.9911 0 0);
+  --muted: oklch(0.257 0.0037 286.14);
+  --muted-foreground: oklch(0.705 0.015 286.067);
+  --accent: oklch(0.257 0.0037 286.14);
+  --accent-foreground: oklch(0.9911 0 0);
+  --destructive: #fb7185;
+  --border: oklch(0.25 0.006 286.033);
+  --input: oklch(1 0 0 / 15%);
+  --ring: #2dd4bf;
+
+  --success: #4ade80;
+  --success-foreground: #052e16;
+  --warning: #fbbf24;
+  --warning-foreground: #1c1403;
+  --danger: #fb7185;
+  --danger-foreground: #2a0a10;
+
+  --chart-1: #2dd4bf;
+  --chart-2: #60a5fa;
+  --chart-3: #fbbf24;
+  --chart-4: #f472b6;
+  --chart-5: #a78bfa;
+
+  --sidebar: oklch(0.2103 0.0059 285.89);
+  --sidebar-foreground: oklch(0.9911 0 0);
+  --sidebar-primary: #2dd4bf;
+  --sidebar-primary-foreground: #042f2a;
+  --sidebar-accent: color-mix(in oklab, #2dd4bf 14%, transparent);
+  --sidebar-accent-foreground: #2dd4bf;
+  --sidebar-border: oklch(0.25 0.006 286.033);
+  --sidebar-ring: #2dd4bf;
+}
+
+@theme inline {
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   }
 }
-:root[data-theme="dark"] {
-  --accent: #2dd4bf;
-  --accent-foreground: #042f2a;
-}
 
-body {
-  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
-}
-
-/* font-variant-numeric: tabular-nums dondequiera que los dígitos deban alinearse en columna (montos, saldos). */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
