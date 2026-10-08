@@ -1,3 +1,4 @@
+import { PERIOD_START_DAY } from "@/domain/payPeriod/rules";
 import { FLOWS, classifyFlow, type Flow } from "@/domain/ledger/rules";
 
 export interface TransactionForDetection {
@@ -119,6 +120,10 @@ export function assertValidDayOfMonth(dayOfMonth: number): void {
   if (!Number.isInteger(dayOfMonth) || dayOfMonth < 1 || dayOfMonth > 31) {
     throw new InvalidRecurringItemError("El día del mes debe estar entre 1 y 31.");
   }
+}
+
+export function assertValidRecurringDay(dayOfMonth: number): void {
+  if (dayOfMonth !== PERIOD_START_DAY) assertValidDayOfMonth(dayOfMonth);
 }
 
 export function signedEstimatedAmountCents(flow: Flow, magnitudeCents: number): number {

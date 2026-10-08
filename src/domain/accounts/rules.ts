@@ -55,3 +55,29 @@ export function mergeAccountDetails(
   if (creditLimitCents == null) return existingDetails;
   return { ...(existingDetails ?? {}), creditLimitCents };
 }
+
+export interface AccountBalanceInput {
+  type: AccountType;
+  balanceCents: number;
+}
+
+export interface AccountsTotals {
+  assetsCents: number;
+  liabilitiesCents: number;
+  netCents: number;
+}
+
+export function summarizeAccountsTotals(accounts: AccountBalanceInput[]): AccountsTotals {
+  let assetsCents = 0;
+  let liabilitiesCents = 0;
+  for (const account of accounts) {
+    if (isLiabilityAccountType(account.type)) liabilitiesCents += Math.abs(account.balanceCents);
+    else assetsCents += account.balanceCents;
+  }
+  return { assetsCents, liabilitiesCents, netCents: assetsCents - liabilitiesCents };
+}
+
+export function creditUtilization(balanceCents: number, creditLimitCents: number | null): number | null {
+  if (creditLimitCents == null || creditLimitCents <= 0) return null;
+  return Math.min(1, Math.abs(balanceCents) / creditLimitCents);
+}

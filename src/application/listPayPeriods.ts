@@ -11,11 +11,7 @@ export class ListPayPeriodsUseCase {
     const existing = await this.repo.listForFamily(familyId);
     if (existing.length > 0) return existing;
 
-    const suggested = generateSuggestedPeriods(addDays(today, -SEED_LOOKBACK_DAYS), SEED_PERIOD_COUNT);
-    const created: PayPeriodRecord[] = [];
-    for (const period of suggested) {
-      created.push(await this.repo.create(familyId, period.start, period.end));
-    }
-    return created;
+    await this.repo.createMissing(familyId, generateSuggestedPeriods(addDays(today, -SEED_LOOKBACK_DAYS), SEED_PERIOD_COUNT));
+    return this.repo.listForFamily(familyId);
   }
 }

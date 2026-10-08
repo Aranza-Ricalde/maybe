@@ -40,6 +40,7 @@ export class GetCashProjectionUseCase {
     private readonly dashboardRepo: AccountSnapshotReader,
     private readonly occurrencesRepo: RecurringOccurrencesRepository,
     private readonly settings: FamilySettingsRepository,
+    private readonly listPeriodStarts: (familyId: number) => Promise<string[]> = async () => [],
   ) {}
 
   async execute(familyId: number, today: string, options: { days?: number; minimumCents?: number } = {}): Promise<CashProjectionView> {
@@ -48,18 +49,19 @@ export class GetCashProjectionUseCase {
     const endDate = addDays(today, days);
     const tomorrow = addDays(today, 1);
 
-    const [liquid, items, occurrences, scheduled, recentExpenses] = await Promise.all([
+    const [liquid, items, occurrences, scheduled, recentExpenses, periodStarts] = await Promise.all([
       this.dashboardRepo.getLiquidAccounts(familyId, today),
       this.cashflowRepo.getActiveRecurringItems(familyId),
       this.occurrencesRepo.listOccurrences(familyId, addDays(today, -OVERDUE_LOOKBACK_DAYS), endDate),
       this.cashflowRepo.getPlannedScheduled(familyId, today, endDate),
       this.cashflowRepo.getRecentMonthlyExpenseCents(familyId, monthStart(today), MONTHS_FOR_AVERAGE),
+      this.listPeriodStarts(familyId),
     ]);
 
     const closed = new Set(occurrences.filter((o) => o.status !== "pending").map((o) => `${o.recurringItemId}|${o.expectedDate}`));
     const itemById = new Map(items.filter((i) => i.id != null).map((i) => [i.id as number, i]));
 
-    const upcoming = recurringEvents(items, today, endDate, closed);
+    const upcoming = recurringEvents(items, today, endDate, closed, periodStarts);
     const overdue: CashEvent[] = occurrences
       .filter((o) => o.status === "pending" && o.expectedDate <= today && itemById.has(o.recurringItemId))
       .map((o) => ({ date: tomorrow, label: (itemById.get(o.recurringItemId) as { name: string }).name, amountCents: o.expectedAmountCents, source: "recurring" as const }));

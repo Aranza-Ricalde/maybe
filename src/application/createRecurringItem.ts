@@ -4,7 +4,7 @@ import type { RecurringBudgetRepository, RecurringItemsRepository } from "@/doma
 import type { Flow } from "@/domain/ledger/rules";
 import { ensureConcept } from "./ensureConcept";
 import {
-  assertValidDayOfMonth,
+  assertValidRecurringDay,
   assertValidEstimatedAmount,
   assertValidRecurringFlow,
   assertValidRecurringItemName,
@@ -30,7 +30,7 @@ export class CreateRecurringItemUseCase {
 
   async execute(input: CreateRecurringItemRequest): Promise<void> {
     assertValidEstimatedAmount(input.estimatedAmount);
-    assertValidDayOfMonth(input.dayOfMonth);
+    assertValidRecurringDay(input.dayOfMonth);
     assertValidRecurringItemName(input.name);
     assertValidRecurringFlow(input.flow);
 

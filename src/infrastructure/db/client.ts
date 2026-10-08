@@ -6,6 +6,14 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL no está definida (ver .env.example)");
 }
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const MAX_CONNECTIONS = 5;
+
+const globalForDb = globalThis as unknown as { maybePool?: Pool };
+
+const pool = globalForDb.maybePool ?? new Pool({ connectionString: process.env.DATABASE_URL, max: MAX_CONNECTIONS });
+
+pool.on("error", () => undefined);
+
+if (process.env.NODE_ENV !== "production") globalForDb.maybePool = pool;
 
 export const db = drizzle(pool, { schema });

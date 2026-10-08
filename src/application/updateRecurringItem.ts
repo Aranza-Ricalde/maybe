@@ -2,7 +2,7 @@ import type { ConceptsRepository } from "@/domain/concepts/ports";
 import type { RecurringItemsRepository } from "@/domain/recurring/ports";
 import type { Flow } from "@/domain/ledger/rules";
 import {
-  assertValidDayOfMonth,
+  assertValidRecurringDay,
   assertValidEstimatedAmount,
   assertValidRecurringFlow,
   assertValidRecurringItemName,
@@ -29,7 +29,7 @@ export class UpdateRecurringItemUseCase {
 
   async execute(input: UpdateRecurringItemRequest): Promise<void> {
     assertValidEstimatedAmount(input.estimatedAmount);
-    assertValidDayOfMonth(input.dayOfMonth);
+    assertValidRecurringDay(input.dayOfMonth);
     assertValidRecurringItemName(input.name);
     assertValidRecurringFlow(input.flow);
 

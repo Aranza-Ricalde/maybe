@@ -18,6 +18,11 @@ export class DrizzlePayPeriodsRepository implements PayPeriodsRepository {
     return row;
   }
 
+  async createMissing(familyId: number, ranges: Array<{ start: string; end: string }>): Promise<void> {
+    if (ranges.length === 0) return;
+    await db.insert(payPeriods).values(ranges.map(({ start, end }) => ({ familyId, start, end }))).onConflictDoNothing();
+  }
+
   async update(id: number, start: string, end: string): Promise<void> {
     await db.update(payPeriods).set({ start, end }).where(eq(payPeriods.id, id));
   }

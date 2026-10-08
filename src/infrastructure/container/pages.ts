@@ -19,7 +19,7 @@ export const getAccountsPageUseCase = new GetAccountsPageUseCase(accountsReader,
 export const getBudgetsPageUseCase = new GetBudgetsPageUseCase(resolvePeriodContextUseCase, categoriesReader, planningReader);
 export const getImportPageUseCase = new GetImportPageUseCase(accountsReader, categoriesReader);
 export const getGoalsPageUseCase = new GetGoalsPageUseCase(planningReader, accountsReader, getGoalProjectionsUseCase, getEmergencyFundUseCase);
-export const getRecurringPageUseCase = new GetRecurringPageUseCase(planningReader, inboxReader, accountsReader, categoriesReader);
+export const getRecurringPageUseCase = new GetRecurringPageUseCase(planningReader, inboxReader, accountsReader, categoriesReader, (familyId, today) => listPayPeriodsUseCase.execute(familyId, today));
 export const getSettingsPageUseCase = new GetSettingsPageUseCase(categoriesReader, profileReader, listPayPeriodsUseCase, telegramLinkCodes, describeApiTokenUseCase, familySettingsRepo);
 export const getTransactionsPageUseCase = new GetTransactionsPageUseCase(accountsReader, categoriesReader, getTransferSuggestionsUseCase, captureRepo);
 export const getProjectionPageUseCase = new GetProjectionPageUseCase(getProjectionBaseUseCase, getCashProjectionUseCase);

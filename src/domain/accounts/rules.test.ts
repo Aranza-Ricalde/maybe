@@ -91,3 +91,22 @@ test("Tarjeta de débito es un tipo de cuenta válido, de activo (no de pasivo) 
 test("todos los tipos de cuenta tienen etiqueta en español", () => {
   for (const type of ACCOUNT_TYPES) assert.ok(ACCOUNT_TYPE_LABELS[type], `falta la etiqueta de ${type}`);
 });
+
+test("los totales separan lo que tienes de lo que debes sin importar el signo guardado en las deudas", async () => {
+  const { summarizeAccountsTotals } = await import("./rules");
+  const totals = summarizeAccountsTotals([
+    { type: "checking", balanceCents: 100000 },
+    { type: "savings", balanceCents: 50000 },
+    { type: "credit_card", balanceCents: -20000 },
+    { type: "loan", balanceCents: 30000 },
+  ]);
+  assert.deepEqual(totals, { assetsCents: 150000, liabilitiesCents: 50000, netCents: 100000 });
+});
+
+test("el uso del crédito se acota a 100% y no existe sin límite", async () => {
+  const { creditUtilization } = await import("./rules");
+  assert.equal(creditUtilization(-25000, 100000), 0.25);
+  assert.equal(creditUtilization(250000, 100000), 1);
+  assert.equal(creditUtilization(-25000, null), null);
+  assert.equal(creditUtilization(-25000, 0), null);
+});

@@ -1,4 +1,4 @@
-import { addDays } from "@/domain/payPeriod/rules";
+import { PERIOD_START_DAY, addDays } from "@/domain/payPeriod/rules";
 import type { FinancialStatusResult } from "@/domain/dashboard/rules";
 import { daysInMonth } from "./rules";
 
@@ -25,14 +25,21 @@ export function sumEventsCents(events: Array<{ amountCents: number }>): number {
   return events.reduce((sum, e) => sum + e.amountCents, 0);
 }
 
-export function recurringEvents(items: RecurringForEvents[], fromExclusive: string, toInclusive: string, skip: Set<string> = new Set()): CashEvent[] {
+export function recurringEvents(items: RecurringForEvents[], fromExclusive: string, toInclusive: string, skip: Set<string> = new Set(), periodStarts: string[] = []): CashEvent[] {
   const events: CashEvent[] = [];
+  for (const item of items.filter((candidate) => candidate.dayOfMonth === PERIOD_START_DAY)) {
+    for (const date of periodStarts) {
+      if (date <= fromExclusive || date > toInclusive) continue;
+      if (item.id != null && skip.has(`${item.id}|${date}`)) continue;
+      events.push({ date, label: item.name, amountCents: item.estimatedAmountCents, source: "recurring" });
+    }
+  }
   let year = Number(fromExclusive.slice(0, 4));
   let month = Number(fromExclusive.slice(5, 7));
   const endKey = toInclusive.slice(0, 7);
 
   while (`${year}-${pad(month)}` <= endKey) {
-    for (const item of items) {
+    for (const item of items.filter((candidate) => candidate.dayOfMonth !== PERIOD_START_DAY)) {
       const date = `${year}-${pad(month)}-${pad(Math.min(item.dayOfMonth, daysInMonth(`${year}-${pad(month)}-01`)))}`;
       if (date <= fromExclusive || date > toInclusive) continue;
       if (item.id != null && skip.has(`${item.id}|${date}`)) continue;

@@ -1,3 +1,4 @@
+import { isPayrollItem } from "@/domain/recurring/payroll";
 import { assignBestMatches } from "@/domain/recurring/matching";
 
 export interface CalendarScheduledInput {
@@ -82,9 +83,10 @@ export function financialCalendarEntries(
   periodStart: string,
   periodEnd: string,
 ): CalendarEntry[] {
-  const fromRecurring = occurrences.map((o) => fromOccurrence(o, today));
+  const payments = occurrences.filter((o) => !isPayrollItem(o));
+  const fromRecurring = payments.map((o) => fromOccurrence(o, today));
 
-  const claimedTransactionIds = new Set(occurrences.flatMap((o) => (o.transaction ? [o.transaction.id] : [])));
+  const claimedTransactionIds = new Set(payments.flatMap((o) => (o.transaction ? [o.transaction.id] : [])));
   const usedTransactions = new Set(periodTransactions.filter((t) => t.id != null && claimedTransactionIds.has(t.id)));
 
   const scheduledOccurrences = scheduled

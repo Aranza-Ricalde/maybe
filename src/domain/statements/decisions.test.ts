@@ -77,3 +77,16 @@ test("el resumen cuenta importar, vincular, omitir y emparejar sin contar las fi
   const choices = linkAllHighConfidence(preview, initialChoices(preview));
   assert.deepEqual(summarizeChoices(preview, choices), { toImport: 1, toLink: 1, toSkip: 1, toPair: 0 });
 });
+
+test("no se puede confirmar sin nada que importar o vincular, ni con totales que no cuadran sin aceptarlo, ni mientras se importa", async () => {
+  const { canConfirmImport } = await import("./decisions");
+  const preview = { rows: [{ locked: false }], validation: { checks: [{ expected: 1, actual: 1 }] } } as never;
+  const mismatched = { rows: [{ locked: false }], validation: { checks: [{ expected: 1, actual: 2 }] } } as never;
+  const importing = [{ action: "import", pair: false }] as never;
+  const skipping = [{ action: "skip", pair: false }] as never;
+  assert.equal(canConfirmImport(preview, importing, false, false), true);
+  assert.equal(canConfirmImport(preview, skipping, false, false), false);
+  assert.equal(canConfirmImport(preview, importing, false, true), false);
+  assert.equal(canConfirmImport(mismatched, importing, false, false), false);
+  assert.equal(canConfirmImport(mismatched, importing, true, false), true);
+});

@@ -28,6 +28,11 @@ class FakePayPeriods implements PayPeriodsRepository {
     this.rows.push(row);
     return row;
   }
+  async createMissing(familyId: number, ranges: Array<{ start: string; end: string }>) {
+    for (const range of ranges) {
+      if (!this.rows.some((row) => row.start === range.start)) await this.create(familyId, range.start, range.end);
+    }
+  }
   async update(id: number, start: string, end: string) {
     this.rows = this.rows.map((row) => (row.id === id ? { ...row, start, end } : row));
   }
@@ -88,4 +93,14 @@ test("editar un mes con traslape no cambia nada", async () => {
   const repo = new FakePayPeriods(PERIODS);
   await assert.rejects(new UpdatePayMonthUseCase(repo).execute(FAMILY, 3, "2026-09-29", "2026-10-30"), InvalidPayPeriodError);
   assert.deepEqual(repo.rows.map((r) => [r.id, r.start, r.end]), PERIODS.map((p) => [p.id, p.start, p.end]));
+});
+
+test("sembrar los periodos dos veces seguidas no los duplica", async () => {
+  const repo = new FakePayPeriods([]);
+  const useCase = new ListPayPeriodsUseCase(repo);
+  const first = await useCase.execute(FAMILY, "2026-10-07");
+  repo.rows = [...first];
+  const second = await useCase.execute(FAMILY, "2026-10-07");
+  assert.equal(first.length, 26);
+  assert.equal(second.length, 26);
 });

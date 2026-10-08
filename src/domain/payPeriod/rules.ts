@@ -98,7 +98,10 @@ export function periodLabel(start: string, end: string): string {
   return `${startLabel} – ${endLabel}`;
 }
 
+export const PERIOD_START_DAY = 0;
+
 export function resolveDayOfMonthWithinRange(dayOfMonth: number, rangeStart: string, rangeEnd: string): string | null {
+  if (dayOfMonth === PERIOD_START_DAY) return rangeStart;
   const months = new Set([rangeStart.slice(0, 7), rangeEnd.slice(0, 7)]);
   for (const monthIso of months) {
     const clampedDay = Math.min(dayOfMonth, daysInMonth(`${monthIso}-01`));

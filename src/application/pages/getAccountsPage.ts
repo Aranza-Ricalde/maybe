@@ -1,4 +1,4 @@
-import { pickDefaultAccountId } from "@/domain/accounts/rules";
+import { pickDefaultAccountId, summarizeAccountsTotals } from "@/domain/accounts/rules";
 import { accountRowsView } from "@/domain/accounts/view";
 import type { AccountsReader } from "@/domain/readModels/ports";
 import type { GetAccountBalanceHistoryUseCase } from "../getAccountBalanceHistory";
@@ -20,8 +20,11 @@ export class GetAccountsPageUseCase {
       defaultAccountId == null ? Promise.resolve([]) : this.balanceHistory.execute(defaultAccountId, INITIAL_RANGE, today),
     ]);
 
+    const rows = accountRowsView(active, balanceByAccount);
+
     return {
-      accounts: accountRowsView(active, balanceByAccount),
+      accounts: rows,
+      totals: summarizeAccountsTotals(rows),
       archivedAccounts: archived.map(({ id, name, type }) => ({ id, name, type })),
       initialBalanceSeries,
     };

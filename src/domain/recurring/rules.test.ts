@@ -192,3 +192,11 @@ test("merchantIdFromPatternSignature: extrae el patrón de comercio solo de firm
   assert.equal(merchantIdFromPatternSignature("name:netflix com"), null);
   assert.equal(merchantIdFromPatternSignature("account:1|merchant:42"), null);
 });
+
+test("un recurrente puede anclarse al inicio de cada periodo (día 0) pero un formulario normal sigue pidiendo 1 a 31", async () => {
+  const { assertValidDayOfMonth, assertValidRecurringDay } = await import("./rules");
+  assert.doesNotThrow(() => assertValidRecurringDay(0));
+  assert.doesNotThrow(() => assertValidRecurringDay(15));
+  assert.throws(() => assertValidRecurringDay(32));
+  assert.throws(() => assertValidDayOfMonth(0));
+});

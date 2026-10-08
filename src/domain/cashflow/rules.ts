@@ -1,3 +1,4 @@
+import { PERIOD_START_DAY } from "@/domain/payPeriod/rules";
 export const SCHEDULED_TRANSACTION_STATUSES = ["planned", "confirmed", "cancelled"] as const;
 export type ScheduledTransactionStatus = (typeof SCHEDULED_TRANSACTION_STATUSES)[number];
 
@@ -20,6 +21,7 @@ export interface CashflowProjectionInput {
   activeRecurringItems: RecurringItemForProjection[];
   plannedScheduled: ScheduledForProjection[];
   recentMonthlyExpenseCents: number[];
+  periodStartsRemaining?: string[];
 }
 
 export interface CashflowProjection {
@@ -51,9 +53,11 @@ export function computeCashflowProjection(input: CashflowProjectionInput): Cashf
   const today = dayOfMonthOf(input.asOfDate);
   const lastDay = daysInMonth(input.asOfDate);
 
+  const anchoredCount = (input.periodStartsRemaining ?? []).length;
   const remainingRecurringCents = input.activeRecurringItems
     .filter((item) => item.dayOfMonth > today && item.dayOfMonth <= lastDay)
-    .reduce((sum, item) => sum + item.estimatedAmountCents, 0);
+    .reduce((sum, item) => sum + item.estimatedAmountCents, 0) +
+    input.activeRecurringItems.filter((item) => item.dayOfMonth === PERIOD_START_DAY).reduce((sum, item) => sum + item.estimatedAmountCents * anchoredCount, 0);
 
   const remainingScheduledCents = input.plannedScheduled.reduce((sum, s) => sum + s.amountCents, 0);
 

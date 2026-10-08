@@ -94,8 +94,8 @@ test("un 'deshacer' (pendiente marcada manual) vuelve a verse como atrasada o pe
   assert.equal(entry.isManual, true);
 });
 
-test("ingresos (flow income) también se incluyen, no solo gastos", () => {
-  const [entry] = entriesOf([occurrence({ flow: "income", name: "Nómina", expectedAmountCents: 1000000 })]);
+test("otros ingresos (flow income) también se incluyen, no solo gastos", () => {
+  const [entry] = entriesOf([occurrence({ flow: "income", name: "Honorarios", expectedAmountCents: 1000000 })]);
   assert.equal(entry.flow, "income");
 });
 
@@ -180,4 +180,13 @@ test("groupCalendarEntriesByStatus: dentro de 'por pagar', los atrasados van ant
 test("groupCalendarEntriesByStatus: una lista vacía produce los tres grupos vacíos", () => {
   const { pending, paid, skipped } = groupCalendarEntriesByStatus([]);
   assert.equal(pending.length + paid.length + skipped.length, 0);
+});
+
+test("la nómina no aparece en el calendario de pagos, en ninguna de sus formas", () => {
+  const entries = entriesOf([
+    occurrence({ id: 1, flow: "income", name: "Nómina", expectedAmountCents: 1500000 }),
+    occurrence({ id: 2, flow: "income", name: "Nómina · 1ª quincena", expectedAmountCents: 750000 }),
+    occurrence({ id: 3, name: "Internet Casa" }),
+  ]);
+  assert.deepEqual(entries.map((e) => e.name), ["Internet Casa"]);
 });

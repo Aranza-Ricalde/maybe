@@ -104,3 +104,16 @@ export function toDecisions(preview: StatementPreview, choices: RowChoice[]): St
     ];
   });
 }
+
+export function hasTotalsMismatch(preview: StatementPreview): boolean {
+  return !preview.validation.checks.every((check) => check.expected === check.actual);
+}
+
+export function countHighConfidenceMatches(preview: StatementPreview): number {
+  return preview.rows.filter((row) => row.status === "probable_match" && row.match?.confidence === "high").length;
+}
+
+export function canConfirmImport(preview: StatementPreview, choices: RowChoice[], acknowledgedMismatch: boolean, busy: boolean): boolean {
+  const summary = summarizeChoices(preview, choices);
+  return !busy && (!hasTotalsMismatch(preview) || acknowledgedMismatch) && summary.toImport + summary.toLink > 0;
+}
