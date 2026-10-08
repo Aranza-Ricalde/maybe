@@ -8,12 +8,17 @@ import { formatCurrency } from "@/lib/format";
 import type { AccountsTotals } from "@/domain/accounts/rules";
 import { PageHeader } from "@/components/molecules/PageHeader";
 import { AccountExplorerCard, type FetchAccountMovements, type LoadBalanceHistory } from "@/components/organisms/AccountExplorerCard";
+import type { AccountsBalanceHistory } from "@/application/getAccountsBalanceHistory";
+import { AccountsBalanceChart } from "@/components/organisms/AccountsBalanceChart";
+import type { LoadAccountsHistory } from "@/hooks/useAccountsHistory";
 import { AccountsTable, type AccountRow } from "@/components/organisms/AccountsTable";
 import { ArchivedAccountsModal, type ArchivedAccountInput } from "@/components/organisms/ArchivedAccountsModal";
 import type { EvolutionPoint } from "@/domain/evolution/rules";
 import type { AccountOption } from "@/components/viewModels";
 
 export interface AccountsPageTemplateProps {
+  initialAccountsHistory: AccountsBalanceHistory;
+  loadAccountsHistory: LoadAccountsHistory;
   totals: AccountsTotals;
   accounts: AccountRow[];
   archivedAccounts: ArchivedAccountInput[];
@@ -30,6 +35,8 @@ export interface AccountsPageTemplateProps {
 export function AccountsPageTemplate({
   accounts,
   totals,
+  initialAccountsHistory,
+  loadAccountsHistory,
   archivedAccounts,
   initialBalanceSeries,
   loadBalanceHistory,
@@ -70,6 +77,8 @@ export function AccountsPageTemplate({
           </StatBlockRow>
 
           <AccountsTable rows={accounts} updateAccountAction={updateAccountAction} deleteAccountAction={deleteAccountAction} />
+          <AccountsBalanceChart initial={initialAccountsHistory} load={loadAccountsHistory} />
+
           <AccountExplorerCard
             accounts={explorerAccounts}
             initialSeries={initialBalanceSeries}

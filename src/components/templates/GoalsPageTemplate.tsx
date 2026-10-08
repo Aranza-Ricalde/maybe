@@ -5,6 +5,8 @@ import { PageHeader } from "@/components/molecules/PageHeader";
 import type { EmergencyFundView } from "@/application/getEmergencyFund";
 import { EmergencyFundCard } from "@/components/organisms/EmergencyFundCard";
 import { GoalModal } from "@/components/organisms/GoalModal";
+import { GoalRingsChart } from "@/components/organisms/GoalRingsChart";
+import { goalRings } from "@/lib/presenters/charts";
 import { GoalsTable, type GoalRow } from "@/components/organisms/GoalsTable";
 import type { AccountOption } from "@/components/viewModels";
 
@@ -31,7 +33,10 @@ export function GoalsPageTemplate({ rows, accounts, emergencyFund, createAction,
           </CardContent>
         </Card>
       ) : (
-        <GoalsTable rows={rows} accounts={accounts} updateAction={updateAction} deleteAction={deleteAction} />
+        <>
+          <GoalRingsChart rings={goalRings(rows)} />
+          <GoalsTable rows={rows} accounts={accounts} updateAction={updateAction} deleteAction={deleteAction} />
+        </>
       )}
     </>
   );

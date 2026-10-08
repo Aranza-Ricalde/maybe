@@ -3,6 +3,7 @@ import type { AccountOption, CategoryOption } from "@/components/viewModels";
 import { resolvePreset, type ExplorerPreset, type PresetRange } from "@/domain/explorer/presets";
 import type { ExplorerResult } from "@/domain/explorer/rules";
 import { EMPTY_EXPLORER_VALUES, EXPLORER_ALL, buildExplorerOptions, describeDelta, toExplorerFilters, type ExplorerFilterValues, type ExplorerView } from "@/lib/presenters/explorer";
+import { waterfallSteps } from "@/lib/presenters/charts";
 import { useExplorerData } from "./useExplorerData";
 
 export interface UseExplorerOptions {
@@ -55,5 +56,6 @@ export function useExplorer({ initialView, initialPreset, initialResult, today, 
     isLoading,
     hasFailed,
     delta: result?.comparison ? describeDelta(result.comparison) : null,
+    waterfall: result?.comparison ? waterfallSteps({ previousCents: result.comparison.expenseCents, currentCents: result.expenseCents, drivers: result.comparison.drivers }) : [],
   };
 }

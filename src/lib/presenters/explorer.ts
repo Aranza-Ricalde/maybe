@@ -4,13 +4,13 @@ import { EXPLORER_PRESETS, EXPLORER_PRESET_LABELS, type PresetRange } from "@/do
 import type { ExplorerComparison, ExplorerFilters, ExplorerResult } from "@/domain/explorer/rules";
 import { formatSignedPercent, formatSignedPesos } from "@/lib/format";
 
-export const EXPLORER_VIEWS = ["flow", "category", "merchant", "balance"] as const;
+export const EXPLORER_VIEWS = ["flow", "category", "merchant", "balance", "change"] as const;
 export type ExplorerView = (typeof EXPLORER_VIEWS)[number];
 
 export const EXPLORER_ALL = "";
 export const UNIDENTIFIED_FILTER = "Sin comercio identificado";
 
-const VIEW_LABELS: Record<ExplorerView, string> = { flow: "Ingresos y gastos", category: "Por categoría", merchant: "Por comercio", balance: "Saldo" };
+const VIEW_LABELS: Record<ExplorerView, string> = { flow: "Ingresos y gastos", category: "Por categoría", merchant: "Por comercio", balance: "Saldo", change: "Qué cambió" };
 export const EXPLORER_VIEW_OPTIONS = EXPLORER_VIEWS.map((value) => ({ value, label: VIEW_LABELS[value] }));
 export const EXPLORER_PRESET_OPTIONS = EXPLORER_PRESETS.filter((preset) => preset !== "custom").map((value) => ({ value, label: EXPLORER_PRESET_LABELS[value] }));
 

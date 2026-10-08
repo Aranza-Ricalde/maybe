@@ -51,3 +51,31 @@ test("la dona omite lo que no suma y usa el color de la categoría o de la palet
   ]);
   assert.deepEqual(slices.map((slice) => slice.fill), ["#ff0000", "var(--chart-2)"]);
 });
+
+import { goalRings, waterfallSteps } from "./charts";
+
+test("los anillos de metas limitan el avance a 100% y omiten metas sin objetivo", () => {
+  const rings = goalRings([
+    { id: 1, name: "Viaje", currentCents: 25000, targetAmountCents: 100000 },
+    { id: 2, name: "Fondo", currentCents: 300000, targetAmountCents: 100000 },
+    { id: 3, name: "Sin meta", currentCents: 10, targetAmountCents: 0 },
+    { id: 4, name: "Negativa", currentCents: -500, targetAmountCents: 1000 },
+  ]);
+  assert.deepEqual(rings.map((ring) => [ring.name, ring.percent]), [["Viaje", 25], ["Fondo", 100], ["Negativa", 0]]);
+});
+
+test("la cascada parte del periodo anterior, suma cada cambio y llega al periodo actual con 'Otros' para lo no explicado", () => {
+  const steps = waterfallSteps({ previousCents: 1000, currentCents: 1600, drivers: [{ name: "Comida", deltaCents: 500 }, { name: "Ocio", deltaCents: -200 }] });
+  assert.deepEqual(steps.map((step) => [step.label, step.kind, step.base, step.value]), [
+    ["Periodo anterior", "total", 0, 1000],
+    ["Comida", "increase", 1000, 500],
+    ["Ocio", "decrease", 1300, 200],
+    ["Otros", "increase", 1300, 300],
+    ["Este periodo", "total", 0, 1600],
+  ]);
+});
+
+test("si los cambios explican todo no aparece 'Otros'", () => {
+  const steps = waterfallSteps({ previousCents: 1000, currentCents: 1500, drivers: [{ name: "Comida", deltaCents: 500 }] });
+  assert.equal(steps.some((step) => step.label === "Otros"), false);
+});

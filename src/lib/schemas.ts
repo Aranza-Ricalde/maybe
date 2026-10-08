@@ -76,6 +76,7 @@ export const transactionSortArg = z.object({ field: z.enum(["date", "amount", "n
 export const pageArgs = z.object({ page: pageField, pageSize: pageSizeField });
 export const transactionsPageArgs = z.object({ filters: transactionFiltersArg, sort: transactionSortArg }).extend(pageArgs.shape);
 export const accountPageArgs = z.object({ accountId: idField, fromDate: isoDateField, toDate: isoDateField }).extend(pageArgs.shape);
+export const rangeArgs = z.object({ range: z.enum(EVOLUTION_RANGES) });
 export const balanceHistoryArgs = z.object({ accountId: idField, range: z.enum(EVOLUTION_RANGES) });
 
 const accountBaseForm = {

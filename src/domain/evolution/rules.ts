@@ -53,3 +53,21 @@ export function levelsToDeltas(levels: EvolutionPoint[]): EvolutionPoint[] {
   }
   return deltas;
 }
+
+export interface NamedSeries {
+  key: string;
+  points: EvolutionPoint[];
+}
+
+export function mergeSeriesByDate(series: NamedSeries[]): Array<Record<string, string | number>> {
+  const dates = [...new Set(series.flatMap((entry) => entry.points.map((point) => point.date)))].sort();
+  const byKey = series.map((entry) => ({ key: entry.key, values: new Map(entry.points.map((point) => [point.date, point.value])) }));
+  return dates.map((date) => {
+    const row: Record<string, string | number> = { date };
+    for (const entry of byKey) {
+      const value = entry.values.get(date);
+      if (value !== undefined) row[entry.key] = value;
+    }
+    return row;
+  });
+}

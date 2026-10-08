@@ -13,6 +13,7 @@ import { useExplorer, type UseExplorerOptions } from "@/hooks/useExplorer";
 import { formatDateRange, formatPesos, formatSignedPesos } from "@/lib/format";
 import { EXPLORER_PRESET_OPTIONS, EXPLORER_VIEW_OPTIONS } from "@/lib/presenters/explorer";
 import { ExplorerBreakdown } from "./ExplorerBreakdown";
+import { ExpenseWaterfallChart } from "./ExpenseWaterfallChart";
 import { ExplorerFlowChart } from "./ExplorerFlowChart";
 import { LineEvolutionChart } from "./LineEvolutionChart";
 
@@ -33,7 +34,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 
 export function ExplorerCard({ title, description, ...options }: ExplorerCardProps) {
   const explorer = useExplorer(options);
-  const { view, setView, preset, setPreset, range, custom, chooseCustomRange, values, setValue, clearFilters, drillIntoCategory, selectCategory, clearCategory, selectMerchant, result, isLoading, hasFailed, delta } = explorer;
+  const { view, setView, preset, setPreset, range, custom, chooseCustomRange, values, setValue, clearFilters, drillIntoCategory, selectCategory, clearCategory, selectMerchant, result, isLoading, hasFailed, delta, waterfall } = explorer;
   const comparison = result?.comparison;
 
   return (
@@ -130,6 +131,14 @@ export function ExplorerCard({ title, description, ...options }: ExplorerCardPro
                 onSelect={(share) => selectMerchant(share.name)}
                 footer={result.unidentified ? `Sin comercio identificado: ${formatPesos(result.unidentified.totalCents)} en ${result.unidentified.count} movimientos (incluye pagos a personas y descripciones libres).` : undefined}
               />
+            )}
+            {view === "change" && (
+              <>
+                {waterfall.length > 2 ? <ExpenseWaterfallChart steps={waterfall} /> : <Text tone="muted">No hay cambios que mostrar frente al periodo anterior.</Text>}
+                <Text size="xs" tone="muted">
+                  De izquierda a derecha: lo que gastabas antes, lo que subió o bajó en cada categoría y lo que gastas ahora.
+                </Text>
+              </>
             )}
             {view === "balance" && (
               <>

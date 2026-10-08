@@ -47,3 +47,17 @@ test("levelsToDeltas: N+1 niveles dan N deltas, cada uno contra el nivel anterio
     { date: "2026-10-01", value: -20 },
   ]);
 });
+
+test("varias series se unen por fecha y una serie sin dato ese día deja el hueco", async () => {
+  const { mergeSeriesByDate } = await import("./rules");
+  const merged = mergeSeriesByDate([
+    { key: "a", points: [{ date: "2026-10-01", value: 10 }, { date: "2026-10-02", value: 20 }] },
+    { key: "b", points: [{ date: "2026-10-02", value: 5 }, { date: "2026-10-03", value: 7 }] },
+  ]);
+  assert.deepEqual(merged, [
+    { date: "2026-10-01", a: 10 },
+    { date: "2026-10-02", a: 20, b: 5 },
+    { date: "2026-10-03", b: 7 },
+  ]);
+  assert.deepEqual(mergeSeriesByDate([]), []);
+});

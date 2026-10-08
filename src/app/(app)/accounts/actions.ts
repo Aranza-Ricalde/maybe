@@ -5,8 +5,8 @@ import { ownsAccount } from "@/app/lib/ownership";
 import { REVALIDATE } from "@/app/lib/revalidation";
 import { InvalidDebtTermsError } from "@/domain/debts/rules";
 import type { EvolutionRangeKey } from "@/domain/evolution/rules";
-import { accountsReader, archiveOrDeleteAccountUseCase, createAccountUseCase, getAccountBalanceHistoryUseCase, restoreAccountUseCase, updateAccountUseCase } from "@/infrastructure/container";
-import { accountCreateForm, accountIdForm, accountPageArgs, accountUpdateForm, balanceHistoryArgs } from "@/lib/schemas";
+import { accountsReader, archiveOrDeleteAccountUseCase, getAccountsBalanceHistoryUseCase, createAccountUseCase, getAccountBalanceHistoryUseCase, restoreAccountUseCase, updateAccountUseCase } from "@/infrastructure/container";
+import { accountCreateForm, accountIdForm, accountPageArgs, accountUpdateForm, balanceHistoryArgs, rangeArgs } from "@/lib/schemas";
 import { todayIso } from "@/lib/today";
 
 const NO_ROWS = { rows: [], total: 0 };
@@ -66,5 +66,16 @@ export async function loadBalanceHistory(accountId: number, range: EvolutionRang
     owns: [ownsAccount((input) => input.accountId)],
     run: (input) => getAccountBalanceHistoryUseCase.execute(input.accountId, input.range, todayIso()),
     whenInvalid: [],
+  });
+}
+
+export async function loadAccountsBalanceHistory(range: EvolutionRangeKey) {
+  return runQuery({ range }, {
+    schema: rangeArgs,
+    run: async (input, user) => {
+      const accounts = await accountsReader.listActive(user.familyId);
+      return getAccountsBalanceHistoryUseCase.execute(accounts.map(({ id, name }) => ({ id, name })), input.range, todayIso());
+    },
+    whenInvalid: { accounts: [], points: [] },
   });
 }

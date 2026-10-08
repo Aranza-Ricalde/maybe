@@ -2,7 +2,7 @@ import { getAccountsPageUseCase } from "@/infrastructure/container";
 import { requireUser } from "@/app/lib/dal";
 import { AccountsPageTemplate } from "@/components/templates/AccountsPageTemplate";
 import { todayIso } from "@/lib/today";
-import { archiveOrDeleteAccount, createAccount, fetchAccountTransactionsPage, loadBalanceHistory, restoreAccount, updateAccount } from "./actions";
+import { archiveOrDeleteAccount, createAccount, fetchAccountTransactionsPage, loadAccountsBalanceHistory, loadBalanceHistory, restoreAccount, updateAccount } from "./actions";
 
 export default async function AccountsPage() {
   const user = await requireUser();
@@ -14,6 +14,7 @@ export default async function AccountsPage() {
       {...data}
       today={today}
       loadBalanceHistory={loadBalanceHistory}
+      loadAccountsHistory={loadAccountsBalanceHistory}
       createAccountAction={createAccount}
       updateAccountAction={updateAccount}
       deleteAccountAction={archiveOrDeleteAccount}

@@ -9,13 +9,13 @@ import { GetSpendingPageUseCase } from "@/application/pages/getSpendingPage";
 import { GetSettingsPageUseCase } from "@/application/pages/getSettingsPage";
 import { GetTransactionsPageUseCase } from "@/application/pages/getTransactionsPage";
 import { drizzleFamilyOwnership } from "../db/authorization";
-import { familySettingsRepo, getAccountBalanceHistoryUseCase, getCalendarOccurrencesUseCase, getCashProjectionUseCase, getDashboardSummaryUseCase, getDebtCalendarUseCase, getDebtOverviewUseCase, getCategoryStatsUseCase, getEmergencyFundUseCase, getExplorerUseCase, getGoalProjectionsUseCase, getInsightsUseCase, getProjectionBaseUseCase, getSpendingAnalysisUseCase, getTransferSuggestionsUseCase, listPayPeriodsUseCase, resolvePeriodContextUseCase, telegramLinkCodes } from "./core";
+import { familySettingsRepo, getAccountBalanceHistoryUseCase, getAccountsBalanceHistoryUseCase, getCalendarOccurrencesUseCase, getCashProjectionUseCase, getDashboardSummaryUseCase, getDebtCalendarUseCase, getDebtOverviewUseCase, getCategoryStatsUseCase, getEmergencyFundUseCase, getExplorerUseCase, getGoalProjectionsUseCase, getInsightsUseCase, getProjectionBaseUseCase, getSpendingAnalysisUseCase, getTransferSuggestionsUseCase, listPayPeriodsUseCase, resolvePeriodContextUseCase, telegramLinkCodes } from "./core";
 import { captureRepo, describeApiTokenUseCase } from "./captures";
 import { accountsReader, categoriesReader, inboxReader, planningReader, profileReader, transactionsReader } from "./readers";
 
 
 
-export const getAccountsPageUseCase = new GetAccountsPageUseCase(accountsReader, getAccountBalanceHistoryUseCase);
+export const getAccountsPageUseCase = new GetAccountsPageUseCase(accountsReader, getAccountBalanceHistoryUseCase, getAccountsBalanceHistoryUseCase);
 export const getBudgetsPageUseCase = new GetBudgetsPageUseCase(resolvePeriodContextUseCase, categoriesReader, planningReader);
 export const getImportPageUseCase = new GetImportPageUseCase(accountsReader, categoriesReader);
 export const getGoalsPageUseCase = new GetGoalsPageUseCase(planningReader, accountsReader, getGoalProjectionsUseCase, getEmergencyFundUseCase);

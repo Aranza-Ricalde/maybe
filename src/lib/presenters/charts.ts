@@ -62,3 +62,42 @@ export function donutSlices(shares: ExplorerShare[]): DonutSlice[] {
     .filter((share) => share.totalCents > 0)
     .map((share, index) => ({ key: share.key, name: share.name, value: share.totalCents, fill: share.color ?? CHART_COLOR_VARS[index % CHART_COLOR_VARS.length] }));
 }
+
+export interface GoalRing {
+  key: string;
+  name: string;
+  percent: number;
+  fill: string;
+}
+
+export function goalRings(goals: Array<{ id: number; name: string; currentCents: number; targetAmountCents: number }>, limit = 5): GoalRing[] {
+  return goals
+    .filter((goal) => goal.targetAmountCents > 0)
+    .map((goal) => ({ id: goal.id, name: goal.name, percent: Math.round(Math.min(1, Math.max(0, goal.currentCents) / goal.targetAmountCents) * 100) }))
+    .slice(0, limit)
+    .map((goal, index) => ({ key: `g${goal.id}`, name: goal.name, percent: goal.percent, fill: CHART_COLOR_VARS[index % CHART_COLOR_VARS.length] }));
+}
+
+export interface WaterfallStep {
+  label: string;
+  kind: "total" | "increase" | "decrease";
+  base: number;
+  value: number;
+}
+
+export function waterfallSteps(input: { previousCents: number; currentCents: number; drivers: Array<{ name: string; deltaCents: number }> }, limit = 5): WaterfallStep[] {
+  const drivers = input.drivers.filter((driver) => driver.deltaCents !== 0).slice(0, limit);
+  const explained = drivers.reduce((sum, driver) => sum + driver.deltaCents, 0);
+  const rest = input.currentCents - input.previousCents - explained;
+  const deltas = rest === 0 ? drivers : [...drivers, { name: "Otros", deltaCents: rest }];
+
+  const steps: WaterfallStep[] = [{ label: "Periodo anterior", kind: "total", base: 0, value: input.previousCents }];
+  let running = input.previousCents;
+  for (const delta of deltas) {
+    const after = running + delta.deltaCents;
+    steps.push({ label: delta.name, kind: delta.deltaCents > 0 ? "increase" : "decrease", base: Math.min(running, after), value: Math.abs(delta.deltaCents) });
+    running = after;
+  }
+  steps.push({ label: "Este periodo", kind: "total", base: 0, value: input.currentCents });
+  return steps;
+}

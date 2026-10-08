@@ -26,6 +26,7 @@ import { DetectRecurringItemsUseCase } from "@/application/detectRecurringItems"
 import { DismissRecurringCandidateUseCase } from "@/application/dismissRecurringCandidate";
 import { ConfirmConceptSuggestionUseCase } from "@/application/confirmConceptSuggestion";
 import { RejectConceptSuggestionUseCase } from "@/application/rejectConceptSuggestion";
+import { GetAccountsBalanceHistoryUseCase } from "@/application/getAccountsBalanceHistory";
 import { GetAccountBalanceHistoryUseCase } from "@/application/getAccountBalanceHistory";
 import { GetDashboardSummaryUseCase } from "@/application/getDashboardSummary";
 import { SetMinimumBalanceUseCase } from "@/application/setMinimumBalance";
@@ -197,6 +198,7 @@ export const getInsightsUseCase = new GetInsightsUseCase(insightsRepo, getCatego
 export const getEmergencyFundUseCase = new GetEmergencyFundUseCase(dashboardRepo, getCategoryStatsUseCase, new DrizzleEmergencyFundGoalRepository());
 export const getProjectionBaseUseCase = new GetProjectionBaseUseCase(dashboardRepo, getCategoryStatsUseCase, cashflowRepo);
 export const getAccountBalanceHistoryUseCase = new GetAccountBalanceHistoryUseCase(dashboardRepo);
+export const getAccountsBalanceHistoryUseCase = new GetAccountsBalanceHistoryUseCase(getAccountBalanceHistoryUseCase);
 export const cleanMerchantNameUseCase = new CleanMerchantNameUseCase(
   merchantPatternRepo,
   providersRepo,
