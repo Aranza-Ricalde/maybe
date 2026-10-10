@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 export interface FileDropzoneProps {
   accept: string;
   title: string;
+  touchTitle?: string;
   hint: string;
   buttonLabel: string;
   footnote?: ReactNode;
@@ -18,7 +19,7 @@ export interface FileDropzoneProps {
   onFiles: (files: File[]) => void;
 }
 
-export function FileDropzone({ accept, title, hint, buttonLabel, footnote, inputTestId, compact = false, onFiles }: FileDropzoneProps) {
+export function FileDropzone({ accept, title, touchTitle, hint, buttonLabel, footnote, inputTestId, compact = false, onFiles }: FileDropzoneProps) {
   const input = useRef<HTMLInputElement>(null);
   const { dragging, dropProps } = useFileDrop(accept, onFiles);
 
@@ -44,13 +45,16 @@ export function FileDropzone({ accept, title, hint, buttonLabel, footnote, input
             </Text>
           ) : (
             <>
-              <Text weight="medium">{title}</Text>
+              <Text weight="medium">
+                {touchTitle && <span className="md:hidden">{touchTitle}</span>}
+                <span className={touchTitle ? "max-md:hidden" : undefined}>{title}</span>
+              </Text>
               <Text size="sm" tone="muted">
                 {hint}
               </Text>
             </>
           )}
-          <Button type="button" variant={compact ? "outline" : "default"} size={compact ? "sm" : "default"} onClick={() => input.current?.click()}>
+          <Button type="button" variant={compact ? "outline" : "default"} size={compact ? "sm" : "lg"} className={compact ? undefined : "max-md:w-full"} onClick={() => input.current?.click()}>
             {compact ? "Agregar otro PDF" : buttonLabel}
           </Button>
           {footnote && !compact && (

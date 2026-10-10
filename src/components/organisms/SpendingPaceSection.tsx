@@ -23,7 +23,7 @@ export function SpendingPaceSection({ pace }: { pace: SpendingPace }) {
         <SeriesLegend items={legend} />
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-      <TimeSeriesChart model={chart} ariaLabel={`Gasto acumulado del periodo: ${notice.text}`} className="h-72" />
+      <TimeSeriesChart model={chart} ariaLabel={`Gasto acumulado del periodo: ${notice.text}`} className="h-56 md:h-72" />
       <Alert variant={variant}>
         <Icon />
         <AlertDescription className="flex flex-wrap items-center justify-between gap-2">

@@ -4,6 +4,7 @@ import { useState, useTransition, type FormEvent } from "react";
 
 export interface UseFormModalControllerOptions {
   action: FormAction;
+  defaultOpen?: boolean;
 }
 
 export interface UseFormModalControllerResult {
@@ -13,8 +14,8 @@ export interface UseFormModalControllerResult {
   handleSubmit: (e: FormEvent<HTMLFormElement>) => void;
 }
 
-export function useFormModalController({ action }: UseFormModalControllerOptions): UseFormModalControllerResult {
-  const [isOpen, setIsOpen] = useState(false);
+export function useFormModalController({ action, defaultOpen = false }: UseFormModalControllerOptions): UseFormModalControllerResult {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {

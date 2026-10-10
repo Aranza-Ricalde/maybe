@@ -45,6 +45,7 @@ export function PayPeriodsTable({ rows, updateAction, deleteAction }: PayPeriods
     {
       key: "range",
       header: "Fechas",
+      mobileRole: "subtitle",
       cell: (p) => <Text tone="muted">{periodLabel(p.start, p.end)}</Text>,
     },
     {
@@ -71,7 +72,7 @@ export function PayPeriodsTable({ rows, updateAction, deleteAction }: PayPeriods
   ];
 
   return (
-    <ClientDataTable
+    <ClientDataTable mobile={{ compact: true, loadMoreStep: 10 }}
       ariaLabel="Periodos de pago"
       columns={columns}
       rows={rows}

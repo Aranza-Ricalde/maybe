@@ -6,17 +6,16 @@ import type { DebtAccountOverview } from "@/application/getDebtOverview";
 import type { AccountsBalanceHistory } from "@/application/getAccountsBalanceHistory";
 import { EmptyState } from "@/components/molecules/EmptyState";
 import { CreateAccountModal } from "@/components/molecules/CreateAccountModal";
-import { PillTabs } from "@/components/molecules/PillTabs";
 import { MetricStrip } from "@/components/molecules/MetricStrip";
 import { PageHeader } from "@/components/molecules/PageHeader";
 import { AccountDetailSheet } from "@/components/organisms/AccountDetailSheet";
-import { AccountsList } from "@/components/organisms/AccountsList";
+import { AccountGroupsList } from "@/components/organisms/AccountGroupsList";
 import type { AccountRow } from "@/components/viewModels";
 import { ArchivedAccountsModal, type ArchivedAccountInput } from "@/components/organisms/ArchivedAccountsModal";
 import type { FetchAccountMovements, LoadBalanceHistory } from "@/hooks/useAccountExplorer";
 import type { AccountsTotals } from "@/domain/accounts/rules";
 import { formatCurrency } from "@/lib/format";
-import { ACCOUNT_FILTERS, accountSeries, filterAccounts, type AccountFilter } from "@/lib/presenters/accounts";
+import { accountSeries } from "@/lib/presenters/accounts";
 
 export interface AccountsPageTemplateProps {
   initialAccountsHistory: AccountsBalanceHistory;
@@ -35,7 +34,6 @@ export interface AccountsPageTemplateProps {
 
 export function AccountsPageTemplate({ accounts, totals, debts, initialAccountsHistory, archivedAccounts, loadBalanceHistory, today, createAccountAction, updateAccountAction, deleteAccountAction, restoreAccountAction, fetchTransactionsPage }: AccountsPageTemplateProps) {
   const [openId, setOpenId] = useState<number | null>(null);
-  const [filter, setFilter] = useState<AccountFilter>("all");
   const openAccount = accounts.find((account) => account.id === openId) ?? null;
 
   return (
@@ -62,9 +60,7 @@ export function AccountsPageTemplate({ accounts, totals, debts, initialAccountsH
             ]}
           />
 
-          <PillTabs options={ACCOUNT_FILTERS} value={filter} onChange={setFilter} ariaLabel="Filtrar cuentas" />
-
-          <AccountsList rows={filterAccounts(accounts, filter)} history={initialAccountsHistory} onOpen={(account) => setOpenId(account.id)} />
+          <AccountGroupsList rows={accounts} history={initialAccountsHistory} onOpen={(account) => setOpenId(account.id)} />
 
           <AccountDetailSheet
             account={openAccount}

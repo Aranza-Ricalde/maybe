@@ -7,7 +7,7 @@ import { resolvePreset } from "@/domain/explorer/presets";
 import { financialCalendarEntries, sortCalendarEntries } from "@/domain/calendar/rules";
 import { accountIdsByGoal, goalProjectionInputs } from "@/domain/goals/progress";
 import { goalsForInsights, paidOccurrencesForInsights } from "@/domain/insights/inputs";
-import type { CategoriesReader, InboxReader, PlanningReader, TransactionsReader } from "@/domain/readModels/ports";
+import type { AccountsReader, CategoriesReader, InboxReader, PlanningReader, TransactionsReader } from "@/domain/readModels/ports";
 import type { GetEmergencyFundUseCase } from "../getEmergencyFund";
 import type { GetCalendarOccurrencesUseCase } from "../getCalendarOccurrences";
 import type { GetDashboardSummaryUseCase } from "../getDashboardSummary";
@@ -19,6 +19,7 @@ import type { ResolvePeriodContextUseCase } from "./resolvePeriodContext";
 
 export interface DashboardPageDependencies {
   periods: ResolvePeriodContextUseCase;
+  accounts: Pick<AccountsReader, "listActive">;
   categories: CategoriesReader;
   planning: PlanningReader;
   inbox: InboxReader;
@@ -33,6 +34,8 @@ export interface DashboardPageDependencies {
 }
 
 const RECENT_MOVEMENTS = 6;
+
+export type DashboardPageView = Awaited<ReturnType<GetDashboardPageUseCase["execute"]>>;
 
 export class GetDashboardPageUseCase {
   constructor(private readonly deps: DashboardPageDependencies) {}
@@ -56,6 +59,7 @@ export class GetDashboardPageUseCase {
       calendarOccurrences,
       debtDueEntries,
       recentMovements,
+      accounts,
     ] = await Promise.all([
       deps.inbox.pendingRecurringCandidates(familyId),
       deps.inbox.pendingConceptSuggestions(familyId),
@@ -70,6 +74,7 @@ export class GetDashboardPageUseCase {
       deps.calendarOccurrences.execute(familyId, selectedPeriods),
       deps.debtCalendar.execute(familyId, today, displayPeriod.start, displayPeriod.end),
       deps.transactions.recent(familyId, RECENT_MOVEMENTS),
+      deps.accounts.listActive(familyId),
     ]);
 
     const budgetOverview = composeBudgetOverview({ categories, settings: budgetSettings, recurringItems, periods: selectedPeriods, actuals: categoryActuals });
@@ -119,6 +124,7 @@ export class GetDashboardPageUseCase {
       movement,
       periodRange: { from: displayPeriod.start, to: displayPeriod.end },
       recentMovements,
+      accounts: accounts.map(({ id, name }) => ({ id, name })),
       period: { incomeCents: explorerResult.incomeCents, expenseCents: explorerResult.expenseCents },
       insights,
       calendarEntries: sortCalendarEntries([...financialCalendarEntries(calendarOccurrences, scheduled, calendarTransactions, today, displayPeriod.start, displayPeriod.end), ...debtDueEntries]),

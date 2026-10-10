@@ -38,7 +38,7 @@ export function PayrollFormFields({ setup, periods, suggestedMonthlyDay, categor
       <input type="hidden" name={FIELD.payrollMode} value={form.mode} />
       {categoryId != null && <input type="hidden" name={FIELD.categoryId} value={categoryId} />}
 
-      <div className="grid gap-4 sm:grid-cols-2 [&>*]:min-w-0">
+      <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
         <TextInput label="Cuánto te pagan cada vez" prefix="$" name={FIELD.estimatedAmount} type="number" step="0.01" min="0.01" placeholder="0.00" value={form.amount} onChange={form.setAmount} isRequired />
         <SelectField
           label="Cuenta donde te depositan"
@@ -57,7 +57,7 @@ export function PayrollFormFields({ setup, periods, suggestedMonthlyDay, categor
         <Text weight="medium">{form.paydayCount === 2 ? "¿Qué días cobras?" : "¿Qué día cobras?"}</Text>
         {form.syncAvailable && <ChoiceCards label="Días de cobro" options={DAY_CHOICES} value={form.mode} onChange={(mode) => form.setSync(mode === "sync")} />}
         {form.mode === "manual" && (
-          <div className="grid gap-4 sm:grid-cols-2 [&>*]:min-w-0">
+          <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
             <TextInput label={form.paydayCount === 2 ? "Primer día de cobro" : "Día de cobro"} name={FIELD.payrollFirstDay} type="number" min="1" max="31" placeholder="1 a 31" value={form.manualDays[0]} onChange={(value) => form.setManualDay(0, value)} isRequired />
             {form.paydayCount === 2 && <TextInput label="Segundo día de cobro" name={FIELD.payrollSecondDay} type="number" min="1" max="31" placeholder="1 a 31" value={form.manualDays[1]} onChange={(value) => form.setManualDay(1, value)} isRequired />}
           </div>

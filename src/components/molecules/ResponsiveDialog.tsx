@@ -33,7 +33,7 @@ export function ResponsiveDialog({ title, description, trigger, open, onOpenChan
             <DrawerTitle>{title}</DrawerTitle>
             <DrawerDescription className={description ? undefined : "sr-only"}>{description ?? title}</DrawerDescription>
           </DrawerHeader>
-          <div className="flex max-h-[70dvh] flex-col gap-4 overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">{children}</div>
+          <div className="flex max-h-[82dvh] flex-col gap-4 overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">{children}</div>
         </DrawerContent>
       </Drawer>
     );

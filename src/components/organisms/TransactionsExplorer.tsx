@@ -11,7 +11,8 @@ import { DataTable, type DataTableColumn, type DataTableSortDescriptor } from ".
 import { TransactionRowActions } from "./TransactionRowActions";
 import { EMPTY_TRANSACTION_FILTERS, hasActiveTransactionFilters, TransactionsFilterBar, type TransactionFiltersValue } from "./TransactionsFilterBar";
 import { usePaginatedFilterTable } from "@/hooks/usePaginatedFilterTable";
-import { amountSignTone, formatDate } from "@/lib/format";
+import { amountSignTone, formatDate, formatSignedPesos } from "@/lib/format";
+import { dayNetCents } from "@/lib/presenters/ledgerDays";
 import { toApiTransactionFilters } from "@/components/organisms/transactionFilters";
 
 const KIND_CHIP: Partial<Record<string, string>> = {
@@ -38,9 +39,12 @@ export interface TransactionsExplorerProps {
   markTransferAction?: FormAction;
   refreshSignal?: number;
   initialFilters?: Partial<TransactionFiltersValue>;
+  today: string;
 }
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50, 100, 200] as const;
+
+const dayNet = (rows: TransactionRow[]) => formatSignedPesos(dayNetCents(rows));
 
 export function TransactionsExplorer({
   accounts,
@@ -52,6 +56,7 @@ export function TransactionsExplorer({
   markTransferAction,
   refreshSignal = 0,
   initialFilters,
+  today,
 }: TransactionsExplorerProps) {
   const [filters, setFilters] = useState<TransactionFiltersValue>({ ...EMPTY_TRANSACTION_FILTERS, ...initialFilters });
 
@@ -107,6 +112,7 @@ export function TransactionsExplorer({
       header: "Monto",
       align: "right",
       sortable: true,
+      mobileRole: "amount",
       cell: (t) => <CurrencyText cents={t.amountCents} withSign weight="medium" tone={amountSignTone(t.amountCents)} />,
     },
     {
@@ -132,14 +138,14 @@ export function TransactionsExplorer({
 
   return (
     <div className="flex flex-col gap-4">
-      <TransactionsFilterBar accounts={accounts} categories={categories} value={filters} onChange={setFilters} />
+      <TransactionsFilterBar accounts={accounts} categories={categories} value={filters} onChange={setFilters} today={today} />
 
       <DataTable
         ariaLabel="Movimientos"
         columns={columns}
         rows={rows}
         getRowId={(t) => t.id}
-        mobileGroup={{ getKey: (t) => t.date, getLabel: formatDate, hiddenColumnKeys: ["date"] }}
+        mobile={{ group: { getKey: (t) => t.date, getLabel: formatDate, hiddenColumnKeys: ["date"], getSummary: dayNet }, revealActions: true, loadMoreStep: 20 }}
         totalItems={total}
         page={page}
         pageSize={pageSize}

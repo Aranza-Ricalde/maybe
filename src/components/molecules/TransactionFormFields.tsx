@@ -26,7 +26,7 @@ export function TransactionFormFields({ accounts, categories, defaults }: Transa
     <>
       <TextInput label="Descripción" name={FIELD.name} defaultValue={defaults?.name} placeholder="Ej.: Supermercado" isRequired />
       <SignedAmountField name={FIELD.amount} defaultValue={defaults?.amount} />
-      <div className="grid gap-4 sm:grid-cols-2 [&>*]:min-w-0">
+      <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
         <SelectField
           label="Cuenta"
           name={FIELD.accountId}

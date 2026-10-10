@@ -43,8 +43,8 @@ export function CalendarEntryListItem({ entry, decisionAction, listPaymentCandid
 
   return (
     <li>
-      <Item size="sm" className={cn("px-0", isPending && "opacity-60")}>
-        <ItemMedia>
+      <Item size="sm" className={cn("px-0 max-md:py-3", isOpen && "max-md:flex-wrap", isPending && "opacity-60")}>
+        <ItemMedia className="max-md:hidden">
           <DateTile isoDate={shownDate} muted={isMuted} />
         </ItemMedia>
         <ItemContent>
@@ -58,11 +58,11 @@ export function CalendarEntryListItem({ entry, decisionAction, listPaymentCandid
             )}
           </ItemTitle>
           <ItemDescription>
-            {SOURCE_LABEL[entry.source]}{isPaid && entry.actualDate ? ` · Pagado el ${formatShortDate(entry.actualDate)}` : ""}
+            {!isPaid && <span className="md:hidden">{formatShortDate(shownDate)} · </span>}{SOURCE_LABEL[entry.source]}{isPaid && entry.actualDate ? ` · Pagado el ${formatShortDate(entry.actualDate)}` : ""}
             {entry.isManual && " · Marcado por ti"}
           </ItemDescription>
         </ItemContent>
-        <ItemActions>
+        <ItemActions className={cn(isOpen && "max-md:w-full max-md:justify-between")}>
           <CurrencyText cents={isPaid && entry.actualAmountCents != null ? entry.actualAmountCents : entry.expectedAmountCents} absolute weight="semibold" tone={isMuted ? "muted" : "default"} />
           {occurrenceId != null && isOpen && (
             <Button type="button" size="sm" disabled={isPending} onClick={() => decide("mark_paid")}>

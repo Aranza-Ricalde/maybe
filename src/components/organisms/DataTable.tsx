@@ -1,7 +1,6 @@
 "use client";
 
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
-import type { ReactNode } from "react";
 import { Text } from "@/components/atoms/Text";
 import { InfoTooltip } from "@/components/molecules/InfoTooltip";
 import { EmptyState } from "@/components/molecules/EmptyState";
@@ -17,50 +16,10 @@ import { cn } from "@/lib/utils";
 export const PAGE_SIZE_OPTIONS = [10, 20, 50, 100] as const;
 export const DEFAULT_PAGE_SIZE = PAGE_SIZE_OPTIONS[0];
 
-const ACTIONS_COLUMN_KEY = "actions";
+import type { DataTableColumn, DataTableMobileGroup, DataTableMobileOptions, DataTableProps, DataTableSortDescriptor } from "./dataTableTypes";
+import { MobileRows } from "./DataTableMobileRows";
 
-export interface DataTableColumn<T extends object> {
-  key: string;
-  header: string;
-  headerHint?: string;
-  align?: "left" | "right";
-  isRowHeader?: boolean;
-  sortable?: boolean;
-  cell: (row: T) => ReactNode;
-}
-
-export interface DataTableSortDescriptor {
-  column: string;
-  direction: "ascending" | "descending";
-}
-
-export interface DataTableMobileGroup<T extends object> {
-  getKey: (row: T) => string;
-  getLabel: (key: string) => string;
-  hiddenColumnKeys: string[];
-}
-
-export interface DataTableProps<T extends object> {
-  ariaLabel: string;
-  columns: DataTableColumn<T>[];
-  rows: T[];
-  getRowId: (row: T) => string | number;
-  totalItems: number;
-  page: number;
-  pageSize: number;
-  pageSizeOptions?: readonly number[];
-  onPageChange: (page: number) => void;
-  onPageSizeChange: (pageSize: number) => void;
-  isLoading?: boolean;
-  emptyTitle: string;
-  emptyDescription: string;
-  itemsLabel: string;
-  minWidthClassName?: string;
-  wrapInCard?: boolean;
-  sortDescriptor?: DataTableSortDescriptor;
-  onSortChange?: (descriptor: DataTableSortDescriptor) => void;
-  mobileGroup?: DataTableMobileGroup<T>;
-}
+export type { DataTableColumn, DataTableMobileGroup, DataTableMobileOptions, DataTableProps, DataTableSortDescriptor };
 
 interface SortableHeaderProps {
   label: string;
@@ -76,72 +35,6 @@ function SortableHeader({ label, direction, align, onToggle }: SortableHeaderPro
       {direction === "ascending" && <ArrowUp />}
       {direction === "descending" && <ArrowDown />}
     </Button>
-  );
-}
-
-function MobileRow<T extends object>({ row, titleColumn, actionsColumn, detailColumns }: { row: T; titleColumn: DataTableColumn<T>; actionsColumn?: DataTableColumn<T>; detailColumns: DataTableColumn<T>[] }) {
-  return (
-    <li className="flex flex-col gap-2 py-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1 font-medium">{titleColumn.cell(row)}</div>
-        {actionsColumn && <div className="flex shrink-0 items-center gap-1">{actionsColumn.cell(row)}</div>}
-      </div>
-      {detailColumns.length > 0 && (
-        <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
-          {detailColumns.map((column) => (
-            <div key={column.key} className="flex min-w-0 flex-col">
-              <dt className="flex items-center gap-1 text-xs text-muted-foreground">
-                {column.header}
-                {column.headerHint && <InfoTooltip label={column.headerHint} ariaLabel={`¿Qué significa ${column.header}?`} />}
-              </dt>
-              <dd className="min-w-0 tabular-nums">{column.cell(row)}</dd>
-            </div>
-          ))}
-        </dl>
-      )}
-    </li>
-  );
-}
-
-function MobileRows<T extends object>({ columns, rows, getRowId, group }: Pick<DataTableProps<T>, "columns" | "rows" | "getRowId"> & { group?: DataTableMobileGroup<T> }) {
-  const hidden = new Set(group?.hiddenColumnKeys ?? []);
-  const visible = columns.filter((column) => !hidden.has(column.key));
-  const titleColumn = visible.find((column) => column.isRowHeader) ?? visible[0];
-  const actionsColumn = visible.find((column) => column.key === ACTIONS_COLUMN_KEY);
-  const detailColumns = visible.filter((column) => column !== titleColumn && column !== actionsColumn);
-  const rowProps = { titleColumn, actionsColumn, detailColumns };
-
-  if (!group) {
-    return (
-      <ul className="flex flex-col divide-y">
-        {rows.map((row) => (
-          <MobileRow key={getRowId(row)} row={row} {...rowProps} />
-        ))}
-      </ul>
-    );
-  }
-
-  const sections: { key: string; rows: T[] }[] = [];
-  for (const row of rows) {
-    const key = group.getKey(row);
-    const last = sections[sections.length - 1];
-    if (last?.key === key) last.rows.push(row);
-    else sections.push({ key, rows: [row] });
-  }
-
-  return (
-    <div className="flex flex-col gap-4">
-      {sections.map((section) => (
-        <section key={section.key} aria-label={group.getLabel(section.key)}>
-          <h3 className="border-b pb-1.5 text-xs font-medium tracking-wide text-muted-foreground uppercase">{group.getLabel(section.key)}</h3>
-          <ul className="flex flex-col divide-y">
-            {section.rows.map((row) => (
-              <MobileRow key={getRowId(row)} row={row} {...rowProps} />
-            ))}
-          </ul>
-        </section>
-      ))}
-    </div>
   );
 }
 
@@ -202,9 +95,10 @@ export function DataTable<T extends object>({
   wrapInCard = true,
   sortDescriptor,
   onSortChange,
-  mobileGroup,
+  mobile,
 }: DataTableProps<T>) {
   const isMobile = useIsMobile();
+  const loadMoreStep = mobile?.loadMoreStep;
   const { start, end, totalPages } = paginationRange(page, pageSize, totalItems);
   const pageList = buildPageList(page, totalPages);
 
@@ -218,12 +112,25 @@ export function DataTable<T extends object>({
       {rows.length === 0 ? (
         <EmptyState title={emptyTitle} description={emptyDescription} />
       ) : isMobile ? (
-        <MobileRows columns={columns} rows={rows} getRowId={getRowId} group={mobileGroup} />
+        <MobileRows columns={columns} rows={rows} getRowId={getRowId} group={mobile?.group} compact={mobile?.compact} revealActions={mobile?.revealActions} />
       ) : (
         <DesktopTable ariaLabel={ariaLabel} columns={columns} rows={rows} getRowId={getRowId} minWidthClassName={minWidthClassName} sortDescriptor={sortDescriptor} onSortChange={onSortChange} />
       )}
 
-      {totalItems > 0 && (
+      {totalItems > 0 && isMobile && loadMoreStep != null && (
+        <div className="flex flex-col items-center gap-2">
+          <Text size="xs" tone="muted">
+            Mostrando {end} de {totalItems} {itemsLabel}
+          </Text>
+          {end < totalItems && (
+            <Button type="button" variant="outline" className="w-full" onClick={() => onPageSizeChange(pageSize + loadMoreStep)}>
+              Ver más
+            </Button>
+          )}
+        </div>
+      )}
+
+      {totalItems > 0 && !(isMobile && loadMoreStep != null) && (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Text size="xs" tone="muted">

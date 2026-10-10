@@ -1,9 +1,11 @@
 import type { FormAction } from "@/lib/actionResult";
 import type { EmergencyFundView } from "@/application/getEmergencyFund";
 import { EmptyState } from "@/components/molecules/EmptyState";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { AccountOption } from "@/components/viewModels";
+import { EmergencyFundCard } from "./EmergencyFundCard";
 import { GoalModal } from "./GoalModal";
+import { GoalsList } from "./GoalsList";
 import { GoalsTable, type GoalRow } from "./GoalsTable";
 
 export interface GoalsSectionProps {
@@ -15,7 +17,7 @@ export interface GoalsSectionProps {
   deleteAction: FormAction;
 }
 
-export function GoalsSection({ rows, accounts, createAction, updateAction, deleteAction }: GoalsSectionProps) {
+export function GoalsSection({ rows, accounts, emergencyFund, createAction, updateAction, deleteAction }: GoalsSectionProps) {
   return (
     <section aria-label="Metas de ahorro" className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -26,6 +28,8 @@ export function GoalsSection({ rows, accounts, createAction, updateAction, delet
         <GoalModal mode="create" accounts={accounts} action={createAction} />
       </div>
 
+      <EmergencyFundCard emergencyFund={emergencyFund} />
+
       {rows.length === 0 ? (
         <Card>
           <CardContent>
@@ -33,7 +37,18 @@ export function GoalsSection({ rows, accounts, createAction, updateAction, delet
           </CardContent>
         </Card>
       ) : (
-        <GoalsTable rows={rows} accounts={accounts} updateAction={updateAction} deleteAction={deleteAction} />
+        <>
+          <GoalsTable rows={rows} accounts={accounts} updateAction={updateAction} deleteAction={deleteAction} />
+          <Card className="md:hidden">
+            <CardHeader>
+              <CardTitle>Tus metas</CardTitle>
+              <CardDescription>Toca una meta para ver el detalle o editarla.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <GoalsList rows={rows} accounts={accounts} updateAction={updateAction} deleteAction={deleteAction} />
+            </CardContent>
+          </Card>
+        </>
       )}
     </section>
   );

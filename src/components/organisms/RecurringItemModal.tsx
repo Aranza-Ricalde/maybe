@@ -31,7 +31,7 @@ export function RecurringItemModal({ mode, initialValues, accounts, categories, 
       action={action}
     >
       <TextInput label="Nombre" name={FIELD.name} defaultValue={initialValues?.name} placeholder="Ej.: Renta, Netflix, Nómina" isRequired />
-      <div className="grid gap-4 sm:grid-cols-2 [&>*]:min-w-0">
+      <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
         <SelectField label="Tipo" name={FIELD.flow} defaultValue={initialValues?.flow ?? "expense"} options={FLOW_OPTIONS} />
         <TextInput
           label="Día del mes"

@@ -39,7 +39,7 @@ const TILE_TONE: Record<MetricTone, { icon: string; value: string }> = {
   danger: { icon: "bg-danger/10 text-danger", value: "text-danger" },
 };
 
-const COLUMNS: Record<number, string> = { 2: "grid-cols-2", 3: "sm:grid-cols-3", 4: "grid-cols-2 xl:grid-cols-4", 5: "grid-cols-2 xl:grid-cols-6" };
+const COLUMNS: Record<number, string> = { 2: "grid-cols-2", 3: "grid-cols-2 sm:grid-cols-3 max-sm:[&>*:first-child]:col-span-2", 4: "grid-cols-2 xl:grid-cols-4", 5: "grid-cols-2 xl:grid-cols-6" };
 
 export function MetricStrip({ metrics, leading, stacked = false, className }: { metrics: Metric[]; leading?: ReactNode; stacked?: boolean; className?: string }) {
   const count = metrics.length + (leading ? 1 : 0);

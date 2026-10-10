@@ -38,7 +38,7 @@ export function CategoryModal({ mode, initialValues, parentOptions = [], action 
       action={action}
     >
       <TextInput label="Nombre" name={FIELD.name} defaultValue={initialValues?.name} isRequired />
-      <div className="grid gap-4 sm:grid-cols-2 [&>*]:min-w-0">
+      <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
         <SelectField label="Tipo" name={FIELD.classification} defaultValue={initialValues?.classification ?? "expense"} options={FLOW_OPTIONS} />
         <SelectField label="Naturaleza del gasto" description="Una subcategoría hereda la de su madre." name={FIELD.nature} defaultValue={initialValues?.nature ?? NO_NATURE_FORM_VALUE} options={natureOptions} />
       </div>

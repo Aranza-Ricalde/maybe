@@ -3,9 +3,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
 import { EmptyState } from "@/components/molecules/EmptyState";
 import { PageHeader } from "@/components/molecules/PageHeader";
+import { ResponsiveTabs, type ResponsiveTab } from "@/components/molecules/ResponsiveTabs";
 import { PeriodMultiSelect, type PeriodMultiSelectOption } from "@/components/molecules/PeriodMultiSelect";
 import { RecurringBudgetPolicyNote } from "@/components/molecules/RecurringBudgetPolicyNote";
-import { EmergencyFundCard } from "@/components/organisms/EmergencyFundCard";
 import { GoalsSection, type GoalsSectionProps } from "@/components/organisms/GoalsSection";
 import { BudgetsTable, type BudgetRow } from "@/components/organisms/BudgetsTable";
 import { RecurringBudgetDecisionBanner, type BudgetDecisionItem } from "@/components/organisms/RecurringBudgetDecisionBanner";
@@ -47,6 +47,29 @@ export function BudgetsPageTemplate({
   budgetDecisionAction,
   resetBudgetPolicyAction,
 }: BudgetsPageTemplateProps) {
+  const budgetsContent =
+    rows.length === 0 ? (
+      <Card>
+        <CardContent>
+          <EmptyState
+            title="Todavía no tienes categorías"
+            description="Crea categorías en Configuración para poder presupuestar por categoría."
+            action={
+              <Link href={ROUTES.settings} className="text-sm text-primary hover:underline">
+                Ir a Configuración →
+              </Link>
+            }
+          />
+        </CardContent>
+      </Card>
+    ) : (
+      <BudgetsTable rows={rows} setLineAction={setLineAction} deleteLineAction={deleteLineAction} />
+    );
+  const tabs: ResponsiveTab[] = [
+    { id: "budgets", label: "Presupuestos", content: budgetsContent },
+    { id: "goals", label: "Metas", content: <GoalsSection {...goals} createAction={createGoalAction} updateAction={updateGoalAction} deleteAction={deleteGoalAction} /> },
+  ];
+
   return (
     <>
       <PageHeader
@@ -57,25 +80,7 @@ export function BudgetsPageTemplate({
 
       <RecurringBudgetDecisionBanner pending={pendingBudgetDecisions} action={budgetDecisionAction} />
 
-      {rows.length === 0 ? (
-        <Card>
-          <CardContent>
-            <EmptyState
-              title="Todavía no tienes categorías"
-              description="Crea categorías en Configuración para poder presupuestar por categoría."
-              action={
-                <Link href={ROUTES.settings} className="text-sm text-primary hover:underline">
-                  Ir a Configuración →
-                </Link>
-              }
-            />
-          </CardContent>
-        </Card>
-      ) : (
-        <BudgetsTable rows={rows} aside={<EmergencyFundCard emergencyFund={goals.emergencyFund} />} setLineAction={setLineAction} deleteLineAction={deleteLineAction} />
-      )}
-
-      <GoalsSection {...goals} createAction={createGoalAction} updateAction={updateGoalAction} deleteAction={deleteGoalAction} />
+      <ResponsiveTabs ariaLabel="Presupuestos y metas" panelsClassName="md:flex md:flex-col md:gap-6" tabs={tabs} />
 
       <RecurringBudgetPolicyNote policy={budgetPolicy} resetAction={resetBudgetPolicyAction} />
     </>

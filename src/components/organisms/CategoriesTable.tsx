@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormAction } from "@/lib/actionResult";
-import { parentOptionsFor } from "@/lib/presenters/categories";
+import { expensesFirst, parentOptionsFor } from "@/lib/presenters/categories";
 import { Badge } from "@/components/ui/badge";
 import { SPENDING_NATURE_LABELS, type SpendingNature } from "@/domain/categories/nature";
 import { CategoryModal } from "./CategoryModal";
@@ -52,11 +52,12 @@ export function CategoriesTable({ rows, updateAction, deleteAction }: Categories
     {
       key: "nature",
       header: "Naturaleza",
+      mobileRole: "subtitle",
       cell: (c) =>
         c.classification === "expense" && c.nature ? (
           <Badge variant={c.nature === "essential" ? "success" : c.nature === "savings" ? "outline" : "secondary"}>{SPENDING_NATURE_LABELS[c.nature]}</Badge>
         ) : (
-          <span className="text-xs text-muted-foreground">{c.classification === "expense" ? "—" : ""}</span>
+          null
         ),
     },
     {
@@ -84,13 +85,14 @@ export function CategoriesTable({ rows, updateAction, deleteAction }: Categories
     <ClientDataTable
       ariaLabel="Categorías"
       columns={columns}
-      rows={rows}
+      rows={expensesFirst(rows)}
       getRowId={(c) => c.id}
       emptyTitle="Sin categorías todavía"
       emptyDescription="Crea tu primera categoría arriba."
       itemsLabel="categorías"
       minWidthClassName="min-w-[520px]"
       wrapInCard={false}
+      mobile={{ compact: true, loadMoreStep: 10, group: { getKey: (c) => c.classification, getLabel: (key) => (key === "income" ? "Ingresos" : "Gastos"), hiddenColumnKeys: ["type"] } }}
     />
   );
 }

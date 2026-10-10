@@ -1,7 +1,7 @@
 const openDetail = (name: string) => cy.contains("li", name).find('button[aria-label^="Ver detalle"]').click();
 const inDetail = (run: () => void) => cy.get('[data-slot="dialog-content"]').first().within(run);
 
-const GRID = "main ul";
+const GRID = '[aria-label="Lista de cuentas"]';
 
 describe("/accounts — crear, editar, archivar/restaurar", () => {
   beforeEach(() => {

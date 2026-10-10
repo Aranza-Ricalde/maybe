@@ -70,17 +70,17 @@ export function RecurringPageTemplate({
         <StatBlock label="Te queda después de lo fijo" value={formatCurrency(summary.netCents)} tone={summary.netCents < 0 ? "danger" : "default"} hint={<p className="mt-1 text-xs text-muted-foreground">{summary.activeCount} recurrentes activos</p>} />
       </StatBlockRow>
 
-      <PayrollCard setup={payroll.setup} periods={payroll.periods} suggestedMonthlyDay={payroll.suggestedMonthlyDay} categoryId={payroll.categoryId} today={payroll.today} accounts={accounts} action={savePayrollAction} />
+      <div className="contents max-md:order-last max-md:block"><PayrollCard setup={payroll.setup} periods={payroll.periods} suggestedMonthlyDay={payroll.suggestedMonthlyDay} categoryId={payroll.categoryId} today={payroll.today} accounts={accounts} action={savePayrollAction} /></div>
 
       <RecurringBudgetDecisionBanner pending={pendingBudgetDecisions} action={budgetDecisionAction} />
 
-      <RecurringCandidatesCard candidates={candidates} acceptAction={acceptCandidateAction} dismissAction={dismissCandidateAction} />
+      <div className="contents max-md:order-last max-md:block"><RecurringCandidatesCard candidates={candidates} acceptAction={acceptCandidateAction} dismissAction={dismissCandidateAction} /></div>
 
-      <Alert variant="info">
+      <div className="contents max-md:order-last max-md:block"><Alert variant="info">
         <Info />
         <AlertTitle>Suma al presupuesto</AlertTitle>
         <AlertDescription>Si está activo, el monto del recurrente sirve de presupuesto de su categoría. Si defines un presupuesto manual para esa categoría, el tuyo manda y el recurrente solo queda como referencia.</AlertDescription>
-      </Alert>
+      </Alert></div>
 
       <RecurringItemsTable
         rows={rows}
@@ -91,6 +91,7 @@ export function RecurringPageTemplate({
         deleteAction={deleteAction}
         toggleAction={toggleAction}
         budgetDecisionAction={budgetDecisionAction}
+        today={payroll.today}
       />
 
       <RecurringBudgetPolicyNote policy={budgetPolicy} resetAction={resetBudgetPolicyAction} />

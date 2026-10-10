@@ -2,7 +2,10 @@
 
 import { Target, TrendingDown, TriangleAlert, TrendingUp, type LucideIcon } from "lucide-react";
 import Link from "next/link";
+import { DisclosureRow } from "@/components/molecules/DisclosureRow";
 import { DecisionButtons } from "@/components/molecules/DecisionButtons";
+import { ExpandableList } from "@/components/molecules/ExpandableList";
+import { ResponsiveDialog } from "@/components/molecules/ResponsiveDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Insight, InsightTone } from "@/domain/insights/rules";
 import type { FormAction } from "@/lib/actionResult";
@@ -73,18 +76,32 @@ export function AttentionSection({ decisions, insights, actions }: AttentionSect
       )}
 
       {insights.length > 0 && (
-        <Card aria-label="Avisos sobre tus finanzas">
+        <>
+        <ResponsiveDialog
+          title="Avisos sobre tus finanzas"
+          trigger={
+            <DisclosureRow icon={TriangleAlert} iconClassName="text-warning" label="Avisos sobre tus finanzas" badge={insights.length} className="md:hidden" />
+          }
+        >
+          <ul className="flex flex-col gap-2">
+            {insights.map((insight) => (
+              <InsightTile key={insight.id} insight={insight} />
+            ))}
+          </ul>
+        </ResponsiveDialog>
+        <Card aria-label="Avisos sobre tus finanzas" className="max-md:hidden">
           <CardHeader>
             <CardTitle>Avisos sobre tus finanzas</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
-            <ul className="flex flex-col gap-2">
+            <ExpandableList count={top.length} mobileLimit={3} className="flex flex-col gap-2">
               {top.map((insight) => (
                 <InsightTile key={insight.id} insight={insight} />
               ))}
-            </ul>
+            </ExpandableList>
           </CardContent>
         </Card>
+        </>
       )}
     </div>
   );

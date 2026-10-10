@@ -1,15 +1,16 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState } from "react";
 import type { FormAction } from "@/lib/actionResult";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { ProgressRing } from "@/components/molecules/ProgressRing";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { BudgetCadence } from "@/domain/budget/rules";
 import { summarizeBudget, type BudgetOrigin } from "@/domain/budget/overview";
 import type { ResolvedCategoryDescription } from "@/domain/categories/descriptions";
-import { budgetLineStatus, budgetSummaryView, groupBudgetRows } from "@/lib/presenters/budgets";
+import { budgetLineStatus, budgetSummaryView, groupBudgetRows, sortByUrgency } from "@/lib/presenters/budgets";
 import { formatCurrency } from "@/lib/format";
 import { BudgetCategoryDialog } from "./BudgetCategoryDialog";
 
@@ -37,7 +38,6 @@ export interface BudgetRow {
 
 export interface BudgetsTableProps {
   rows: BudgetRow[];
-  aside?: ReactNode;
   setLineAction: FormAction;
   deleteLineAction: FormAction;
 }
@@ -61,6 +61,28 @@ function BudgetRingTile({ row, onOpen }: { row: BudgetRow; onOpen: (categoryId: 
   );
 }
 
+function BudgetUrgencyRow({ row, onOpen }: { row: BudgetRow; onOpen: (categoryId: number) => void }) {
+  const { barValue, tone, over, leftCents } = budgetLineStatus(row.effectiveBudgetedCents, row.actualCents);
+  const variant = tone === "danger" ? "destructive" : (tone ?? "default");
+  return (
+    <li>
+      <button type="button" aria-label={`Abrir presupuesto de ${row.name}`} onClick={() => onOpen(row.categoryId)} className="flex w-full flex-col gap-1.5 py-3 text-left">
+        <span className="flex items-center justify-between gap-3">
+          <span className="flex min-w-0 items-center gap-2 text-sm font-medium">
+            <span className="size-2.5 shrink-0 rounded-full" style={{ background: row.color }} />
+            <span className="break-words">{row.name}</span>
+          </span>
+          <span className={`shrink-0 text-sm font-semibold tabular-nums ${over ? "text-danger" : ""}`}>{over ? `Pasó ${formatCurrency(-leftCents)}` : `Quedan ${formatCurrency(leftCents)}`}</span>
+        </span>
+        <Progress value={barValue} variant={variant} aria-label={`Avance de ${row.name}`} className="h-1.5" />
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {formatCurrency(Math.abs(row.actualCents))} de {formatCurrency(row.effectiveBudgetedCents)}
+        </span>
+      </button>
+    </li>
+  );
+}
+
 function BudgetSummaryCard({ rows }: { rows: BudgetRow[] }) {
   const summary = useMemo(() => summarizeBudget(rows), [rows]);
   const { ringPercent, remainingCents: remaining, over } = budgetSummaryView(summary.budgetedCents, summary.spentCents);
@@ -72,7 +94,7 @@ function BudgetSummaryCard({ rows }: { rows: BudgetRow[] }) {
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex items-center gap-4">
-          <ProgressRing percent={ringPercent} over={over} label="Presupuesto total" className="size-24" />
+          <ProgressRing percent={ringPercent} over={over} label="Presupuesto total" className="size-16 md:size-24" />
           <div>
             <p className="text-xs text-muted-foreground">{remaining >= 0 ? "Te queda" : "Te pasaste por"}</p>
             <p className={`text-2xl font-semibold tracking-tight tabular-nums ${remaining >= 0 ? "text-success" : "text-danger"}`}>{formatCurrency(Math.abs(remaining))}</p>
@@ -93,27 +115,30 @@ function BudgetSummaryCard({ rows }: { rows: BudgetRow[] }) {
   );
 }
 
-export function BudgetsTable({ rows, aside, setLineAction, deleteLineAction }: BudgetsTableProps) {
+export function BudgetsTable({ rows, setLineAction, deleteLineAction }: BudgetsTableProps) {
   const { budgeted, unbudgeted, childrenOf } = useMemo(() => groupBudgetRows(rows), [rows]);
   const [openId, setOpenId] = useState<number | null>(null);
-  const [showUnbudgeted, setShowUnbudgeted] = useState(true);
+  const [showUnbudgeted, setShowUnbudgeted] = useState(false);
+  const urgent = useMemo(() => sortByUrgency(budgeted), [budgeted]);
   const selected = [...budgeted, ...unbudgeted].find((row) => row.categoryId === openId) ?? null;
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <BudgetSummaryCard rows={rows} />
-        {aside}
-      </div>
+      <BudgetSummaryCard rows={rows} />
       <Card>
         <CardHeader>
           <CardTitle>Presupuestos del periodo</CardTitle>
           <CardDescription>Toca una categoría para ver el detalle y cambiar su presupuesto. En rojo, las que ya se pasaron.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-6">
-          <ul aria-label="Presupuesto por categoría" className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+          <ul aria-label="Presupuesto por categoría" className="grid grid-cols-2 gap-2 max-md:hidden sm:grid-cols-3 lg:grid-cols-4">
             {budgeted.map((row) => (
               <BudgetRingTile key={row.categoryId} row={row} onOpen={setOpenId} />
+            ))}
+          </ul>
+          <ul aria-label="Lista de presupuestos" className="flex flex-col divide-y md:hidden">
+            {urgent.map((row) => (
+              <BudgetUrgencyRow key={row.categoryId} row={row} onOpen={setOpenId} />
             ))}
           </ul>
           {unbudgeted.length > 0 && (
@@ -124,11 +149,11 @@ export function BudgetsTable({ rows, aside, setLineAction, deleteLineAction }: B
               </Button>
               {showUnbudgeted && <ul aria-label="Categorías sin presupuesto" className="flex flex-col divide-y rounded-xl border">
                 {unbudgeted.map((row) => (
-                  <li key={row.categoryId} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                    <span className="flex min-w-0 items-center gap-2 text-sm">
+                  <li key={row.categoryId} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 px-4 py-2.5">
+                    <span className="flex min-w-0 flex-wrap items-center gap-x-2 text-sm">
                       <span className="size-2.5 shrink-0 rounded-full" style={{ background: row.color }} />
-                      <span className="truncate font-medium">{row.name}</span>
-                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">{formatCurrency(Math.abs(row.actualCents))} gastado</span>
+                      <span className="font-medium break-words">{row.name}</span>
+                      <span className="text-xs text-muted-foreground tabular-nums">{formatCurrency(Math.abs(row.actualCents))} gastado</span>
                     </span>
                     <Button type="button" variant="outline" size="sm" aria-label={`Editar presupuesto de ${row.name}`} onClick={() => setOpenId(row.categoryId)}>
                       Definir presupuesto

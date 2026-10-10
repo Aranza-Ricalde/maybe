@@ -48,14 +48,6 @@ export function accountChangeView(history: AccountsBalanceHistory, accountId: nu
   return { cents, pct: first === 0 ? null : cents / Math.abs(first) };
 }
 
-export const ACCOUNT_FILTERS = [
-  { value: "all", label: "Todas" },
-  { value: "liquid", label: "Efectivo y débito" },
-  { value: "credit", label: "Crédito" },
-  { value: "loans", label: "Préstamos" },
-] as const;
-export type AccountFilter = (typeof ACCOUNT_FILTERS)[number]["value"];
-
-export function filterAccounts<T extends { type: AccountType }>(rows: T[], filter: AccountFilter): T[] {
-  return filter === "all" ? rows : rows.filter((row) => accountGroupOf(row.type) === filter);
+export function accountsSubtotalCents(rows: Array<{ balanceCents: number }>): number {
+  return rows.reduce((sum, row) => sum + row.balanceCents, 0);
 }

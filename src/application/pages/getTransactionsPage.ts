@@ -1,3 +1,5 @@
+import type { UncategorizedTransactionsRepository } from "@/domain/categories/ports";
+import { buildCategoryReviewQueue } from "@/domain/categories/reviewQueue";
 import { categoryOptionsWithHierarchy } from "@/domain/categories/rules";
 import { parseTransactionDrilldown } from "@/domain/ledger/rules";
 import type { CaptureRepository } from "@/domain/captures/ports";
@@ -11,11 +13,13 @@ export class GetTransactionsPageUseCase {
     private readonly categories: CategoriesReader,
     private readonly suggestions: GetTransferSuggestionsUseCase,
     private readonly captures: Pick<CaptureRepository, "listPending">,
+    private readonly uncategorized: UncategorizedTransactionsRepository,
   ) {}
 
   async execute(familyId: number, today: string, searchParams: TransactionsSearchParams) {
     const drilldown = parseTransactionDrilldown(searchParams);
-    const [accounts, categories, transferSuggestions, pendingCaptures] = await Promise.all([this.accounts.listActive(familyId), this.categories.list(familyId), this.suggestions.execute(familyId, today), this.captures.listPending(familyId)]);
+    const [accounts, categories, transferSuggestions, pendingCaptures, uncategorized] = await Promise.all([this.accounts.listActive(familyId), this.categories.list(familyId), this.suggestions.execute(familyId, today), this.captures.listPending(familyId), this.uncategorized.listStandardUncategorized(familyId)]);
+    const ownerNames = await this.uncategorized.listOwnerNames(familyId);
 
     return {
       accounts,
@@ -23,9 +27,11 @@ export class GetTransactionsPageUseCase {
       today,
       transferSuggestions,
       pendingCaptures,
+      categoryReviewQueue: buildCategoryReviewQueue(uncategorized, ownerNames),
       initialFilters: {
         ...(drilldown.categoryId ? { categoryId: String(drilldown.categoryId) } : {}),
         ...(drilldown.from && drilldown.to ? { dateRange: { start: drilldown.from, end: drilldown.to } } : {}),
+        ...(drilldown.search ? { search: drilldown.search } : {}),
       },
     };
   }

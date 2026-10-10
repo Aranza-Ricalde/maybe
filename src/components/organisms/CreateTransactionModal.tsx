@@ -8,11 +8,12 @@ export interface CreateTransactionModalProps {
   categories: CategoryOption[];
   today: string;
   createTransactionAction: FormAction;
+  defaultOpen?: boolean;
 }
 
-export function CreateTransactionModal({ accounts, categories, today, createTransactionAction }: CreateTransactionModalProps) {
+export function CreateTransactionModal({ accounts, categories, today, createTransactionAction, defaultOpen }: CreateTransactionModalProps) {
   return (
-    <FormModal title="Registrar movimiento" trigger="+ Registrar movimiento" submitLabel="Registrar" action={createTransactionAction}>
+    <FormModal title="Registrar movimiento" trigger="+ Registrar movimiento" submitLabel="Registrar" defaultOpen={defaultOpen} action={createTransactionAction}>
       <TransactionFormFields accounts={accounts} categories={categories} defaults={{ date: today }} />
     </FormModal>
   );

@@ -64,15 +64,12 @@ describe("/accounts — lista, saldos y detalle", () => {
     cy.contains("Cuentas archivadas").should("not.exist");
   });
 
-  it("muestra el patrimonio neto y las pestañas filtran las cuentas por tipo", () => {
+  it("muestra el patrimonio neto y agrupa las cuentas por tipo con su subtotal", () => {
     cy.contains("Patrimonio neto").should("be.visible");
-    cy.contains("button", "Crédito").click();
-    cy.contains("li", "Nu TDC").should("be.visible");
-    cy.contains("li", "Nu Débito").should("not.exist");
-    cy.contains("button", "Préstamos").click();
-    cy.contains("li", "Préstamo Auto").should("be.visible");
-    cy.contains("button", "Todas").click();
-    cy.contains("li", "Nu Débito").should("be.visible");
+    cy.get('section[aria-label="Efectivo, ahorro y activos"]').contains("li", "Nu Débito").should("be.visible");
+    cy.get('section[aria-label="Tarjetas de crédito"]').contains("li", "Nu TDC").should("be.visible");
+    cy.get('section[aria-label="Préstamos y otros pasivos"]').contains("li", "Préstamo Auto").should("be.visible");
+    cy.contains("button", "Crédito").should("not.exist");
   });
 
   it("al abrir una cuenta se ve su saldo, la gráfica y sus movimientos", () => {

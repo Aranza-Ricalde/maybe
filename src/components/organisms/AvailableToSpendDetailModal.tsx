@@ -9,11 +9,11 @@ export interface AvailableToSpendDetailModalProps {
   detail: AvailableToSpendExplained;
 }
 
-export function AvailableToSpendDetailModal({ detail }: AvailableToSpendDetailModalProps) {
+export function AvailableToSpendDetailBody({ detail }: AvailableToSpendDetailModalProps) {
   const { liquidAccounts, liquidBalanceCents, commitments, commitmentsCents, availableCents } = detail;
 
   return (
-    <DetailModal title="Disponible para gastar">
+    <>
       <div className="rounded-xl bg-primary/5 p-4">
         <CurrencyText cents={availableCents} size="base" weight="semibold" tone={availableCents < 0 ? "danger" : "default"} className="text-2xl" />
         <Text size="xs" tone="muted" className="mt-1.5">
@@ -58,6 +58,14 @@ export function AvailableToSpendDetailModal({ detail }: AvailableToSpendDetailMo
           </ul>
         )}
       </div>
+    </>
+  );
+}
+
+export function AvailableToSpendDetailModal({ detail }: AvailableToSpendDetailModalProps) {
+  return (
+    <DetailModal title="Disponible para gastar" triggerClassName="max-md:hidden">
+      <AvailableToSpendDetailBody detail={detail} />
     </DetailModal>
   );
 }

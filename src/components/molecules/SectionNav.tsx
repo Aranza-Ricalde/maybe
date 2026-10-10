@@ -16,8 +16,8 @@ export interface SectionNavProps<V extends string> {
 
 export function SectionNav<V extends string>({ items, value, onChange, ariaLabel }: SectionNavProps<V>) {
   return (
-    <nav aria-label={ariaLabel} className="-mx-4 overflow-x-auto px-4 md:mx-0 md:w-44 md:shrink-0 md:overflow-visible md:px-0">
-      <ul className="flex gap-1 md:flex-col">
+    <nav aria-label={ariaLabel} className="-mx-3 overflow-x-auto px-3 md:mx-0 md:w-44 md:shrink-0 md:overflow-visible md:px-0">
+      <ul className="flex gap-2 md:flex-col md:gap-1">
         {items.map((item) => {
           const active = item.value === value;
           return (
@@ -26,7 +26,7 @@ export function SectionNav<V extends string>({ items, value, onChange, ariaLabel
                 type="button"
                 aria-current={active ? "page" : undefined}
                 onClick={() => onChange(item.value)}
-                className={cn("w-full rounded-md px-3 py-2 text-left text-sm font-medium whitespace-nowrap transition-colors hover:bg-muted", active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:text-foreground")}
+                className={cn("w-full text-left text-sm font-medium whitespace-nowrap transition-colors max-md:rounded-full max-md:px-4 max-md:py-1.5 md:rounded-md md:px-3 md:py-2 md:hover:bg-muted", active ? "max-md:bg-foreground max-md:text-background md:bg-sidebar-accent md:text-sidebar-accent-foreground" : "max-md:bg-muted text-muted-foreground hover:text-foreground")}
               >
                 {item.label}
               </button>

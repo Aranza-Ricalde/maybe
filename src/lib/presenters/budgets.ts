@@ -56,3 +56,8 @@ export function budgetSummaryView(budgetedCents: number, spentCents: number): Bu
 export function coverageProgress(months: number, targetMonths: number): number {
   return targetMonths > 0 ? clampPercent((months / targetMonths) * 100) : 0;
 }
+
+export function sortByUrgency<T extends { effectiveBudgetedCents: number; actualCents: number }>(rows: T[]): T[] {
+  const ratioOf = (row: T) => budgetLineStatus(row.effectiveBudgetedCents, row.actualCents).ratio ?? -1;
+  return [...rows].sort((a, b) => ratioOf(b) - ratioOf(a));
+}

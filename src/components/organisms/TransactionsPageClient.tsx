@@ -18,6 +18,7 @@ export interface TransactionsPageClientProps {
   categories: { id: number; name: string; label?: string }[];
   today: string;
   initialFilters?: Partial<TransactionFiltersValue>;
+  openCreateOnLoad?: boolean;
   reviewSlot?: ReactNode;
   createTransactionAction: FormAction;
   updateTransactionAction: FormAction;
@@ -38,6 +39,7 @@ export function TransactionsPageClient({
   categories,
   today,
   initialFilters,
+  openCreateOnLoad,
   reviewSlot,
   createTransactionAction,
   updateTransactionAction,
@@ -58,7 +60,7 @@ export function TransactionsPageClient({
           accounts.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
               <TransferModal accounts={accounts} today={today} recordTransferAction={withRefresh(recordTransferAction)} />
-              <CreateTransactionModal accounts={accounts} categories={categories} today={today} createTransactionAction={withRefresh(createTransactionAction)} />
+              <CreateTransactionModal defaultOpen={openCreateOnLoad} accounts={accounts} categories={categories} today={today} createTransactionAction={withRefresh(createTransactionAction)} />
             </div>
           )
         }
@@ -75,6 +77,7 @@ export function TransactionsPageClient({
         markTransferAction={markTransferAction}
         refreshSignal={refreshSignal}
         initialFilters={initialFilters}
+        today={today}
       />
     </>
   );

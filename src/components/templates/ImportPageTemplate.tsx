@@ -7,6 +7,7 @@ import { StepList } from "@/components/molecules/StepList";
 import { ImportResultAlert } from "@/components/organisms/ImportResultAlert";
 import { PendingStatementRow } from "@/components/organisms/PendingStatementRow";
 import { EnableNotificationsButton } from "@/components/molecules/EnableNotificationsButton";
+import { MobileCollapsible } from "@/components/molecules/MobileCollapsible";
 import { FileDropzone } from "@/components/molecules/FileDropzone";
 import { PageHeader } from "@/components/molecules/PageHeader";
 import { StatementReview } from "@/components/organisms/StatementReview";
@@ -32,10 +33,11 @@ export function ImportPageTemplate({ accounts, categories }: ImportPageTemplateP
 
   return (
     <>
-      <PageHeader title="Importar estados de cuenta" subtitle="Trae tus movimientos desde el PDF del banco sin capturarlos a mano." action={<EnableNotificationsButton />} />
+      <PageHeader title="Importar estados de cuenta" subtitle="Trae tus movimientos desde el PDF del banco sin capturarlos a mano." action={<div className="max-md:hidden"><EnableNotificationsButton /></div>} />
       <FileDropzone
         accept="application/pdf"
         title="Arrastra aquí tus estados de cuenta en PDF"
+        touchTitle="Sube tus estados de cuenta en PDF"
         hint="Puedes subir varios a la vez · máximo 4 MB cada uno · Nu débito, Nu crédito y BBVA"
         buttonLabel="Elegir PDFs"
         footnote="El PDF se lee en memoria y no se guarda. Solo se registran los movimientos que confirmes."
@@ -44,7 +46,9 @@ export function ImportPageTemplate({ accounts, categories }: ImportPageTemplateP
         onFiles={addFiles}
       />
 
-      <StepList steps={IMPORT_STEPS} current={currentImportStep(grouped)} />
+      <MobileCollapsible title="¿Cómo funciona?">
+        <StepList steps={IMPORT_STEPS} current={currentImportStep(grouped)} />
+      </MobileCollapsible>
 
       {pending.length > 0 && (
         <Card>

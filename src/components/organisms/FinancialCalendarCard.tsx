@@ -2,6 +2,8 @@ import type { FormAction } from "@/lib/actionResult";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CalendarEntryListItem } from "@/components/molecules/CalendarEntryListItem";
 import { EyebrowLabel } from "@/components/atoms/EyebrowLabel";
+import { ExpandableList } from "@/components/molecules/ExpandableList";
+import { cn } from "@/lib/utils";
 import type { PaymentCandidateView } from "@/components/molecules/OccurrencePaymentPicker";
 import { groupCalendarEntriesByStatus, type CalendarEntry } from "@/domain/calendar/rules";
 
@@ -25,19 +27,19 @@ export function FinancialCalendarCard({ entries, decisionAction, listPaymentCand
   ].filter((s) => s.items.length > 0);
 
   return (
-    <Card aria-label="Calendario del periodo" className="min-w-0">
+    <Card aria-label="Calendario del periodo" className={cn("min-w-0", paid.length + skipped.length === 0 && "max-md:hidden")}>
       <CardHeader>
         <CardTitle>Calendario del periodo</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
       {sections.map((section) => (
-        <div key={section.label}>
+        <div key={section.label} className={cn(section.label === "Por pagar" && "max-md:hidden")}>
           <EyebrowLabel>{section.label}</EyebrowLabel>
-          <ul className="mt-1 flex flex-col divide-y divide-border">
+          <ExpandableList count={section.items.length} mobileLimit={3} expandLabel="Ver todo" className="mt-1 flex flex-col divide-y divide-border">
             {section.items.map((e) => (
               <CalendarEntryListItem key={entryKey(e)} entry={e} decisionAction={decisionAction} listPaymentCandidates={listPaymentCandidates} linkPaymentAction={linkPaymentAction} />
             ))}
-          </ul>
+          </ExpandableList>
         </div>
       ))}
       </CardContent>

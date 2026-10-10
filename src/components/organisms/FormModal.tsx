@@ -32,6 +32,7 @@ export interface FormModalProps {
   submitVariant?: "default" | "destructive";
   pendingLabel?: string;
   size?: "sm" | "md" | "lg";
+  defaultOpen?: boolean;
   action: FormAction;
   children: ReactNode;
 }
@@ -46,10 +47,11 @@ export function FormModal({
   submitVariant = "default",
   pendingLabel = "Guardando…",
   size = "lg",
+  defaultOpen,
   action,
   children,
 }: FormModalProps) {
-  const { isOpen, setIsOpen, isPending, handleSubmit } = useFormModalController({ action });
+  const { isOpen, setIsOpen, isPending, handleSubmit } = useFormModalController({ action, defaultOpen });
 
   const triggerButton = iconTrigger ? (
     <Button type="button" variant="ghost" size="icon-sm" aria-label={iconTrigger.label} className={ICON_TRIGGER_TONE[iconTrigger.tone ?? "neutral"]}>
@@ -71,9 +73,11 @@ export function FormModal({
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {children}
-          <Button type="submit" variant={submitVariant}>
-            {submitLabel}
-          </Button>
+          <div className="sticky bottom-0 -mx-4 border-t bg-popover px-4 py-3 md:static md:mx-0 md:border-0 md:p-0">
+            <Button type="submit" variant={submitVariant} className="w-full">
+              {submitLabel}
+            </Button>
+          </div>
         </form>
       )}
     </ResponsiveDialog>

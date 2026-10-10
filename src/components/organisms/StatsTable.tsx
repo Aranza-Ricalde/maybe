@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ExpandableList } from "@/components/molecules/ExpandableList";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useStatsTable } from "@/hooks/useStatsTable";
 import type { StatsTableModel, StatsTableRow } from "@/lib/presenters/stats";
@@ -84,27 +85,29 @@ export function StatsTable({ model, nameColumn, title, isSelectable, onSelect }:
       {visible.length === 0 ? (
         <EmptyState title="Sin resultados" description="Prueba con otra búsqueda o cambia el rango." />
       ) : isMobile ? (
-        <ul className="flex flex-col divide-y border-y">
-          {visible.map((row) => (
-            <li key={row.key}>
-              <SelectableRow row={row} selectable={isSelectable(row)} onSelect={onSelect} className="flex items-center gap-3 px-1 py-3">
-                <div className="min-w-0 flex-1">
-                  <RowName row={row} />
-                  <Text size="xs" tone="muted" className="line-clamp-2">
-                    {mobileMeta(model, row)}
-                  </Text>
-                </div>
-                <span className="shrink-0 font-semibold tabular-nums">{row.cells[0]}</span>
-              </SelectableRow>
-            </li>
-          ))}
+        <div className="flex flex-col">
+          <ExpandableList count={visible.length} mobileLimit={5} expandLabel="Ver todo" className="flex flex-col divide-y border-y">
+            {visible.map((row) => (
+              <li key={row.key}>
+                <SelectableRow row={row} selectable={isSelectable(row)} onSelect={onSelect} className="flex items-center gap-3 px-1 py-3">
+                  <div className="min-w-0 flex-1">
+                    <RowName row={row} />
+                    <Text size="xs" tone="muted" className="line-clamp-2">
+                      {mobileMeta(model, row)}
+                    </Text>
+                  </div>
+                  <span className="shrink-0 font-semibold tabular-nums">{row.cells[0]}</span>
+                </SelectableRow>
+              </li>
+            ))}
+          </ExpandableList>
           {model.total && (
-            <li className="flex items-center justify-between px-1 py-3 font-semibold">
+            <p className="flex items-center justify-between border-b px-1 py-3 font-semibold">
               <span>{model.total.label}</span>
               <span className="tabular-nums">{model.total.cells[0]}</span>
-            </li>
+            </p>
           )}
-        </ul>
+        </div>
       ) : (
         <Table aria-label={title}>
           <TableHeader>

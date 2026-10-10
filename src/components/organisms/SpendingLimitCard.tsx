@@ -5,9 +5,10 @@ import { Progress } from "@/components/ui/progress";
 import { ROUTES } from "@/domain/shared/routes";
 import type { SpendingPace } from "@/domain/dashboard/pace";
 import { formatCurrency, formatDateRange } from "@/lib/format";
-import { spendingLimitView } from "@/lib/presenters/dashboard";
+import { spendingLimitDetail, spendingLimitView } from "@/lib/presenters/dashboard";
 
 export function SpendingLimitCard({ pace, range }: { pace: SpendingPace | null; range: { from: string; to: string } }) {
+  const detail = spendingLimitDetail(pace);
   const { budgetCents: budget, spentCents: spent, remainingCents: remaining, barValue, over } = spendingLimitView(pace);
 
   return (
@@ -18,7 +19,7 @@ export function SpendingLimitCard({ pace, range }: { pace: SpendingPace | null; 
           <ShieldCheck className="size-4 text-muted-foreground" />
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="flex flex-col gap-4">
         {budget > 0 ? (
           <>
             <div>
@@ -38,7 +39,22 @@ export function SpendingLimitCard({ pace, range }: { pace: SpendingPace | null; 
                 <p className={`font-semibold tabular-nums ${remaining >= 0 ? "text-success" : "text-danger"}`}>{formatCurrency(Math.abs(remaining))}</p>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground">{formatDateRange(range.from, range.to)}</p>
+            {detail && (
+              <dl className="grid grid-cols-2 gap-4 border-t pt-4 text-sm">
+                <div>
+                  <dt className="text-xs text-muted-foreground">Puedes gastar por día</dt>
+                  <dd className="font-semibold tabular-nums">{detail.dailyAllowanceCents == null ? "—" : formatCurrency(detail.dailyAllowanceCents)}</dd>
+                </div>
+                <div className="text-right">
+                  <dt className="text-xs text-muted-foreground">Ritmo esperado hoy</dt>
+                  <dd className="font-semibold tabular-nums">{formatCurrency(detail.expectedTodayCents)}</dd>
+                </div>
+              </dl>
+            )}
+            <p className="text-xs text-muted-foreground">
+              {formatDateRange(range.from, range.to)}
+              {detail && ` · ${detail.daysRemaining} de ${detail.daysTotal} días restantes`}
+            </p>
           </>
         ) : (
           <p className="text-sm text-muted-foreground">

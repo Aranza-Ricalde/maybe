@@ -86,6 +86,24 @@ export function spendingLimitView(pace: { budgetCents: number; spentCents: numbe
   };
 }
 
+export interface SpendingLimitDetail {
+  dailyAllowanceCents: number | null;
+  expectedTodayCents: number;
+  daysRemaining: number;
+  daysTotal: number;
+}
+
+export function spendingLimitDetail(pace: { budgetCents: number; spentCents: number; expectedTodayCents: number; daysRemaining: number; daysTotal: number } | null): SpendingLimitDetail | null {
+  if (!pace || pace.budgetCents <= 0) return null;
+  const remaining = pace.budgetCents - pace.spentCents;
+  return {
+    dailyAllowanceCents: remaining > 0 && pace.daysRemaining > 0 ? Math.floor(remaining / pace.daysRemaining) : null,
+    expectedTodayCents: pace.expectedTodayCents,
+    daysRemaining: pace.daysRemaining,
+    daysTotal: pace.daysTotal,
+  };
+}
+
 export function movementTotals(days: Array<{ incomeCents: number; expenseCents: number }>): { inCents: number; outCents: number; netCents: number } {
   const inCents = days.reduce((sum, day) => sum + day.incomeCents, 0);
   const outCents = days.reduce((sum, day) => sum + day.expenseCents, 0);

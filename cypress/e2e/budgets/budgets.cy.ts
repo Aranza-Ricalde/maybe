@@ -78,14 +78,14 @@ describe("Presupuestos (/budgets)", () => {
     });
   });
 
-  it("una categoría sin presupuesto aparece en la lista plegable con su botón para definirlo", () => {
+  it("las categorías sin presupuesto empiezan ocultas y se muestran con un botón", () => {
+    cy.get(UNBUDGETED).should("not.exist");
+    cy.contains("button", /Sin presupuesto \(\d+\)/).click();
     cy.get(UNBUDGETED).contains("li", "Nómina").within(() => {
       cy.contains("button", "Definir presupuesto").should("be.visible");
     });
     cy.contains("button", /Sin presupuesto \(\d+\)/).click();
     cy.get(UNBUDGETED).should("not.exist");
-    cy.contains("button", /Sin presupuesto \(\d+\)/).click();
-    cy.get(UNBUDGETED).should("be.visible");
   });
 
   it("crea un presupuesto manual para Ocio: el manual manda y el recurrente de Netflix solo era una sugerencia", () => {

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { FormAction } from "@/lib/actionResult";
 import { SelectField, TextInput } from "@/components/molecules/FormField";
 import { FormModal } from "./FormModal";
@@ -8,6 +9,8 @@ export interface TransferModalProps {
   accounts: AccountOption[];
   today: string;
   recordTransferAction: FormAction;
+  trigger?: ReactNode;
+  triggerClassName?: string;
 }
 
 const TRANSFER_KIND_OPTIONS = [
@@ -16,11 +19,11 @@ const TRANSFER_KIND_OPTIONS = [
   { value: "loan_payment", label: "Pago de préstamo" },
 ];
 
-export function TransferModal({ accounts, today, recordTransferAction }: TransferModalProps) {
+export function TransferModal({ accounts, today, recordTransferAction, trigger = "Transferencia", triggerClassName }: TransferModalProps) {
   return (
-    <FormModal title="Registrar transferencia" trigger="Transferencia" triggerVariant="ghost" submitLabel="Registrar" action={recordTransferAction}>
+    <FormModal title="Registrar transferencia" trigger={trigger} triggerClassName={triggerClassName} triggerVariant="ghost" submitLabel="Registrar" action={recordTransferAction}>
       <SelectField label="Tipo" name={FIELD.kind} defaultValue="transfer" options={TRANSFER_KIND_OPTIONS} />
-      <div className="grid gap-4 sm:grid-cols-2 [&>*]:min-w-0">
+      <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
         <SelectField
           label="Cuenta origen"
           name={FIELD.fromAccountId}
@@ -34,7 +37,7 @@ export function TransferModal({ accounts, today, recordTransferAction }: Transfe
           options={accounts.map((a) => ({ value: String(a.id), label: a.name }))}
         />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 [&>*]:min-w-0">
+      <div className="grid grid-cols-2 gap-3 [&>*]:min-w-0">
         <TextInput label="Monto" prefix="$" name={FIELD.amount} type="number" step="0.01" min="0.01" placeholder="500.00" isRequired />
         <TextInput label="Fecha" name={FIELD.date} type="date" defaultValue={today} isRequired />
       </div>

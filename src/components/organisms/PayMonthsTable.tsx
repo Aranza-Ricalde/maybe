@@ -39,8 +39,8 @@ export function PayMonthsTable({ rows, updateAction }: PayMonthsTableProps) {
         </div>
       ),
     },
-    { key: "range", header: "Fechas", cell: (m) => <Text tone="muted">{periodLabel(m.start, m.end)}</Text> },
-    { key: "count", header: "Quincenas", align: "right", cell: (m) => <Text tone="muted">{m.periodCount}</Text> },
+    { key: "range", header: "Fechas", mobileRole: "subtitle", cell: (m) => <Text tone="muted">{periodLabel(m.start, m.end)}</Text> },
+    { key: "count", header: "Quincenas", align: "right", mobileRole: "amount", cell: (m) => <Text tone="muted">{m.periodCount} {m.periodCount === 1 ? "quincena" : "quincenas"}</Text> },
     {
       key: "actions",
       header: "Acciones",
@@ -53,5 +53,5 @@ export function PayMonthsTable({ rows, updateAction }: PayMonthsTableProps) {
     },
   ];
 
-  return <ClientDataTable ariaLabel="Meses de pago" columns={columns} rows={rows} getRowId={(m) => m.id} emptyTitle="Sin periodos todavía" emptyDescription="Agrega tu primera quincena en la vista Quincenal." itemsLabel="meses" minWidthClassName="min-w-[420px]" wrapInCard={false} />;
+  return <ClientDataTable mobile={{ compact: true, loadMoreStep: 10 }} ariaLabel="Meses de pago" columns={columns} rows={rows} getRowId={(m) => m.id} emptyTitle="Sin periodos todavía" emptyDescription="Agrega tu primera quincena en la vista Quincenal." itemsLabel="meses" minWidthClassName="min-w-[420px]" wrapInCard={false} />;
 }

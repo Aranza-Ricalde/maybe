@@ -85,16 +85,20 @@ export interface TransactionDrilldown {
   categoryId?: number;
   from?: string;
   to?: string;
+  search?: string;
 }
+
+const MAX_SEARCH_LENGTH = 100;
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-export function parseTransactionDrilldown(params: { categoryId?: string; from?: string; to?: string }): TransactionDrilldown {
+export function parseTransactionDrilldown(params: { categoryId?: string; from?: string; to?: string; q?: string }): TransactionDrilldown {
   const categoryId = params.categoryId && /^\d+$/.test(params.categoryId) ? Number(params.categoryId) : undefined;
   const from = params.from && ISO_DATE.test(params.from) ? params.from : undefined;
   const to = params.to && ISO_DATE.test(params.to) ? params.to : undefined;
   const range = from && to && from <= to ? { from, to } : {};
-  return { ...(categoryId ? { categoryId } : {}), ...range };
+  const search = params.q?.trim().slice(0, MAX_SEARCH_LENGTH);
+  return { ...(categoryId ? { categoryId } : {}), ...range, ...(search ? { search } : {}) };
 }
 
 export const TRANSACTION_KIND_GROUPS = ["standard", "transfers"] as const;

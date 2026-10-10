@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { budgetLineStatus, budgetSummaryView, coverageProgress, groupBudgetRows } from "./budgets";
+import { sortByUrgency, budgetLineStatus, budgetSummaryView, coverageProgress, groupBudgetRows } from "./budgets";
 
 const row = (categoryId: number, parentId: number | null, effectiveBudgetedCents: number) => ({ categoryId, parentId, hasChildren: false, effectiveBudgetedCents, actualCents: 0 });
 
@@ -39,4 +39,14 @@ test("la cobertura del fondo se topa en 100 y tolera meta cero", () => {
   assert.equal(coverageProgress(1.5, 3), 50);
   assert.equal(coverageProgress(9, 3), 100);
   assert.equal(coverageProgress(2, 0), 0);
+});
+
+test("la lista móvil pone primero lo más cerca de pasarse o ya pasado", () => {
+  const rows = [
+    { name: "a", effectiveBudgetedCents: 1000, actualCents: -200 },
+    { name: "b", effectiveBudgetedCents: 1000, actualCents: -1500 },
+    { name: "c", effectiveBudgetedCents: 1000, actualCents: -900 },
+    { name: "d", effectiveBudgetedCents: 0, actualCents: -50 },
+  ];
+  assert.deepEqual(sortByUrgency(rows).map((row) => row.name), ["b", "c", "a", "d"]);
 });

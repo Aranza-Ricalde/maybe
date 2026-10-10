@@ -32,7 +32,7 @@ export interface GoalsTableProps {
 
 export function GoalsTable({ rows, accounts, updateAction, deleteAction }: GoalsTableProps) {
   return (
-    <ul aria-label="Metas" className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+    <ul aria-label="Metas" className="grid gap-3 max-md:hidden md:grid-cols-2 xl:grid-cols-3">
       {rows.map((g) => {
         const { currentCents: current, percent } = goalProgress(g.currentCents, g.targetAmountCents);
         const pct = Math.round(percent * 100);

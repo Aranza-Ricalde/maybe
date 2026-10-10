@@ -24,7 +24,15 @@ export const SEARCH_PARAM = {
   from: "from",
   to: "to",
   error: "error",
+  newTransaction: "nuevo",
+  search: "q",
 } as const;
+
+export const NEW_TRANSACTION_FLAG = "1";
+
+export const searchTransactionsHref = (query: string) => `${ROUTES.transactions}?${SEARCH_PARAM.search}=${encodeURIComponent(query.trim())}`;
+
+export const newTransactionHref = () => `${ROUTES.transactions}?${SEARCH_PARAM.newTransaction}=${NEW_TRANSACTION_FLAG}`;
 
 export interface PeriodsSearchParams {
   [SEARCH_PARAM.periods]?: string;
@@ -34,6 +42,8 @@ export interface TransactionsSearchParams {
   [SEARCH_PARAM.categoryId]?: string;
   [SEARCH_PARAM.from]?: string;
   [SEARCH_PARAM.to]?: string;
+  [SEARCH_PARAM.newTransaction]?: string;
+  [SEARCH_PARAM.search]?: string;
 }
 
 export interface LoginSearchParams {

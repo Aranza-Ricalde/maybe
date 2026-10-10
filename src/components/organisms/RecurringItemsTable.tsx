@@ -2,7 +2,7 @@
 
 import type { FormAction } from "@/lib/actionResult";
 import { CurrencyText } from "@/components/atoms/CurrencyText";
-import { recurringDetailLabel } from "@/lib/presenters/recurring";
+import { recurringBucket, recurringDetailLabel, sortByNextOccurrence } from "@/lib/presenters/recurring";
 import { Text } from "@/components/atoms/Text";
 import { DeleteEntityButton } from "./DeleteEntityButton";
 import { ClientDataTable } from "./ClientDataTable";
@@ -36,9 +36,10 @@ export interface RecurringItemsTableProps {
   deleteAction: FormAction;
   toggleAction: FormAction;
   budgetDecisionAction: FormAction;
+  today: string;
 }
 
-export function RecurringItemsTable({ rows, accounts, categories, updateAction, deleteAction, toggleAction, budgetDecisionAction }: RecurringItemsTableProps) {
+export function RecurringItemsTable({ rows, accounts, categories, updateAction, deleteAction, toggleAction, budgetDecisionAction, today }: RecurringItemsTableProps) {
   const categoryNameById = new Map(categories.map((c) => [c.id, c.name]));
   const accountNameById = new Map(accounts.map((a) => [a.id, a.name]));
 
@@ -48,9 +49,10 @@ export function RecurringItemsTable({ rows, accounts, categories, updateAction, 
       key: "amount",
       header: "Monto",
       align: "right",
+      mobileRole: "amount",
       cell: (item) => <CurrencyText cents={item.estimatedAmountCents} withSign weight="medium" tone={amountSignTone(item.estimatedAmountCents)} />,
     },
-    { key: "day", header: "Día", cell: (item) => (item.dayOfMonth === PERIOD_START_DAY ? "Inicio de cada periodo" : `Día ${item.dayOfMonth}`) },
+    { key: "day", header: "Día", mobileRole: "subtitle", cell: (item) => (item.dayOfMonth === PERIOD_START_DAY ? "Inicio de cada periodo" : `Día ${item.dayOfMonth}`) },
     {
       key: "detail",
       header: "Cuenta / Categoría",
@@ -109,8 +111,9 @@ export function RecurringItemsTable({ rows, accounts, categories, updateAction, 
     <ClientDataTable
       ariaLabel="Recurrentes"
       columns={columns}
-      rows={rows}
+      rows={sortByNextOccurrence(rows, today)}
       getRowId={(item) => item.id}
+      mobile={{ group: { getKey: (item) => recurringBucket(item.dayOfMonth, today), getLabel: (key) => key, hiddenColumnKeys: [] }, revealActions: true }}
       emptyTitle="Sin recurrentes todavía"
       emptyDescription="Crea uno manualmente o confirma un patrón detectado arriba."
       itemsLabel="recurrentes"

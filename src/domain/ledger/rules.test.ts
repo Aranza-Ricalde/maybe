@@ -116,3 +116,9 @@ test("límites de entrada: monto máximo, nombre largo y fechas inexistentes se 
   assert.throws(() => assertValidIsoDate("2026-02-30"));
   assert.doesNotThrow(() => assertValidIsoDate("2026-02-28"));
 });
+
+test("parseTransactionDrilldown: la búsqueda se recorta, se limita y se ignora si está vacía", () => {
+  assert.deepEqual(parseTransactionDrilldown({ q: "  netflix  " }), { search: "netflix" });
+  assert.deepEqual(parseTransactionDrilldown({ q: "   " }), {});
+  assert.equal(parseTransactionDrilldown({ q: "x".repeat(300) }).search?.length, 100);
+});

@@ -3,7 +3,9 @@ import { InfoTooltip } from "@/components/molecules/InfoTooltip";
 import { Card, CardContent } from "@/components/ui/card";
 import type { AvailableToSpendExplained, RunwayResult } from "@/domain/dashboard/rules";
 import { formatCurrency } from "@/lib/format";
-import { AvailableToSpendDetailModal } from "./AvailableToSpendDetailModal";
+import { DisclosureRow } from "@/components/molecules/DisclosureRow";
+import { ResponsiveDialog } from "@/components/molecules/ResponsiveDialog";
+import { AvailableToSpendDetailBody, AvailableToSpendDetailModal } from "./AvailableToSpendDetailModal";
 
 export interface AvailableToSpendCardProps {
   availableCents: number;
@@ -17,6 +19,8 @@ const TONE: Record<RunwayResult["level"], string> = {
   yellow: "bg-warning/15 text-warning",
   red: "bg-danger/10 text-danger",
 };
+
+const ICON_TONE: Record<RunwayResult["level"], string> = { green: "text-success", yellow: "text-warning", red: "text-danger" };
 
 function commitmentsLine(upcomingCommitmentsCents: number): string {
   if (upcomingCommitmentsCents === 0) return "No tienes compromisos próximos registrados todavía.";
@@ -41,11 +45,16 @@ export function AvailableToSpendCard({ availableCents, upcomingCommitmentsCents,
             <p className={`text-4xl font-semibold tracking-tight tabular-nums md:text-5xl ${availableCents < 0 ? "text-danger" : ""}`}>{formatCurrency(availableCents)}</p>
           </div>
         </div>
-        <div className="flex w-full items-start gap-3 lg:w-auto lg:max-w-md">
+        <ResponsiveDialog title="Disponible para gastar" trigger={<DisclosureRow icon={StatusIcon} iconClassName={ICON_TONE[runway.level]} label={runway.message} className="md:hidden" />}>
+          <div className="flex flex-col gap-5">
+            <AvailableToSpendDetailBody detail={detail} />
+          </div>
+        </ResponsiveDialog>
+        <div className="flex w-full items-start gap-3 max-md:hidden lg:w-auto lg:max-w-md">
           <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg ${TONE[runway.level]}`}>
             <StatusIcon className="size-4" aria-hidden />
           </span>
-          <div className="flex flex-col gap-1">
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
             <p className="text-sm leading-snug font-semibold">{runway.message}</p>
             <p className="text-sm leading-snug text-muted-foreground">{commitmentsLine(upcomingCommitmentsCents)}</p>
             <div className="mt-1">

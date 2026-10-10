@@ -8,6 +8,6 @@ describe("Recurrentes: columna Suma al presupuesto", () => {
     cy.contains("th", "Suma al presupuesto").should("be.visible");
     cy.get('[aria-label="¿Qué significa Suma al presupuesto?"]').focus();
     cy.contains("Suma este pago al presupuesto de su categoría").should("be.visible");
-    cy.contains("tr", "Netflix").contains(/Por confirmar|Suma|No suma/).should("be.visible");
+    cy.contains("tr", "Netflix").contains(/Por confirmar|Suma|No suma|—/).should("be.visible");
   });
 });

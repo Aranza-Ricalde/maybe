@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ExpandableList } from "@/components/molecules/ExpandableList";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { RecentTransactionView } from "@/components/viewModels";
@@ -27,7 +28,7 @@ export function RecentMovementsCard({ movements }: { movements: RecentTransactio
           <span className="text-right">Monto</span>
           <span className="text-right">Fecha</span>
         </div>
-        <ul className="flex flex-col">
+        <ExpandableList count={movements.length} mobileLimit={5} className="flex flex-col">
           {movements.map((movement) => (
             <li key={movement.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-b px-6 py-3 last:border-b-0 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_7rem_6rem]">
               <div className="flex min-w-0 items-center gap-3">
@@ -42,7 +43,7 @@ export function RecentMovementsCard({ movements }: { movements: RecentTransactio
               <span className="hidden text-right text-sm text-muted-foreground sm:block">{formatShortDate(movement.date)}</span>
             </li>
           ))}
-        </ul>
+        </ExpandableList>
       </CardContent>
     </Card>
   );

@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 const GRID_BY_COLUMNS: Record<number, { grid: string; divided: string }> = {
-  3: { grid: "grid gap-6 sm:grid-cols-3", divided: "sm:border-l sm:pl-6" },
+  3: { grid: "grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3 sm:gap-6 max-sm:[&>*:last-child]:col-span-2", divided: "sm:border-l sm:pl-6" },
   4: { grid: "grid grid-cols-2 gap-x-4 gap-y-6 lg:grid-cols-4 lg:gap-x-6", divided: "lg:border-l lg:pl-6" },
 };
 

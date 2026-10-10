@@ -55,3 +55,14 @@ test("el límite de gasto topa la barra en 100 y marca el exceso", () => {
 test("el movimiento de dinero suma entradas, salidas y flujo neto", () => {
   assert.deepEqual(movementTotals([{ incomeCents: 500, expenseCents: 200 }, { incomeCents: 0, expenseCents: 100 }]), { inCents: 500, outCents: 300, netCents: 200 });
 });
+
+import { spendingLimitDetail } from "./dashboard";
+
+test("el detalle del límite reparte lo que queda entre los días restantes y calla sin presupuesto", () => {
+  const pace = { budgetCents: 30_000, spentCents: 12_000, expectedTodayCents: 15_000, daysRemaining: 9, daysTotal: 30 };
+  assert.deepEqual(spendingLimitDetail(pace), { dailyAllowanceCents: 2_000, expectedTodayCents: 15_000, daysRemaining: 9, daysTotal: 30 });
+  assert.equal(spendingLimitDetail({ ...pace, spentCents: 31_000 })?.dailyAllowanceCents, null);
+  assert.equal(spendingLimitDetail({ ...pace, daysRemaining: 0 })?.dailyAllowanceCents, null);
+  assert.equal(spendingLimitDetail({ ...pace, budgetCents: 0 }), null);
+  assert.equal(spendingLimitDetail(null), null);
+});

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { AccountsBalanceHistory } from "@/application/getAccountsBalanceHistory";
-import { accountChange, accountChangeView, filterAccounts, accountSeries, accountSpark, groupAccounts, paymentDayLabel } from "./accounts";
+import { accountChange, accountChangeView, accountSeries, accountSpark, groupAccounts, paymentDayLabel } from "./accounts";
 
 test("las cuentas se agrupan en líquidas, tarjetas y préstamos, en ese orden y sin grupos vacíos", () => {
   const groups = groupAccounts([{ type: "loan" as const }, { type: "checking" as const }, { type: "savings" as const }]);
@@ -37,8 +37,10 @@ test("el cambio con porcentaje usa el primer saldo; con saldo inicial 0 no hay p
   assert.deepEqual(accountChangeView(history, 2), { cents: 40, pct: null });
 });
 
-test("el filtro de cuentas deja solo el grupo elegido", () => {
-  const rows = [{ type: "checking" as const }, { type: "credit_card" as const }, { type: "loan" as const }];
-  assert.equal(filterAccounts(rows, "all").length, 3);
-  assert.deepEqual(filterAccounts(rows, "credit").map((row) => row.type), ["credit_card"]);
+
+import { accountsSubtotalCents } from "./accounts";
+
+test("el subtotal de un grupo suma sus saldos, incluso negativos", () => {
+  assert.equal(accountsSubtotalCents([{ balanceCents: 1000 }, { balanceCents: -250 }]), 750);
+  assert.equal(accountsSubtotalCents([]), 0);
 });
