@@ -24,7 +24,7 @@ function FileRow({ item, onCancel }: { item: QueueItem; onCancel: () => void }) 
         <span className="min-w-0 truncate text-sm">{item.file.name}</span>
         <span className={`shrink-0 text-xs font-medium ${TEXT_TONE[item.status] ?? "text-muted-foreground"}`}>{item.status === "done" ? "✓ Importado" : STATUS_LABEL[item.status]}</span>
       </div>
-      <Progress value={PROGRESS[item.status]} variant={BAR_VARIANT[item.status]} aria-label={STATUS_LABEL[item.status]} />
+      {isBusy(item) && <Progress value={PROGRESS[item.status]} variant={BAR_VARIANT[item.status]} aria-label={STATUS_LABEL[item.status]} />}
       {isBusy(item) && (
         <Button type="button" variant="ghost" size="xs" className="self-end text-muted-foreground" onClick={onCancel}>
           Cancelar
@@ -51,14 +51,15 @@ interface ImportProgressBubbleProps {
 }
 
 function ImportProgressBubble({ busy, allDone, done, total, onOpen }: ImportProgressBubbleProps) {
-  const { position, handlers } = useDraggableBubble(BUBBLE_SIZE, onOpen);
+  const { element, position, isDragging, handlers } = useDraggableBubble(BUBBLE_SIZE, onOpen);
   const placement = position ? { left: position.x, top: position.y } : { right: 16, bottom: 96 };
   return (
     <button
+      ref={element}
       type="button"
       aria-label={`Importación en curso: ${done} de ${total}. Toca para abrir o arrastra para mover`}
       style={{ ...placement, width: BUBBLE_SIZE.width, height: BUBBLE_SIZE.height, touchAction: "none" }}
-      className="fixed z-50 flex items-center justify-center rounded-full border border-border bg-card shadow-xl md:hidden"
+      className={`fixed z-50 flex touch-none items-center justify-center rounded-full border border-border bg-card select-none md:hidden ${isDragging ? "shadow-2xl ring-2 ring-primary/30" : "shadow-xl"}`}
       {...handlers}
     >
       {busy ? <Spinner className="size-6 text-primary" /> : <span className={`flex size-6 items-center justify-center rounded-full text-xs text-white ${allDone ? "bg-success" : "bg-warning"}`}>{allDone ? "✓" : "!"}</span>}
@@ -98,9 +99,11 @@ export function ImportProgressPanel() {
           {collapsed ? "Mostrar" : "Ocultar"}
         </Button>
       </div>
-      <div className="px-4 pb-3">
-        <Progress value={busy ? null : 100} variant={busy ? "default" : "success"} aria-label="Progreso total" className="h-1.5" />
-      </div>
+      {busy && (
+        <div className="px-4 pb-3">
+          <Progress value={null} variant="default" aria-label="Progreso total" className="h-1.5" />
+        </div>
+      )}
       {!collapsed && (
         <div className="flex flex-col gap-3 border-t border-border px-4 py-3">
           <ul className="flex max-h-60 flex-col gap-3 overflow-y-auto">
@@ -109,9 +112,9 @@ export function ImportProgressPanel() {
             ))}
           </ul>
           {needsReview && (
-            <Link href={ROUTES.import} className="text-xs font-medium text-primary">
-              Revisar en Importar estados
-            </Link>
+            <Button size="sm" nativeButton={false} render={<Link href={ROUTES.import} />}>
+              Revisar estados
+            </Button>
           )}
         </div>
       )}

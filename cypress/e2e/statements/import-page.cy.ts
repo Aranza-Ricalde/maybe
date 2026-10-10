@@ -24,7 +24,8 @@ describe("Importar estados — pantalla", () => {
       cy.get("aside[aria-label='Progreso de importación']").should("not.exist");
       cy.contains("nav a", "Resumen").click();
       cy.get("aside[aria-label='Progreso de importación']").should("be.visible");
-      cy.get("aside [role=progressbar]").should("have.length.at.least", 2);
+      cy.get("aside").contains("a", "Revisar estados").should("be.visible");
+      cy.get("aside [role=progressbar]").should("not.exist");
       cy.task("dbQuery", "select count(*)::int as n from transactions").should("deep.equal", before);
     });
   });
