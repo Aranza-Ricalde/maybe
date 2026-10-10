@@ -3,7 +3,7 @@ import { AppHeader } from "@/components/organisms/AppHeader";
 import { AppSidebar } from "@/components/organisms/AppSidebar";
 import { FloatingActionButton } from "@/components/molecules/FloatingActionButton";
 import { BottomNav } from "@/components/organisms/BottomNav";
-import { newTransactionHref } from "@/domain/shared/routes";
+import { ROUTES, newTransactionHref } from "@/domain/shared/routes";
 import { ImportProgressPanel } from "@/components/organisms/ImportProgressPanel";
 import type { NavUserProps } from "@/components/organisms/NavUser";
 import { NotificationsProvider, type NotificationsProviderProps } from "@/providers/NotificationsProvider";
@@ -30,7 +30,7 @@ export function AppShell({ children, defaultSidebarOpen, user, notifications }: 
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 md:gap-6">{children}</div>
           </div>
         </SidebarInset>
-        <FloatingActionButton href={newTransactionHref()} label="Registrar movimiento" />
+        <FloatingActionButton href={newTransactionHref()} label="Registrar movimiento" hiddenOn={[ROUTES.import]} />
         <BottomNav />
         <ImportProgressPanel />
         <Toaster position="top-left" richColors closeButton />

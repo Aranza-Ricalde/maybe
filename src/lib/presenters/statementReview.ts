@@ -10,6 +10,15 @@ export const REVIEW_TAB_HELP: Record<ReviewTab, string> = {
   orphans: "Solo informativo: movimientos tuyos de este periodo que el PDF no respalda. Revísalos por si hay un error de captura.",
 };
 
+export const REVIEW_TAB_ORDER: ReviewTab[] = ["new", "probable", "imported", "orphans"];
+
+export const REVIEW_TAB_TITLES: Record<ReviewTab, string> = {
+  new: "Nuevos",
+  probable: "Ya los tengo",
+  imported: "Importados",
+  orphans: "Solo en mi app",
+};
+
 export function reviewTabs(preview: StatementPreview): Array<{ value: ReviewTab; label: string }> {
   return [
     { value: "new", label: `Nuevos (${preview.counts.new})` },
@@ -19,7 +28,27 @@ export function reviewTabs(preview: StatementPreview): Array<{ value: ReviewTab;
   ];
 }
 
+export function reviewTabsShort(preview: StatementPreview): Array<{ value: ReviewTab; label: string }> {
+  return [
+    { value: "new", label: `Nuevos ${preview.counts.new}` },
+    { value: "probable", label: `Ya los tengo ${preview.counts.probableMatch}` },
+    { value: "imported", label: `Importados ${preview.counts.alreadyImported}` },
+    { value: "orphans", label: `Solo en mi app ${preview.unmatchedExisting.length}` },
+  ];
+}
+
 export function rowsForTab(preview: StatementPreview, tab: ReviewTab): PreviewRow[] {
   const status = tab === "new" ? "new" : tab === "probable" ? "probable_match" : "already_imported";
   return preview.rows.filter((row) => row.status === status);
+}
+
+export function importSummaryLabel(summary: { toImport: number; toLink: number; toSkip: number }): { headline: string; detail: string } {
+  const total = summary.toImport + summary.toLink;
+  if (total === 0) return { headline: "Nada seleccionado", detail: summary.toSkip > 0 ? `${summary.toSkip} omitidos` : "Elige qué importar" };
+  const parts = [
+    summary.toImport > 0 ? `${summary.toImport} por crear` : null,
+    summary.toLink > 0 ? `${summary.toLink} por vincular` : null,
+    summary.toSkip > 0 ? `${summary.toSkip} omitidos` : null,
+  ].filter((part): part is string => part !== null);
+  return { headline: total === 1 ? "1 movimiento" : `${total} movimientos`, detail: parts.join(" · ") };
 }

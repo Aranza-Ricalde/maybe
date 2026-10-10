@@ -7,6 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { CurrencyText } from "@/components/atoms/CurrencyText";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Text } from "@/components/atoms/Text";
+import { ResponsiveDialog } from "@/components/molecules/ResponsiveDialog";
+import { CheckCheck, Info, Link2, Trash2 } from "lucide-react";
+import { MobileCollapsible } from "@/components/molecules/MobileCollapsible";
+import { PillTabs } from "@/components/molecules/PillTabs";
 import { SegmentedButtons } from "@/components/molecules/SegmentedButtons";
 import { StatementTotalsCheck } from "@/components/molecules/StatementTotalsCheck";
 import type { CategoryOption } from "@/components/viewModels";
@@ -15,7 +19,7 @@ import type { PreviewRow, RowAction } from "@/domain/statements/reconcile";
 import { STATEMENT_BANK_LABELS, type StatementTransactionType } from "@/domain/statements/types";
 import { formatDate, formatShortDate } from "@/lib/format";
 import { useStatementReview } from "@/hooks/useStatementReview";
-import { REVIEW_TAB_HELP } from "@/lib/presenters/statementReview";
+import { REVIEW_TAB_HELP, REVIEW_TAB_ORDER, REVIEW_TAB_TITLES, importSummaryLabel, reviewTabsShort } from "@/lib/presenters/statementReview";
 import type { QueueItem } from "@/lib/statementQueue";
 
 const TYPE_LABEL: Record<StatementTransactionType, string> = { expense: "Gasto", income: "Ingreso", internal_transfer: "Transferencia propia", card_payment: "Pago de tarjeta" };
@@ -31,23 +35,26 @@ const ACTION_OPTIONS = (hasMatch: boolean) => [
 export function StatementReview({ item, categories }: { item: QueueItem; categories: CategoryOption[] }) {
   const review = useStatementReview(item);
   if (!review) return null;
-  const { preview, tab, setTab, tabs, rows, busy, summary, mismatch, highCount, canConfirm, setChoices, acknowledge, discard, confirm } = review;
+  const importSummary = importSummaryLabel(review.summary);
+  const { preview, tab, setTab, tabs, rows, busy, mismatch, highCount, canConfirm, setChoices, acknowledge, discard, confirm } = review;
 
   return (
     <Card aria-label={`Revisión de ${item.file.name}`}>
       <CardContent className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
             <Text weight="medium">
               {STATEMENT_BANK_LABELS[preview.bank]}
               {preview.accountLast4 ? ` · ****${preview.accountLast4}` : ""}
             </Text>
             <Text size="xs" tone="muted">
-              {formatDate(preview.periodStart)} al {formatDate(preview.periodEnd)} · {item.file.name} · {preview.rows.length} movimientos
+              {formatDate(preview.periodStart)} al {formatDate(preview.periodEnd)} · {preview.rows.length} movimientos
+              <span className="max-md:hidden"> · {item.file.name}</span>
             </Text>
           </div>
-          <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={discard}>
-            Descartar
+          <Button type="button" size="sm" variant="ghost" disabled={busy} onClick={discard} aria-label="Descartar este estado" className="shrink-0 text-muted-foreground max-md:size-8 max-md:p-0">
+            <Trash2 className="md:hidden" aria-hidden />
+            <span className="max-md:hidden">Descartar</span>
           </Button>
         </div>
 
@@ -65,30 +72,62 @@ export function StatementReview({ item, categories }: { item: QueueItem; categor
         )}
 
         <div className="flex flex-col gap-2">
-          <SegmentedButtons options={tabs} value={tab} onChange={setTab} />
-          <Text size="sm" tone="muted">
+          <div className="flex flex-col gap-1.5 md:hidden">
+            <div className="flex items-center justify-between">
+              <Text size="xs" weight="medium" tone="muted">
+                Qué revisar
+              </Text>
+              <ResponsiveDialog
+                title="¿Qué significa cada pestaña?"
+                size="sm"
+                trigger={
+                  <Button type="button" variant="ghost" size="icon-xs" aria-label="¿Qué significa esta pestaña?" className="text-muted-foreground">
+                    <Info />
+                  </Button>
+                }
+              >
+                <ul className="flex flex-col gap-3 pb-2">
+                  {REVIEW_TAB_ORDER.map((key) => (
+                    <li key={key} className={`rounded-xl border px-4 py-3 ${key === tab ? "border-primary/40 bg-primary/5" : "bg-card"}`}>
+                      <p className="text-sm font-medium">{REVIEW_TAB_TITLES[key]}</p>
+                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{REVIEW_TAB_HELP[key]}</p>
+                    </li>
+                  ))}
+                </ul>
+              </ResponsiveDialog>
+            </div>
+            <div className="[mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent)]">
+              <PillTabs options={reviewTabsShort(preview)} value={tab} onChange={setTab} ariaLabel="Qué revisar" />
+            </div>
+          </div>
+          <div className="max-md:hidden">
+            <SegmentedButtons options={tabs} value={tab} onChange={setTab} />
+          </div>
+          <Text size="sm" tone="muted" className="max-md:hidden">
             {REVIEW_TAB_HELP[tab]}
           </Text>
         </div>
 
         {(tab === "new" || tab === "probable") && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {tab === "new" && (
               <>
-                <Button type="button" size="sm" variant="secondary" onClick={() => setChoices(importAllNew(preview, item.choices, true))}>
+                <Button type="button" size="xs" variant="outline" className="rounded-full" onClick={() => setChoices(importAllNew(preview, item.choices, true))}>
+                  <CheckCheck data-icon="inline-start" />
                   Seleccionar todos
                 </Button>
-                <Button type="button" size="sm" variant="secondary" onClick={() => setChoices(importAllNew(preview, item.choices, false))}>
+                <Button type="button" size="xs" variant="ghost" className="rounded-full text-muted-foreground" onClick={() => setChoices(importAllNew(preview, item.choices, false))}>
                   Quitar selección
                 </Button>
               </>
             )}
             {tab === "probable" && (
               <>
-                <Button type="button" size="sm" variant="secondary" disabled={highCount === 0} onClick={() => setChoices(linkAllHighConfidence(preview, item.choices))}>
-                  Vincular los muy probables ({highCount})
+                <Button type="button" size="xs" variant="outline" className="rounded-full" disabled={highCount === 0} onClick={() => setChoices(linkAllHighConfidence(preview, item.choices))}>
+                  <Link2 data-icon="inline-start" />
+                  Vincular muy probables ({highCount})
                 </Button>
-                <Button type="button" size="sm" variant="secondary" onClick={() => setChoices(skipAllProbable(preview, item.choices))}>
+                <Button type="button" size="xs" variant="ghost" className="rounded-full text-muted-foreground" onClick={() => setChoices(skipAllProbable(preview, item.choices))}>
                   Omitir todos
                 </Button>
               </>
@@ -102,7 +141,7 @@ export function StatementReview({ item, categories }: { item: QueueItem; categor
               Todo lo que registraste en este periodo aparece en el estado.
             </Text>
           ) : (
-            <ul className="flex max-h-[55vh] flex-col divide-y divide-border overflow-y-auto rounded-2xl border border-border">
+            <ul className="flex flex-col divide-y divide-border rounded-2xl border border-border md:max-h-[55vh] md:overflow-y-auto">
               {preview.unmatchedExisting.map((movement) => (
                 <li key={movement.id} className="flex items-center justify-between gap-3 px-4 py-3">
                   <Text size="sm">
@@ -118,7 +157,7 @@ export function StatementReview({ item, categories }: { item: QueueItem; categor
             Nada por aquí.
           </Text>
         ) : (
-          <ul className="flex max-h-[55vh] flex-col divide-y divide-border overflow-y-auto rounded-2xl border border-border">
+          <ul className="flex flex-col divide-y divide-border rounded-2xl border border-border md:max-h-[55vh] md:overflow-y-auto">
             {rows.map((row) => (
               <ReviewRow key={row.index} row={row} choice={item.choices[row.index]} categories={categories} disabled={busy} onAction={(action) => setChoices(setAction(item.choices, row.index, action))} onCategory={(id) => setChoices(setCategory(item.choices, row.index, id))} onType={(type) => setChoices(setType(item.choices, row.index, type))} onPair={(pair) => setChoices(setPair(preview, item.choices, row.index, pair))} />
             ))}
@@ -126,22 +165,36 @@ export function StatementReview({ item, categories }: { item: QueueItem; categor
         )}
       </CardContent>
 
-      <CardFooter className="flex flex-wrap items-center justify-between gap-3 border-t">
-        <div className="flex flex-col">
-          <Text size="sm" weight="medium">
-            {summary.toImport} por crear · {summary.toLink} por vincular · {summary.toSkip} omitidos
-          </Text>
-          {item.message && (
-            <Text size="xs" tone="danger">
-              {item.message}
-            </Text>
-          )}
-        </div>
-        <Button type="button" disabled={!canConfirm} onClick={confirm}>
-          {busy ? "Importando…" : `Confirmar (${summary.toImport + summary.toLink})`}
-        </Button>
+      <CardFooter className="border-t">
+        <ImportActionBar summary={importSummary} message={item.message} busy={busy} canConfirm={canConfirm} onConfirm={confirm} />
       </CardFooter>
     </Card>
+  );
+}
+
+interface ImportActionBarProps {
+  summary: { headline: string; detail: string };
+  message: string | null;
+  busy: boolean;
+  canConfirm: boolean;
+  onConfirm: () => void;
+}
+
+function ImportActionBar({ summary, message, busy, canConfirm, onConfirm }: ImportActionBarProps) {
+  return (
+    <div className="flex w-full items-center justify-between gap-3">
+      <div className="flex min-w-0 flex-col">
+        <Text size="sm" weight="medium">
+          {summary.headline}
+        </Text>
+        <Text size="xs" tone={message ? "danger" : "muted"}>
+          {message ?? summary.detail}
+        </Text>
+      </div>
+      <Button type="button" disabled={!canConfirm} onClick={onConfirm} className="shrink-0">
+        {busy ? "Importando…" : "Importar"}
+      </Button>
+    </div>
   );
 }
 
@@ -162,9 +215,9 @@ function ReviewRow({ row, choice, categories, disabled, onAction, onCategory, on
 
   return (
     <li className={`flex flex-col gap-2 px-4 py-3 ${!selected && !row.locked && !match ? "opacity-60" : ""}`}>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+      <div className="flex items-start gap-x-3 gap-y-2 md:flex-wrap md:items-center">
         {!match && !row.locked && <Checkbox aria-label={`Importar ${transaction.description}`} disabled={disabled} checked={selected} onCheckedChange={(checked) => onAction(checked === true ? "import" : "skip")} />}
-        <div className="min-w-48 flex-1">
+        <div className="min-w-0 flex-1 md:min-w-48">
           <Text size="sm" weight="medium" className="break-words">
             {transaction.description}
           </Text>
@@ -173,7 +226,11 @@ function ReviewRow({ row, choice, categories, disabled, onAction, onCategory, on
             {transaction.postedDate && transaction.postedDate !== transaction.date ? ` · se reflejó el ${formatShortDate(transaction.postedDate)}` : ""} · {TYPE_LABEL[choice.type]}
           </Text>
         </div>
-        {!row.locked && selected && !match && <RowEditors choice={choice} categories={categories} disabled={disabled} onCategory={onCategory} onType={onType} />}
+        {!row.locked && selected && !match && (
+          <div className="max-md:hidden">
+            <RowEditors choice={choice} categories={categories} disabled={disabled} onCategory={onCategory} onType={onType} />
+          </div>
+        )}
         <CurrencyText cents={transaction.amountCents} weight="medium" tone={transaction.amountCents > 0 ? "success" : "default"} className="shrink-0" />
       </div>
 
@@ -187,11 +244,24 @@ function ReviewRow({ row, choice, categories, disabled, onAction, onCategory, on
               Ya tienes «{match.name}» del {formatShortDate(match.date)} ({SOURCE_LABEL[match.source] ?? match.source})
             </Text>
           </div>
-          <SegmentedButtons options={ACTION_OPTIONS(true)} value={choice.action} onChange={onAction} />
+          <div className="max-md:w-full">
+            <SegmentedButtons options={ACTION_OPTIONS(true)} value={choice.action} onChange={onAction} />
+          </div>
         </div>
       )}
 
-      {!row.locked && selected && match && choice.action === "import" && <RowEditors choice={choice} categories={categories} disabled={disabled} onCategory={onCategory} onType={onType} />}
+      {!row.locked && selected && match && choice.action === "import" && (
+        <div className="max-md:hidden">
+          <RowEditors choice={choice} categories={categories} disabled={disabled} onCategory={onCategory} onType={onType} />
+        </div>
+      )}
+      {!row.locked && selected && (!match || choice.action === "import") && (
+        <div className="md:hidden">
+          <MobileCollapsible title="Cambiar tipo o categoría">
+            <RowEditors choice={choice} categories={categories} disabled={disabled} onCategory={onCategory} onType={onType} />
+          </MobileCollapsible>
+        </div>
+      )}
 
       {!row.locked && row.pairSuggestion && (
         <label className="flex items-center gap-2 text-xs">
