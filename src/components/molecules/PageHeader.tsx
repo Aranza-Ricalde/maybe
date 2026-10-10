@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Heading } from "@/components/atoms/Heading";
+import { NotificationBell } from "@/components/organisms/NotificationBell";
 import { Text } from "@/components/atoms/Text";
 
 export interface PageHeaderProps {
@@ -22,7 +23,10 @@ export function PageHeader({ title, subtitle, subtitleClassName = "", action }: 
           </Text>
         )}
       </div>
-      {action}
+      <div className="flex items-center gap-2">
+        {action}
+        <NotificationBell className="md:hidden" />
+      </div>
     </div>
   );
 }

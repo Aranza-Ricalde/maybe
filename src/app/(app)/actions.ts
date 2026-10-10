@@ -1,12 +1,13 @@
 "use server";
 
-import { runFormAction, runQuery } from "@/app/lib/actionRunner";
+import { runFormAction, runQuery, runUserAction } from "@/app/lib/actionRunner";
 import { ownsConceptSuggestion } from "@/app/lib/ownership";
 import { REVALIDATE } from "@/app/lib/revalidation";
 import { InvalidOccurrenceDecisionError, assertValidOccurrenceDecision } from "@/domain/recurring/occurrences";
 import { InvalidOccurrenceLinkError } from "@/domain/recurring/paymentCandidates";
 import {
   confirmConceptSuggestionUseCase,
+  notificationInbox,
   linkOccurrenceTransactionUseCase,
   listOccurrencePaymentCandidatesUseCase,
   rejectConceptSuggestionUseCase,
@@ -72,3 +73,37 @@ export async function listPaymentCandidatesAction(occurrenceId: number) {
   });
 }
 
+
+export async function markNotificationRead(formData: FormData) {
+  return runFormAction(formData, {
+    schema: idForm,
+    run: (input, user) => notificationInbox.markRead(user.familyId, input.id),
+    success: "Notificación marcada como leída",
+    revalidate: REVALIDATE.notifications,
+  });
+}
+
+export async function dismissNotification(formData: FormData) {
+  return runFormAction(formData, {
+    schema: idForm,
+    run: (input, user) => notificationInbox.dismiss(user.familyId, input.id),
+    success: "Notificación eliminada",
+    revalidate: REVALIDATE.notifications,
+  });
+}
+
+export async function markAllNotificationsRead() {
+  return runUserAction({
+    run: (user) => notificationInbox.markAllRead(user.familyId),
+    success: "Notificaciones marcadas como leídas",
+    revalidate: REVALIDATE.notifications,
+  });
+}
+
+export async function dismissAllNotifications() {
+  return runUserAction({
+    run: (user) => notificationInbox.dismissAll(user.familyId),
+    success: "Notificaciones eliminadas",
+    revalidate: REVALIDATE.notifications,
+  });
+}

@@ -6,6 +6,7 @@ export const REVALIDATE = {
   accounts: [ROUTES.accounts, ROUTES.dashboard],
   transactions: [ROUTES.transactions, ROUTES.dashboard],
   transferReview: [ROUTES.transactions, ROUTES.dashboard, ROUTES.stats, ROUTES.budgets],
+  categoryReview: [ROUTES.transactions, ROUTES.dashboard, ROUTES.stats, ROUTES.budgets],
   captureReview: [ROUTES.transactions, ROUTES.dashboard, ROUTES.stats, ROUTES.budgets],
   statementImport: [ROUTES.transactions, ROUTES.dashboard, ROUTES.stats, ROUTES.budgets, ROUTES.accounts, ROUTES.stats],
   goals: [ROUTES.goals, ROUTES.dashboard],
@@ -20,6 +21,7 @@ export const REVALIDATE = {
   settingsOnly: [ROUTES.settings],
   dashboard: [ROUTES.dashboard],
   stats: [ROUTES.stats],
+  notifications: [ROUTES.dashboard, ROUTES.accounts, ROUTES.transactions, ROUTES.budgets, ROUTES.stats, ROUTES.recurring, ROUTES.settings, ROUTES.import],
 } as const satisfies Record<string, readonly AppRoute[]>;
 
 export function revalidateRoutes(routes: readonly AppRoute[]): void {

@@ -19,9 +19,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Maybe",
   description: "Finanzas personales",
+  appleWebApp: { capable: true, title: "Maybe", statusBarStyle: "default" },
+  icons: { apple: "/api/icons/180" },
 };
 
-export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover" };
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#0f766e" };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const cookieStore = await cookies();

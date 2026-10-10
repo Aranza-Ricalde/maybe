@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/molecules/PageHeader";
 import { SettingsRow } from "@/components/molecules/SettingsRow";
 import { SectionNav } from "@/components/molecules/SectionNav";
 import { useSettingsSection } from "@/hooks/useSettingsSection";
+import { parentOptionsForNew } from "@/lib/presenters/categories";
 import { SETTINGS_SECTIONS, type SettingsSectionId } from "@/lib/presenters/settings";
 import { PayPeriodModal } from "@/components/molecules/PayPeriodModal";
 import { PeriodViewSwitch } from "@/components/molecules/PeriodViewSwitch";
@@ -14,6 +15,7 @@ import { ThemeSwitch } from "@/components/molecules/ThemeSwitch";
 import { TelegramLinkInfo } from "@/components/molecules/TelegramLinkInfo";
 import { CategoriesTable, type CategoryRow } from "@/components/organisms/CategoriesTable";
 import { CategoryModal } from "@/components/organisms/CategoryModal";
+import { PushDeviceCard } from "@/components/organisms/PushDeviceCard";
 import { ApiTokenCard, type ApiTokenState, type ApiTokenView } from "@/components/organisms/ApiTokenCard";
 import { PayMonthsTable, type PayMonthRow } from "@/components/organisms/PayMonthsTable";
 import { PayPeriodsTable, type PayPeriodRow } from "@/components/organisms/PayPeriodsTable";
@@ -27,6 +29,7 @@ export interface SettingsPageTemplateProps {
   telegramLinkCode: string;
   apiToken: ApiTokenView | null;
   apiOrigin: string;
+  pushPublicKey: string | null;
   generateApiTokenAction: (previous: ApiTokenState, formData: FormData) => Promise<ApiTokenState>;
   categories: CategoryRow[];
   createCategoryAction: FormAction;
@@ -52,6 +55,7 @@ export function SettingsPageTemplate({
   telegramLinkCode,
   apiToken,
   apiOrigin,
+  pushPublicKey,
   generateApiTokenAction,
   categories,
   createCategoryAction,
@@ -99,6 +103,17 @@ export function SettingsPageTemplate({
             </SettingsSection>
           )}
 
+          {section === "notificaciones" && (
+            <SettingsSection title="Notificaciones" description="Dónde quieres recibir tus avisos de pagos, presupuestos y pendientes.">
+              <SettingsRow title="Este dispositivo" description="Notificaciones push, como una app.">
+                <PushDeviceCard publicKey={pushPublicKey} />
+              </SettingsRow>
+              <SettingsRow title="Telegram" description="Los avisos también llegan a tu chat vinculado.">
+                <TelegramLinkInfo isLinked={isTelegramLinked} linkCode={telegramLinkCode} />
+              </SettingsRow>
+            </SettingsSection>
+          )}
+
           {section === "integraciones" && (
             <SettingsSection title="Integraciones" description="Registra movimientos desde tu teléfono.">
               <ApiTokenCard info={apiToken} origin={apiOrigin} generateAction={generateApiTokenAction} />
@@ -109,7 +124,7 @@ export function SettingsPageTemplate({
             <SettingsSection
               title="Categorías"
               description="Cómo se clasifican tus movimientos."
-              action={<CategoryModal mode="create" action={createCategoryAction} parentOptions={categories.filter((c) => c.depth === 0).map((c) => ({ value: String(c.id), label: c.name }))} />}
+              action={<CategoryModal mode="create" action={createCategoryAction} parentOptions={parentOptionsForNew(categories)} />}
             >
               <CategoriesTable rows={categories} updateAction={updateCategoryAction} deleteAction={deleteCategoryAction} />
             </SettingsSection>

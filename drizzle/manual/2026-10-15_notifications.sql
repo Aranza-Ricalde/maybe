@@ -1,0 +1,13 @@
+BEGIN;
+DELETE FROM notification_events;
+ALTER TABLE notification_events ADD COLUMN IF NOT EXISTS dedupe_key text NOT NULL;
+ALTER TABLE notification_events ADD COLUMN IF NOT EXISTS title text NOT NULL;
+ALTER TABLE notification_events ADD COLUMN IF NOT EXISTS body text NOT NULL;
+ALTER TABLE notification_events ADD COLUMN IF NOT EXISTS href text NOT NULL DEFAULT '/';
+ALTER TABLE notification_events ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE notification_events ADD COLUMN IF NOT EXISTS read_at timestamptz;
+ALTER TABLE notification_events ADD COLUMN IF NOT EXISTS dismissed_at timestamptz;
+ALTER TABLE notification_events ADD COLUMN IF NOT EXISTS resolved_at timestamptz;
+CREATE UNIQUE INDEX IF NOT EXISTS notification_events_family_key_uidx ON notification_events (family_id, dedupe_key);
+CREATE INDEX IF NOT EXISTS notification_events_family_inbox_idx ON notification_events (family_id, created_at);
+COMMIT;

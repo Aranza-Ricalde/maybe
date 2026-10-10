@@ -1,4 +1,4 @@
-import { getSettingsPageUseCase } from "@/infrastructure/container";
+import { getSettingsPageUseCase, pushPublicKey } from "@/infrastructure/container";
 import { requireUser } from "@/app/lib/dal";
 import { requestOrigin } from "@/app/lib/origin";
 import { SettingsPageTemplate } from "@/components/templates/SettingsPageTemplate";
@@ -16,6 +16,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       {...data}
       initialSection={parseSettingsSection(section)}
       apiOrigin={await requestOrigin()}
+      pushPublicKey={pushPublicKey}
       generateApiTokenAction={generateApiTokenAction}
       createCategoryAction={createCategory}
       updateCategoryAction={updateCategory}

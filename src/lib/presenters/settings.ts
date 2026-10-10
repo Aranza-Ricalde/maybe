@@ -1,6 +1,7 @@
 export const SETTINGS_SECTIONS = [
   { id: "cuenta", label: "Cuenta" },
   { id: "apariencia", label: "Apariencia" },
+  { id: "notificaciones", label: "Notificaciones" },
   { id: "integraciones", label: "Integraciones" },
   { id: "categorias", label: "Categorías" },
   { id: "periodos", label: "Periodos" },

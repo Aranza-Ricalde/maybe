@@ -39,6 +39,12 @@ export default defineConfig({
           await db.insert(familySettings).values({ familyId: 1, periodView: view }).onConflictDoUpdate({ target: familySettings.familyId, set: { periodView: view } });
           return null;
         },
+        cronSecret() {
+          return process.env.CRON_SECRET ?? null;
+        },
+        telegramWebhookSecret() {
+          return process.env.TELEGRAM_WEBHOOK_SECRET ?? null;
+        },
         async mintAccessToken(familyId: number) {
           const [user] = await db.select().from(users).where(eq(users.familyId, familyId));
           if (!user) throw new Error(`No se encontró un usuario para familyId=${familyId}`);
