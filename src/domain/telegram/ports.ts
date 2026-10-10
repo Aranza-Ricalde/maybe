@@ -19,6 +19,10 @@ export interface TelegramRepository {
   lastUsedAccountId(familyId: number): Promise<number | null>;
 }
 
+export interface ProcessedUpdatesStore {
+  markIfNew(updateId: number): Promise<boolean>;
+}
+
 export interface MovementDraft {
   chatId: string;
   familyId: number;
@@ -45,7 +49,7 @@ export interface TelegramButton {
 }
 
 export interface TelegramSender {
-  sendMessage(chatId: string, text: string, buttons?: TelegramButton[][]): Promise<void>;
+  sendMessage(chatId: string, text: string, buttons?: TelegramButton[][], options?: { html?: boolean }): Promise<void>;
   editMessage(chatId: string, messageId: number, text: string, buttons?: TelegramButton[][]): Promise<void>;
   answerCallback(callbackId: string, text?: string): Promise<void>;
 }

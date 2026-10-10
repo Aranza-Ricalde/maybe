@@ -13,7 +13,7 @@ import { EVOLUTION_RANGES } from "@/domain/evolution/rules";
 import { FLOWS, MAX_AMOUNT_CENTS, MAX_TRANSACTION_NAME_LENGTH } from "@/domain/ledger/rules";
 import { SPENDING_NATURES } from "@/domain/categories/nature";
 import { MAX_SUBSCRIPTION_GROUP_NAME_LENGTH } from "@/domain/spendingAnalysis/subscriptions";
-import { CAPTURE_TYPES, MAX_CAPTURE_DESCRIPTION_LENGTH, MAX_CAPTURE_NOTES_LENGTH } from "@/domain/captures/rules";
+import { CAPTURE_TYPES, MAX_CAPTURE_DESCRIPTION_LENGTH, MAX_CAPTURE_MESSAGE_LENGTH, MAX_CAPTURE_NOTES_LENGTH } from "@/domain/captures/rules";
 import { pesosToCents } from "@/domain/shared/money";
 import { FIELD, FORM_VALUE } from "./formFields";
 import { MAX_PESOS, idField, isoDateField, nonZeroPesosField, optionalIdField, optionalText, pageField, pageSizeField, pesosField, positivePesosField, requiredText } from "./forms";
@@ -250,6 +250,27 @@ export const capturePayload = z
     notes: optionalText(MAX_CAPTURE_NOTES_LENGTH).optional(),
   })
   .transform(({ account, type, amount, description, date, notes }) => ({ accountName: account, movement: { type, amountCents: pesosToCents(amount), description, date, notes: notes ?? undefined } }));
+
+export const captureMessagePayload = z.object({ message: requiredText(MAX_CAPTURE_MESSAGE_LENGTH) }).strict();
+
+const REVIEW_CHOICE = /^(category:\d+|kind:(transfer|cc_payment|loan_payment))$/;
+
+export const categorizeProviderForm = z
+  .object({
+    [FIELD.providerId]: idField,
+    [FIELD.flow]: z.enum(FLOWS),
+    [FIELD.hintKey]: z.string().max(40),
+    [FIELD.choice]: z.string().regex(REVIEW_CHOICE),
+  })
+  .transform((form) => {
+    const [type, value] = form[FIELD.choice].split(":");
+    return {
+      providerId: form[FIELD.providerId],
+      flow: form[FIELD.flow],
+      hintKey: form[FIELD.hintKey],
+      decision: type === "category" ? { categoryId: Number(value) } : { transferKind: value as "transfer" | "cc_payment" | "loan_payment" },
+    };
+  });
 
 export const confirmCaptureForm = z.object({ [FIELD.transactionId]: idField, [FIELD.categoryId]: optionalIdField });
 

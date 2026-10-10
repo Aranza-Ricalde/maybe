@@ -13,16 +13,29 @@ export class CleanMerchantNameUseCase {
     private readonly aiFallback?: MerchantNameCleaner,
   ) {}
 
-  async execute(familyId: number, rawDescription: string): Promise<MerchantPatternRecord> {
-    const pattern = normalizeMerchantPattern(rawDescription);
+  async peekProviderId(familyId: number, rawDescription: string): Promise<number | null> {
+    const cached = await this.findCached(familyId, rawDescription);
+    if (cached) return cached.providerId;
+    const [providers, history] = await Promise.all([this.providersRepo.listForFamily(familyId), this.repo.listHistory(familyId)]);
+    const resolved = resolveMerchant(rawDescription, { knownMerchants: providers.map((p) => p.name), noiseTokens: learnNoiseTokens(history) });
+    if (!resolved) return null;
+    const key = merchantKey(normalizeProviderName(resolved.name));
+    return providers.find((p) => merchantKey(p.name) === key)?.id ?? null;
+  }
 
+  private async findCached(familyId: number, rawDescription: string): Promise<MerchantPatternRecord | null> {
+    const pattern = normalizeMerchantPattern(rawDescription);
     const existing = await this.repo.findByPattern(familyId, pattern);
     if (existing) return existing;
     const legacy = legacyMerchantPattern(rawDescription);
-    if (legacy !== pattern) {
-      const legacyHit = await this.repo.findByPattern(familyId, legacy);
-      if (legacyHit) return legacyHit;
-    }
+    return legacy !== pattern ? this.repo.findByPattern(familyId, legacy) : null;
+  }
+
+  async execute(familyId: number, rawDescription: string): Promise<MerchantPatternRecord> {
+    const pattern = normalizeMerchantPattern(rawDescription);
+
+    const cached = await this.findCached(familyId, rawDescription);
+    if (cached) return cached;
 
     const [providers, history] = await Promise.all([this.providersRepo.listForFamily(familyId), this.repo.listHistory(familyId)]);
     const resolved = resolveMerchant(rawDescription, {

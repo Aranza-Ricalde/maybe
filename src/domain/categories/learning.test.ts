@@ -7,9 +7,16 @@ test("aprende la categoría cuando el historial es suficiente y consistente", ()
   assert.equal(learnCategoryFromUsage([{ categoryId: 7, count: 9 }, { categoryId: 8, count: 1 }])?.categoryId, 7);
 });
 
-test("con poca evidencia no asigna nada", () => {
-  assert.equal(learnCategoryFromUsage([{ categoryId: 7, count: 4 }]), null);
+test("con un solo movimiento o sin historial no asigna nada", () => {
+  assert.equal(learnCategoryFromUsage([{ categoryId: 7, count: 1 }]), null);
   assert.equal(learnCategoryFromUsage([]), null);
+});
+
+test("con 2 a 4 movimientos aprende solo si todos coinciden", () => {
+  assert.deepEqual(learnCategoryFromUsage([{ categoryId: 7, count: 2 }]), { categoryId: 7, share: 1, sample: 2 });
+  assert.equal(learnCategoryFromUsage([{ categoryId: 7, count: 4 }])?.categoryId, 7);
+  assert.equal(learnCategoryFromUsage([{ categoryId: 7, count: 3 }, { categoryId: 8, count: 1 }]), null);
+  assert.equal(learnCategoryFromUsage([{ categoryId: 7, count: 1 }, { categoryId: 8, count: 1 }]), null);
 });
 
 test("con evidencia dividida no asigna nada: el usuario decide", () => {

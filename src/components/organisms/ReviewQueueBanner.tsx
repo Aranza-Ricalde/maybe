@@ -12,9 +12,10 @@ export interface ReviewQueueBannerProps<T> {
   renderHeadline: (item: T, total: number) => ReactNode;
   renderActions: (item: T) => ReactNode;
   renderDetails?: (item: T, total: number) => ReactNode;
+  detailsOpenByDefault?: boolean;
 }
 
-export function ReviewQueueBanner<T>({ items, ariaLabel, icon, getKey, renderHeadline, renderActions, renderDetails }: ReviewQueueBannerProps<T>) {
+export function ReviewQueueBanner<T>({ items, ariaLabel, icon, getKey, renderHeadline, renderActions, renderDetails, detailsOpenByDefault }: ReviewQueueBannerProps<T>) {
   const { item, position } = useReviewQueue(items);
   if (item === null) return null;
   const key = getKey(item, position.current);
@@ -27,6 +28,7 @@ export function ReviewQueueBanner<T>({ items, ariaLabel, icon, getKey, renderHea
       position={position}
       actions={<div key={key}>{renderActions(item)}</div>}
       details={renderDetails?.(item, position.total)}
+      detailsOpenByDefault={detailsOpenByDefault}
     >
       {renderHeadline(item, position.total)}
     </ReviewAlert>

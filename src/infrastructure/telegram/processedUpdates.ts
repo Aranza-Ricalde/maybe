@@ -1,17 +1,21 @@
-const MAX_REMEMBERED_UPDATES = 2000;
+import { lt } from "drizzle-orm";
+import type { ProcessedUpdatesStore } from "@/domain/telegram/ports";
+import { db } from "@/infrastructure/db/client";
+import { telegramProcessedUpdates } from "@/infrastructure/db/schema/telegram";
+import { logFailure } from "@/lib/log";
 
-export class RecentUpdateIds {
-  private readonly seen = new Set<number>();
+const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 
-  markIfNew(updateId: number): boolean {
-    if (this.seen.has(updateId)) return false;
-    this.seen.add(updateId);
-    if (this.seen.size > MAX_REMEMBERED_UPDATES) {
-      const oldest = this.seen.values().next().value;
-      if (oldest !== undefined) this.seen.delete(oldest);
+export class DrizzleProcessedUpdates implements ProcessedUpdatesStore {
+  async markIfNew(updateId: number): Promise<boolean> {
+    try {
+      const inserted = await db.insert(telegramProcessedUpdates).values({ updateId }).onConflictDoNothing().returning({ updateId: telegramProcessedUpdates.updateId });
+      if (inserted.length === 0) return false;
+      await db.delete(telegramProcessedUpdates).where(lt(telegramProcessedUpdates.processedAt, new Date(Date.now() - RETENTION_MS)));
+      return true;
+    } catch (error) {
+      logFailure("No se pudo registrar el update de Telegram; se procesa de todos modos", error);
+      return true;
     }
-    return true;
   }
 }
-
-export const processedTelegramUpdates = new RecentUpdateIds();

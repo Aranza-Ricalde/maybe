@@ -22,3 +22,13 @@ test("cuenta, tipo y descripción son obligatorios y el tipo solo puede ser expe
   for (const patch of [{ account: "" }, { type: "transfer" }, { description: "  " }, { date: "2026-02-31" }, { date: "ayer" }, { date: "2026-13-45" }]) assert.equal(capturePayload.safeParse({ ...valid, ...patch }).success, false, JSON.stringify(patch));
   assert.equal(capturePayload.safeParse({ ...valid, date: "2026-10-05", notes: "nota" }).success, true);
 });
+
+import { captureMessagePayload } from "./schemas";
+
+test("la forma de mensaje solo acepta message, con texto, y rechaza campos extra", () => {
+  assert.equal(captureMessagePayload.safeParse({ message: "Compra con CUENTA en REST $20.00" }).success, true);
+  assert.equal(captureMessagePayload.safeParse({ message: "  " }).success, false);
+  assert.equal(captureMessagePayload.safeParse({}).success, false);
+  assert.equal(captureMessagePayload.safeParse({ message: "x", amount: 5 }).success, false);
+  assert.equal(captureMessagePayload.safeParse({ message: "x".repeat(2001) }).success, false);
+});

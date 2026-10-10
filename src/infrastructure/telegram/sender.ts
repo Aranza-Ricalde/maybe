@@ -8,8 +8,8 @@ const keyboard = (buttons?: TelegramButton[][]) =>
 export class TelegramApiSender implements TelegramSender {
   constructor(private readonly botToken: string = requireBotToken()) {}
 
-  async sendMessage(chatId: string, text: string, buttons?: TelegramButton[][]): Promise<void> {
-    await this.call("sendMessage", { chat_id: chatId, text, ...keyboard(buttons) });
+  async sendMessage(chatId: string, text: string, buttons?: TelegramButton[][], options?: { html?: boolean }): Promise<void> {
+    await this.call("sendMessage", { chat_id: chatId, text, ...(options?.html ? { parse_mode: "HTML" } : {}), ...keyboard(buttons) });
   }
 
   async editMessage(chatId: string, messageId: number, text: string, buttons?: TelegramButton[][]): Promise<void> {

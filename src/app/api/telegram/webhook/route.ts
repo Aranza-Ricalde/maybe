@@ -32,7 +32,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const update = parseTelegramUpdate(await readJson(request));
   if (!update) return NextResponse.json({ ok: true });
-  if (update.updateId != null && !processedTelegramUpdates.markIfNew(update.updateId)) {
+  if (update.updateId != null && !(await processedTelegramUpdates.markIfNew(update.updateId))) {
     return NextResponse.json({ ok: true });
   }
 

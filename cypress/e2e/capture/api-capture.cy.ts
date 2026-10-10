@@ -50,20 +50,25 @@ describe("Registro por API — token, endpoint y confirmación", () => {
     });
   });
 
-  it("acepta la notificación del banco en texto plano, la entiende con reglas y la guarda con su texto original", () => {
+  it("acepta el mensaje del banco en JSON con X-Account, lo entiende con reglas y lo guarda con su texto original", () => {
     cy.visit("/settings?s=integraciones");
     cy.contains("button", /Generar/).click();
     cy.get("[role=status] code")
       .invoke("text")
       .then((token) => {
-        const notification = "Compra con TDD\nCompra con CUENTA en ANTHROPIC* CLAUDE $349.00 06 octubre 12:44h";
-        cy.request({ method: "POST", url: `${API}?account=Nu%20D%C3%A9bito`, headers: { ...bearer(token), "Content-Type": "text/plain" }, body: notification }).then((response) => {
+        const message = "Compra con TDD\nCompra con CUENTA en ANTHROPIC* CLAUDE $349.00 06 octubre 12:44h";
+        const headers = { ...bearer(token), "Content-Type": "application/json", "X-Account": "Nu Débito" };
+        cy.request({ method: "POST", url: API, headers, body: { message } }).then((response) => {
           expect(response.status).to.eq(201);
           expect(response.body).to.include({ ok: true, cuenta: "Nu Débito", monto: -349, descripcion: "ANTHROPIC* CLAUDE" });
         });
-        cy.request({ method: "POST", url: API, headers: { ...bearer(token), "Content-Type": "text/plain" }, body: notification, failOnStatusCode: false }).its("status").should("eq", 400);
+        cy.request({ method: "POST", url: API, headers: { ...bearer(token), "Content-Type": "application/json" }, body: { message }, failOnStatusCode: false }).its("status").should("eq", 400);
+        cy.request({ method: "POST", url: API, headers, body: { message: "   " }, failOnStatusCode: false }).its("status").should("eq", 400);
+        cy.request({ method: "POST", url: API, headers, body: { message, amount: 5 }, failOnStatusCode: false }).its("status").should("eq", 400);
+        cy.request({ method: "POST", url: API, headers: { ...bearer(token), "Content-Type": "text/plain", "X-Account": "Nu Débito" }, body: message, failOnStatusCode: false }).its("status").should("eq", 415);
+        cy.request({ method: "POST", url: API, headers: { ...headers, "X-Account": "No existe" }, body: { message }, failOnStatusCode: false }).its("status").should("eq", 404);
         cy.task("dbQuery", "select notes from transactions where name = 'ANTHROPIC* CLAUDE'").then((rows) => {
-          expect((rows as { notes: string }[])[0].notes).to.eq(notification);
+          expect((rows as { notes: string }[])[0].notes).to.eq(message);
         });
       });
   });

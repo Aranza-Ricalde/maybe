@@ -5,6 +5,7 @@ export const API_TOKEN_PREFIX = "mv_";
 export const API_TOKEN_BYTES = 32;
 export const MAX_CAPTURE_DESCRIPTION_LENGTH = 200;
 export const MAX_CAPTURE_NOTES_LENGTH = 500;
+export const MAX_CAPTURE_MESSAGE_LENGTH = 2000;
 
 export const CAPTURE_REVIEW = { topic: "capture_confirmation", pending: "pending_confirmation", confirmed: "confirmed" } as const;
 

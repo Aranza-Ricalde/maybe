@@ -81,6 +81,7 @@ export interface CategoryClassifierInput {
   description: string;
   amountCents: number;
   categories: Array<{ id: number; name: string }>;
+  knownExamples?: Array<{ description: string; categoryName: string }>;
 }
 
 export interface CategoryClassifier {

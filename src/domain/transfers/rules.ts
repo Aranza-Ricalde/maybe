@@ -1,9 +1,9 @@
 import type { SuggestedTransferKind } from "./detection";
 
-export const REVIEW_TOPICS = ["transfer_suspicion", "capture_confirmation"] as const;
+export const REVIEW_TOPICS = ["transfer_suspicion", "capture_confirmation", "category_ai"] as const;
 export type ReviewTopic = (typeof REVIEW_TOPICS)[number];
 
-export const REVIEW_DECISIONS = ["not_a_transfer", "confirmed_transfer", "pending_confirmation", "confirmed"] as const;
+export const REVIEW_DECISIONS = ["not_a_transfer", "confirmed_transfer", "pending_confirmation", "confirmed", "ai_unknown"] as const;
 export type ReviewDecision = (typeof REVIEW_DECISIONS)[number];
 
 export const CONFIRMABLE_TRANSFER_KINDS: readonly SuggestedTransferKind[] = ["transfer", "cc_payment", "loan_payment"];

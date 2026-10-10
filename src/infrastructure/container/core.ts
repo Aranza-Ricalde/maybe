@@ -49,6 +49,8 @@ import { RecordTransactionUseCase } from "@/application/recordTransaction";
 import { RecordTransferUseCase } from "@/application/recordTransfer";
 import { RefreshAccessTokenUseCase } from "@/application/refreshAccessToken";
 import { ResolveTransferSuggestionUseCase } from "@/application/resolveTransferSuggestion";
+import { CategorizeProviderUseCase } from "@/application/categorizeProvider";
+import { ClassifyPendingWithAiUseCase } from "@/application/classifyPendingWithAi";
 import { LearnTransactionCategoryUseCase } from "@/application/learnTransactionCategory";
 import { ResolveTransactionConceptUseCase } from "@/application/resolveTransactionConcept";
 import { GetTransferSuggestionsUseCase } from "@/application/getTransferSuggestions";
@@ -83,7 +85,7 @@ import { DrizzleImportMappingRepository, DrizzleImportRepository } from "../db/c
 import { DrizzleDashboardRepository } from "../db/dashboard";
 import { DrizzleGoalsRepository } from "../db/goals";
 import { DrizzleLedgerUnitOfWork } from "../db/ledger";
-import { DrizzleCategoryUsageRepository } from "@/infrastructure/db/categoryUsage";
+import { DrizzleCategoryUsageRepository, DrizzleUncategorizedTransactionsRepository } from "@/infrastructure/db/categoryUsage";
 import { DrizzleConceptMatchingRepository } from "../db/matching";
 import { DrizzleMerchantPatternRepository } from "../db/merchants";
 import { DrizzlePayPeriodsRepository } from "../db/payPeriods";
@@ -100,8 +102,11 @@ import { DrizzleRecurringOccurrencesRepository } from "../db/recurringOccurrence
 import { DrizzleCategoryStatsRepository } from "../db/categoryStats";
 import { DrizzleTelegramRepository } from "../db/telegram";
 import { DrizzleTransferReviewRepository } from "../db/transferReview";
+import { GeminiCategoryClassifier } from "../gemini/categoryClassifier";
 import { GeminiMerchantNameCleaner } from "../gemini/merchantNameCleaner";
+import type { ProcessedUpdatesStore } from "@/domain/telegram/ports";
 import { HmacTelegramLinkCodes } from "../telegram/linkCodes";
+import { DrizzleProcessedUpdates } from "../telegram/processedUpdates";
 import { TelegramApiSender } from "../telegram/sender";
 import type { AttemptLimiter } from "@/domain/auth/attemptLimit";
 import { DrizzleAttemptLimiter } from "../security/drizzleAttemptLimiter";
@@ -206,6 +211,15 @@ export const cleanMerchantNameUseCase = new CleanMerchantNameUseCase(
 );
 const conceptMatchingRepo = new DrizzleConceptMatchingRepository();
 const learnTransactionCategoryUseCase = new LearnTransactionCategoryUseCase(new DrizzleCategoryUsageRepository());
+export const uncategorizedTransactionsRepo = new DrizzleUncategorizedTransactionsRepository();
+export const categorizeProviderUseCase = new CategorizeProviderUseCase(uncategorizedTransactionsRepo, categoriesReader, updateTransactionUseCase, resolveTransferSuggestionUseCase);
+export const classifyPendingWithAiUseCase = new ClassifyPendingWithAiUseCase(
+  uncategorizedTransactionsRepo,
+  categoriesReader,
+  process.env.GEMINI_API_KEY ? new GeminiCategoryClassifier() : undefined,
+  categorizeProviderUseCase,
+  transferReviewRepo,
+);
 export const resolveTransactionConceptUseCase = new ResolveTransactionConceptUseCase(
   cleanMerchantNameUseCase,
   conceptMatchingRepo,
@@ -229,6 +243,6 @@ export const linkTelegramUseCase = new LinkTelegramUseCase(telegramRepo, telegra
 
 export const loginAttemptLimiter: AttemptLimiter = new DrizzleAttemptLimiter();
 
-export { processedTelegramUpdates } from "../telegram/processedUpdates";
+export const processedTelegramUpdates: ProcessedUpdatesStore = new DrizzleProcessedUpdates();
 
 export const getExplorerUseCase = new GetExplorerUseCase(new DrizzleExplorerRepository(), categoriesReader, dashboardRepo);

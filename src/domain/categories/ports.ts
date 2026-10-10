@@ -43,3 +43,29 @@ export interface CategoriesRepository {
 export interface CategoryUsageRepository {
   listUsageByProvider(familyId: number, providerId: number, flow: Flow): Promise<{ categoryId: number; count: number }[]>;
 }
+
+export interface UncategorizedTransaction {
+  id: number;
+  accountId: number;
+  date: string;
+  amountCents: number;
+  name: string;
+  rawDescription: string | null;
+  merchantId: number | null;
+  providerId: number | null;
+  providerName: string | null;
+  accountName: string;
+}
+
+export interface KnownProviderCategory {
+  providerName: string;
+  categoryId: number;
+  categoryName: string;
+  count: number;
+}
+
+export interface UncategorizedTransactionsRepository {
+  listStandardUncategorized(familyId: number): Promise<UncategorizedTransaction[]>;
+  listOwnerNames(familyId: number): Promise<string[]>;
+  listKnownProviderCategories(familyId: number, flow: "income" | "expense"): Promise<KnownProviderCategory[]>;
+}

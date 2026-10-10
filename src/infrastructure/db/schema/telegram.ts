@@ -1,4 +1,4 @@
-import { bigint, index, pgTable, text } from "drizzle-orm/pg-core";
+import { bigint, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { createdAtColumn, familyIdColumn, idColumn } from "./columns";
 
 export const telegramDrafts = pgTable(
@@ -15,4 +15,13 @@ export const telegramDrafts = pgTable(
     createdAt: createdAtColumn(),
   },
   (table) => [index("telegram_drafts_chat_idx").on(table.chatId)],
+);
+
+export const telegramProcessedUpdates = pgTable(
+  "telegram_processed_updates",
+  {
+    updateId: bigint("update_id", { mode: "number" }).primaryKey(),
+    processedAt: timestamp("processed_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("telegram_processed_updates_at_idx").on(table.processedAt)],
 );

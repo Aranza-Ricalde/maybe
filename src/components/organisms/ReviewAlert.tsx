@@ -15,10 +15,11 @@ export interface ReviewAlertProps {
   children: ReactNode;
   actions: ReactNode;
   details?: ReactNode;
+  detailsOpenByDefault?: boolean;
 }
 
-export function ReviewAlert({ ariaLabel, icon, itemKey, position, children, actions, details }: ReviewAlertProps) {
-  const [showDetails, setShowDetails] = useState(false);
+export function ReviewAlert({ ariaLabel, icon, itemKey, position, children, actions, details, detailsOpenByDefault = false }: ReviewAlertProps) {
+  const [showDetails, setShowDetails] = useState(detailsOpenByDefault);
 
   return (
     <Card role="region" aria-label={ariaLabel} className="border-l-4 border-l-warning">

@@ -5,8 +5,10 @@ import { runFormAction, runQuery } from "@/app/lib/actionRunner";
 import { ownsAccount, ownsCategory, ownsTransaction } from "@/app/lib/ownership";
 import { REVALIDATE } from "@/app/lib/revalidation";
 import { InvalidCaptureError } from "@/domain/captures/rules";
+import { InvalidCategoryReviewError } from "@/domain/categories/reviewQueue";
 import { InvalidTransferReviewError } from "@/domain/transfers/rules";
 import {
+  categorizeProviderUseCase,
   confirmCaptureUseCase,
   deleteTransactionUseCase,
   recordTransactionUseCase,
@@ -19,6 +21,7 @@ import {
 import type { TransactionFilters, TransactionSort } from "@/domain/ledger/filters";
 import { logFailure } from "@/lib/log";
 import {
+  categorizeProviderForm,
   confirmCaptureForm,
   confirmTransferPairForm,
   confirmTransferSingleForm,
@@ -112,6 +115,17 @@ export async function confirmCaptureAction(formData: FormData) {
     success: "Movimiento confirmado",
     revalidate: REVALIDATE.captureReview,
     tolerate: [InvalidCaptureError],
+  });
+}
+
+export async function categorizeProviderAction(formData: FormData) {
+  return runFormAction(formData, {
+    schema: categorizeProviderForm,
+    owns: [ownsCategory((input) => ("categoryId" in input.decision ? input.decision.categoryId : null))],
+    run: (input, user) => categorizeProviderUseCase.execute(user.familyId, input),
+    success: (input) => ("categoryId" in input.decision ? "Categoría aplicada al comercio" : "Marcado como transferencia"),
+    revalidate: REVALIDATE.categoryReview,
+    tolerate: [InvalidCategoryReviewError],
   });
 }
 
