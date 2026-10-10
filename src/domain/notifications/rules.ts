@@ -1,7 +1,7 @@
 import type { CalendarEntry } from "@/domain/calendar/rules";
 import { addDays } from "@/domain/payPeriod/rules";
 
-export const NOTIFICATION_KINDS = ["payment_due", "payment_late", "budget_warning", "budget_exceeded", "cash_negative", "pending_decisions"] as const;
+export const NOTIFICATION_KINDS = ["payment_due", "payment_late", "budget_warning", "budget_exceeded", "cash_negative", "pending_decisions", "statement_ready"] as const;
 export type NotificationKind = (typeof NOTIFICATION_KINDS)[number];
 
 export const BUDGET_WARNING_RATIO = 0.8;
@@ -153,6 +153,7 @@ const TELEGRAM_EMOJI: Record<NotificationKind, string> = {
   budget_exceeded: "🚨",
   cash_negative: "📉",
   pending_decisions: "📝",
+  statement_ready: "🏦",
 };
 
 const escapeHtml = (text: string) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

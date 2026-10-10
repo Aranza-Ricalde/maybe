@@ -21,6 +21,23 @@ class DrizzleStatementImportOperations extends DrizzleLedgerOperations implement
       .where(eq(transactions.id, transactionId));
   }
 
+  async findImport(importId: number): Promise<{ familyId: number; accountId: number | null } | null> {
+    const [row] = await this.tx.select({ familyId: imports.familyId, accountId: imports.accountId }).from(imports).where(eq(imports.id, importId));
+    return row ?? null;
+  }
+
+  async listImportTransactions(importId: number): Promise<Array<{ id: number; source: string }>> {
+    return this.tx.select({ id: transactions.id, source: transactions.source }).from(transactions).where(eq(transactions.importId, importId));
+  }
+
+  async unlinkStatementRow(transactionId: number): Promise<void> {
+    await this.tx.update(transactions).set({ importHash: null, importId: null, reconciled: false, postedDate: null, updatedAt: new Date() }).where(eq(transactions.id, transactionId));
+  }
+
+  async deleteImportRecord(importId: number): Promise<void> {
+    await this.tx.delete(imports).where(eq(imports.id, importId));
+  }
+
   async insertImportRecord(record: NewImportRecord): Promise<number> {
     const [row] = await this.tx
       .insert(imports)

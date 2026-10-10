@@ -1,4 +1,4 @@
-import { bigint, date, integer, jsonb, pgTable, text, uniqueIndex } from "drizzle-orm/pg-core";
+import { bigint, customType, date, index, integer, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import type { ColumnMapping, ImportStatus } from "@/domain/csvImport/rules";
 import { accounts } from "./accounts";
 import { families } from "./core";
@@ -31,4 +31,35 @@ export const importMappings = pgTable(
     columnMapping: jsonb("column_mapping").notNull().$type<ColumnMapping>(),
   },
   (table) => [uniqueIndex("import_mappings_family_bank_unique").on(table.familyId, table.bankSignature)],
+);
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({
+  dataType: () => "bytea",
+});
+
+export const statementInbox = pgTable(
+  "statement_inbox",
+  {
+    id: idColumn(),
+    familyId: familyIdColumn(),
+    bank: text("bank").notNull(),
+    accountId: bigint("account_id", { mode: "number" })
+      .notNull()
+      .references(() => accounts.id, { onDelete: "cascade" }),
+    filename: text("filename").notNull(),
+    contentHash: text("content_hash").notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    data: bytea("data").notNull(),
+    fromAddress: text("from_address"),
+    subject: text("subject"),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull().defaultNow(),
+    status: text("status").notNull().default("pending"),
+    resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    importId: bigint("import_id", { mode: "number" }),
+    createdAt: createdAtColumn(),
+  },
+  (table) => [
+    uniqueIndex("statement_inbox_family_hash_uidx").on(table.familyId, table.contentHash),
+    index("statement_inbox_family_status_idx").on(table.familyId, table.status),
+  ],
 );

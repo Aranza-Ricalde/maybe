@@ -9,6 +9,7 @@ const TONE: Record<NotificationKind, NotificationTone> = {
   budget_exceeded: "danger",
   cash_negative: "danger",
   pending_decisions: "primary",
+  statement_ready: "primary",
 };
 
 export function notificationPresentation(kind: NotificationKind): { tone: NotificationTone } {

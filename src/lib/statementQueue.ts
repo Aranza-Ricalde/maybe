@@ -5,6 +5,7 @@ import type { StatementBank } from "@/domain/statements/types";
 export type QueueStatus = "configuring" | "queued" | "reading" | "password" | "ready" | "confirming" | "done" | "error";
 
 export interface ConfirmSummary {
+  importId: number | null;
   imported: number;
   linked: number;
   skipped: number;
@@ -16,6 +17,7 @@ export interface QueueItem {
   file: File;
   bank: StatementBank | null;
   accountId: number | null;
+  inboxId: number | null;
   password: string;
   status: QueueStatus;
   message: string | null;
@@ -26,7 +28,7 @@ export interface QueueItem {
 }
 
 export type QueueAction =
-  | { type: "add"; files: Array<{ id: string; file: File }> }
+  | { type: "add"; files: Array<{ id: string; file: File; bank?: StatementBank; accountId?: number; inboxId?: number }> }
   | { type: "configure"; id: string; bank?: StatementBank | null; accountId?: number | null; password?: string }
   | { type: "configureAll"; bank: StatementBank | null; accountId: number | null }
   | { type: "enqueue"; id: string }
@@ -40,6 +42,7 @@ export type QueueAction =
   | { type: "confirmFailed"; id: string; message: string }
   | { type: "confirmed"; id: string; result: ConfirmSummary }
   | { type: "remove"; id: string }
+  | { type: "cancel"; id: string }
   | { type: "clearFinished" };
 
 export const MAX_CONCURRENT_READS = 2;
@@ -53,14 +56,28 @@ function update(items: QueueItem[], id: string, change: (item: QueueItem) => Par
 export function queueReducer(items: QueueItem[], action: QueueAction): QueueItem[] {
   switch (action.type) {
     case "add":
-      return [...items, ...action.files.map(({ id, file }): QueueItem => ({ id, file, bank: null, accountId: null, password: "", status: "configuring", message: null, preview: null, choices: [], acknowledgeMismatch: false, result: null }))];
+      return [
+        ...items,
+        ...action.files.map(({ id, file, bank, accountId, inboxId }): QueueItem => ({
+          id,
+          file,
+          bank: bank ?? null,
+          accountId: accountId ?? null,
+          inboxId: inboxId ?? null,
+          password: "",
+          status: bank && accountId ? "queued" : "configuring",
+          message: null,
+          preview: null,
+          choices: [],
+          acknowledgeMismatch: false,
+          result: null,
+        })),
+      ];
     case "configure":
       return update(items, action.id, (item) => {
         const bank = action.bank !== undefined ? action.bank : item.bank;
         const accountId = action.accountId !== undefined ? action.accountId : item.accountId;
-        const changedTarget = action.bank !== undefined || action.accountId !== undefined;
-        const autoStart = changedTarget && bank !== null && accountId !== null && (item.status === "configuring" || item.status === "error");
-        return { bank, accountId, ...(action.password !== undefined ? { password: action.password } : {}), ...(autoStart ? { status: "queued" as const, message: null } : {}) };
+        return { bank, accountId, ...(action.password !== undefined ? { password: action.password } : {}) };
       });
     case "configureAll":
       return items.map((item) => (item.status === "configuring" ? { ...item, bank: action.bank, accountId: action.accountId } : item));
@@ -86,6 +103,8 @@ export function queueReducer(items: QueueItem[], action: QueueAction): QueueItem
       return update(items, action.id, () => ({ status: "done", result: action.result, message: null, preview: null, choices: [] }));
     case "remove":
       return items.filter((item) => item.id !== action.id || item.status === "reading" || item.status === "confirming");
+    case "cancel":
+      return items.filter((item) => item.id !== action.id);
     case "clearFinished":
       return items.filter((item) => item.status !== "done");
   }
@@ -132,7 +151,6 @@ export interface ProgressPanelState {
   visible: QueueItem[];
   allDone: boolean;
   busy: boolean;
-  closable: boolean;
   needsReview: boolean;
 }
 
@@ -142,7 +160,6 @@ export function progressPanelState(items: QueueItem[], onImportPage: boolean): P
     visible,
     allDone: visible.length > 0 && visible.every((item) => item.status === "done"),
     busy: visible.some(isBusy),
-    closable: visible.every((item) => item.status === "done" || item.status === "error"),
     needsReview: visible.some((item) => item.status === "ready" || item.status === "password" || item.status === "error"),
   };
 }

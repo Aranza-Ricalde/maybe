@@ -11,6 +11,8 @@ import { MobileCollapsible } from "@/components/molecules/MobileCollapsible";
 import { FileDropzone } from "@/components/molecules/FileDropzone";
 import { PageHeader } from "@/components/molecules/PageHeader";
 import { StatementReview } from "@/components/organisms/StatementReview";
+import { StatementInboxCard, type StatementInboxCardProps } from "@/components/organisms/StatementInboxCard";
+import type { FormAction } from "@/lib/actionResult";
 import { useStatementImport } from "@/providers/StatementImportProvider";
 import type { AccountOption, CategoryOption } from "@/components/viewModels";
 import { currentImportStep, groupQueue } from "@/lib/statementQueue";
@@ -24,16 +26,20 @@ const IMPORT_STEPS = [
 export interface ImportPageTemplateProps {
   accounts: AccountOption[];
   categories: CategoryOption[];
+  pendingStatements: StatementInboxCardProps["statements"];
+  dismissStatementAction: FormAction;
 }
 
-export function ImportPageTemplate({ accounts, categories }: ImportPageTemplateProps) {
-  const { items, dispatch, addFiles } = useStatementImport();
+export function ImportPageTemplate({ accounts, categories, pendingStatements, dismissStatementAction }: ImportPageTemplateProps) {
+  const { items, dispatch, addFiles, undo } = useStatementImport();
   const grouped = groupQueue(items);
   const { pending, reviewable, finished } = grouped;
 
   return (
     <>
       <PageHeader title="Importar estados de cuenta" subtitle="Trae tus movimientos desde el PDF del banco sin capturarlos a mano." action={<div className="max-md:hidden"><EnableNotificationsButton /></div>} />
+      <StatementInboxCard statements={pendingStatements} dismissAction={dismissStatementAction} />
+
       <FileDropzone
         accept="application/pdf"
         title="Arrastra aquí tus estados de cuenta en PDF"
@@ -79,7 +85,7 @@ export function ImportPageTemplate({ accounts, categories }: ImportPageTemplateP
       ))}
 
       {finished.map((item) => (
-        <ImportResultAlert key={item.id} fileName={item.file.name} result={item.result} />
+        <ImportResultAlert key={item.id} fileName={item.file.name} result={item.result} onUndo={() => void undo(item.id)} onDismiss={() => dispatch({ type: "remove", id: item.id })} />
       ))}
     </>
   );

@@ -1,3 +1,4 @@
+import { UndoStatementImportUseCase } from "@/application/undoStatementImport";
 import { ConfirmStatementImportUseCase } from "@/application/confirmStatementImport";
 import { EnrichImportedTransactionsUseCase } from "@/application/enrichImportedTransactions";
 import { ParseStatementUseCase } from "@/application/parseStatement";
@@ -17,6 +18,7 @@ const statementContext = new DrizzleStatementContextRepository();
 export const reconcileStatementUseCase = new ReconcileStatementUseCase(statementContext, new Sha256StatementHasher());
 
 export const parseStatementUseCase = new ParseStatementUseCase(new UnpdfTextExtractor(), statementContext, reconcileStatementUseCase);
+export const undoStatementImportUseCase = new UndoStatementImportUseCase(new DrizzleStatementImportUnitOfWork());
 export const confirmStatementImportUseCase = new ConfirmStatementImportUseCase(reconcileStatementUseCase, new DrizzleStatementImportUnitOfWork(), familyOwnership);
 export const enrichImportedTransactionsUseCase = new EnrichImportedTransactionsUseCase(
   new DrizzleLedgerUnitOfWork(db),

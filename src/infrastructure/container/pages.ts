@@ -3,6 +3,9 @@ import { NotificationInbox } from "@/application/notificationInbox";
 import { DrizzleFamilyDirectory } from "../db/familyDirectory";
 import type { NotificationChannel } from "@/domain/notifications/ports";
 import { DrizzleNotificationsRepository } from "../db/notifications";
+import { DrizzleStatementInbox } from "../db/statementInbox";
+import { PurgeStatementInboxUseCase } from "@/application/purgeStatementInbox";
+import { ReceiveStatementUseCase } from "@/application/receiveStatement";
 import { DrizzlePushSubscriptionsRepository } from "../db/pushSubscriptions";
 import { loadVapidConfig, WebPushSender } from "../push/webPushSender";
 import { CompositeNotificationChannel, WebPushNotificationChannel } from "../push/webPushChannel";
@@ -28,7 +31,9 @@ import { accountsReader, categoriesReader, inboxReader, planningReader, profileR
 
 export const getAccountsPageUseCase = new GetAccountsPageUseCase(accountsReader, getAccountsBalanceHistoryUseCase, getDebtOverviewUseCase);
 export const getBudgetsPageUseCase = new GetBudgetsPageUseCase(resolvePeriodContextUseCase, categoriesReader, planningReader);
-export const getImportPageUseCase = new GetImportPageUseCase(accountsReader, categoriesReader);
+export const statementInbox = new DrizzleStatementInbox();
+
+export const getImportPageUseCase = new GetImportPageUseCase(accountsReader, categoriesReader, statementInbox);
 export const getGoalsPageUseCase = new GetGoalsPageUseCase(planningReader, accountsReader, getGoalProjectionsUseCase, getEmergencyFundUseCase);
 export const getRecurringPageUseCase = new GetRecurringPageUseCase(planningReader, inboxReader, accountsReader, categoriesReader, (familyId, today) => listPayPeriodsUseCase.execute(familyId, today));
 export const getSettingsPageUseCase = new GetSettingsPageUseCase(categoriesReader, profileReader, listPayPeriodsUseCase, telegramLinkCodes, describeApiTokenUseCase, familySettingsRepo);
@@ -78,3 +83,7 @@ export const generateNotificationsUseCase = new GenerateNotificationsUseCase(
   notificationsRepository,
   notificationChannel,
 );
+
+export const purgeStatementInboxUseCase = new PurgeStatementInboxUseCase(statementInbox);
+
+export const receiveStatementUseCase = new ReceiveStatementUseCase(accountsReader, statementInbox, notificationsRepository, notificationChannel);

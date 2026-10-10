@@ -7,6 +7,7 @@ import { RecordTransactionUseCase } from "./src/application/recordTransaction";
 import { shiftMonth } from "./src/domain/dashboard/rules";
 import { monthStart } from "./src/domain/ledger/rules";
 import { DrizzleLedgerUnitOfWork } from "./src/infrastructure/db/ledger";
+import { statementInbox } from "./src/infrastructure/db/schema/imports";
 import { recurringItems } from "./src/infrastructure/db/schema/budgeting";
 import { categories } from "./src/infrastructure/db/schema/classification";
 import { users } from "./src/infrastructure/db/schema/core";
@@ -37,6 +38,20 @@ export default defineConfig({
       on("task", {
         async setPeriodView(view: string) {
           await db.insert(familySettings).values({ familyId: 1, periodView: view }).onConflictDoUpdate({ target: familySettings.familyId, set: { periodView: view } });
+          return null;
+        },
+        async uploadInboxStatement(args: { baseUrl: string; token: string; filename: string; bank: string; account: string; content: string }) {
+          const form = new FormData();
+          form.set("bank", args.bank);
+          form.set("account", args.account);
+          form.set("subject", "Atención a Clientes BBVA");
+          form.set("from", "clientes@bbva.mx");
+          form.set("file", new Blob([args.content], { type: "application/octet-stream" }), args.filename);
+          const response = await fetch(`${args.baseUrl}/api/statements/inbox`, { method: "POST", headers: { Authorization: `Bearer ${args.token}` }, body: form });
+          return { status: response.status, body: await response.json() };
+        },
+        async cleanupStatementInbox() {
+          await db.delete(statementInbox);
           return null;
         },
         cronSecret() {

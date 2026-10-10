@@ -1,6 +1,7 @@
 import type { FamilyOwnership } from "@/domain/auth/ownership";
 import { assertValidAmountCents, assertValidIsoDate, assertValidTransactionName, classifyFlow, type TransactionKind } from "@/domain/ledger/rules";
 import type { StatementRowDecision } from "@/domain/statements/decisions";
+import { StatementImportCancelledError } from "@/domain/statements/importControl";
 import type { StatementImportOperations, StatementImportUnitOfWork } from "@/domain/statements/ports";
 import type { PairKind, PreviewRow } from "@/domain/statements/reconcile";
 import {
@@ -21,6 +22,7 @@ export interface ConfirmStatementInput {
   statement: ParsedStatement;
   decisions: RowDecision[];
   acknowledgeMismatch: boolean;
+  signal?: AbortSignal;
 }
 
 export interface ConfirmStatementResult {
@@ -125,6 +127,7 @@ export class ConfirmStatementImportUseCase {
         if (planned.pairWith) pairs.push({ transactionId: planned.transactionId, counterpartId: planned.pairWith.transactionId, kind: planned.pairWith.kind });
       }
       for (const pair of pairs) if (await this.linkPair(ops, familyId, pair)) paired++;
+      if (input.signal?.aborted) throw new StatementImportCancelledError();
       return importId;
     });
 

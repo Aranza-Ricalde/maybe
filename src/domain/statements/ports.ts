@@ -37,6 +37,10 @@ export interface StatementImportOperations extends LedgerOperations {
   existingHashes(accountId: number, hashes: string[]): Promise<string[]>;
   linkStatementRow(transactionId: number, fields: { importHash: string; importId: number; postedDate: string | null }): Promise<void>;
   insertImportRecord(record: NewImportRecord): Promise<number>;
+  findImport(importId: number): Promise<{ familyId: number; accountId: number | null } | null>;
+  listImportTransactions(importId: number): Promise<Array<{ id: number; source: string }>>;
+  unlinkStatementRow(transactionId: number): Promise<void>;
+  deleteImportRecord(importId: number): Promise<void>;
 }
 
 export interface StatementImportUnitOfWork {

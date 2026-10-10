@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { generateNotificationsUseCase } from "@/infrastructure/container";
+import { generateNotificationsUseCase, purgeStatementInboxUseCase } from "@/infrastructure/container";
 import { logFailure } from "@/lib/log";
 import { todayIso } from "@/lib/today";
 
@@ -18,8 +18,10 @@ function isAuthorized(request: NextRequest): boolean {
 export async function GET(request: NextRequest): Promise<NextResponse> {
   if (!isAuthorized(request)) return NextResponse.json({ ok: false }, { status: 401 });
   try {
-    const result = await generateNotificationsUseCase.execute(todayIso());
-    return NextResponse.json({ ok: true, ...result });
+    const today = todayIso();
+    const result = await generateNotificationsUseCase.execute(today);
+    const purgedFiles = await purgeStatementInboxUseCase.execute(today);
+    return NextResponse.json({ ok: true, ...result, archivosBorrados: purgedFiles });
   } catch (error) {
     logFailure("falló la generación de notificaciones", error);
     return NextResponse.json({ ok: false }, { status: 500 });

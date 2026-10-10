@@ -2,7 +2,7 @@ import { after, NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { REVALIDATE, revalidateRoutes } from "@/app/lib/revalidation";
 import { readStatementUpload, statementFail, statementErrorResponse } from "@/app/lib/statementUpload";
-import { confirmStatementImportUseCase, enrichImportedTransactionsUseCase, parseStatementUseCase } from "@/infrastructure/container";
+import { confirmStatementImportUseCase, enrichImportedTransactionsUseCase, parseStatementUseCase, statementInbox } from "@/infrastructure/container";
 import { logFailure } from "@/lib/log";
 import { statementDecisionsPayload } from "@/lib/schemas";
 
@@ -24,7 +24,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   try {
     const { statement } = await parseStatementUseCase.execute({ familyId: upload.familyId, accountId: upload.accountId, bank: upload.bank, data: upload.data, password: upload.password });
-    const result = await confirmStatementImportUseCase.execute({ familyId: upload.familyId, accountId: upload.accountId, statement, decisions: decisions.data, acknowledgeMismatch: upload.form.get("acknowledgeMismatch") === "true" });
+    const result = await confirmStatementImportUseCase.execute({ familyId: upload.familyId, accountId: upload.accountId, statement, decisions: decisions.data, acknowledgeMismatch: upload.form.get("acknowledgeMismatch") === "true", signal: request.signal });
+    await statementInbox.markImportedByContent(upload.familyId, upload.data, result.importId).catch((error) => logFailure("marcar el estado de la bandeja como importado falló", error));
     revalidateRoutes(REVALIDATE.statementImport);
     after(() => enrichImportedTransactionsUseCase.execute(upload.familyId, result.insertedTransactionIds).catch((error) => logFailure("enriquecer movimientos importados falló", error)));
     return NextResponse.json({ ok: true, importId: result.importId, importados: result.imported, vinculados: result.linked, omitidos: result.skipped, emparejados: result.paired });

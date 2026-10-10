@@ -16,7 +16,9 @@ export interface PendingStatementRowProps {
 }
 
 export function PendingStatementRow({ item, accounts, onConfigure, onRetry, onRemove }: PendingStatementRowProps) {
-  const canRetry = item.status !== "configuring" && item.bank !== null && item.accountId !== null;
+  const hasTarget = item.bank !== null && item.accountId !== null;
+  const canConfirm = item.status === "configuring" && hasTarget;
+  const canRetry = item.status !== "configuring" && hasTarget;
 
   return (
     <Item size="sm" className="flex-wrap px-0">
@@ -42,6 +44,11 @@ export function PendingStatementRow({ item, accounts, onConfigure, onRetry, onRe
           ))}
         </NativeSelect>
         {item.status === "password" && <Input type="password" aria-label="Contraseña del PDF" placeholder="Contraseña del PDF" className="h-8 w-44 text-base md:text-xs" value={item.password} onChange={(event) => onConfigure({ password: event.target.value })} />}
+        {canConfirm && (
+          <Button type="button" size="sm" onClick={onRetry}>
+            Confirmar
+          </Button>
+        )}
         {canRetry && (
           <Button type="button" size="sm" onClick={onRetry}>
             Reintentar
@@ -54,7 +61,7 @@ export function PendingStatementRow({ item, accounts, onConfigure, onRetry, onRe
       {item.status === "configuring" && (
         <ItemFooter>
           <Text size="xs" tone="muted">
-            Al elegir banco y cuenta, el estado se empieza a leer solo.
+            Elige banco y cuenta y pulsa Confirmar para empezar a leer el estado.
           </Text>
         </ItemFooter>
       )}

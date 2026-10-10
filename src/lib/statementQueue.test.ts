@@ -9,11 +9,13 @@ const run = (actions: QueueAction[], items: QueueItem[] = []) => actions.reduce(
 const added = (...ids: string[]) => run([{ type: "add", files: ids.map((id) => ({ id, file: file(`${id}.pdf`) })) }]);
 const statuses = (items: QueueItem[]) => items.map((i) => i.status);
 
-test("al elegir banco y cuenta el archivo entra solo a la cola, sin otro clic", () => {
+test("elegir banco y cuenta no inicia la lectura: hace falta confirmar", () => {
   const bankOnly = run([{ type: "configure", id: "a", bank: "nu_debito" }], added("a"));
   assert.equal(bankOnly[0].status, "configuring");
   const both = run([{ type: "configure", id: "a", bank: "nu_debito" }, { type: "configure", id: "a", accountId: 2 }], added("a"));
-  assert.deepEqual([both[0].status, both[0].bank, both[0].accountId], ["queued", "nu_debito", 2]);
+  assert.deepEqual([both[0].status, both[0].bank, both[0].accountId], ["configuring", "nu_debito", 2]);
+  const confirmed = run([{ type: "enqueue", id: "a" }], both);
+  assert.equal(confirmed[0].status, "queued");
   const password = run([{ type: "configure", id: "a", bank: "nu_debito", accountId: 2 }, { type: "start", id: "a" }, { type: "failed", id: "a", message: "PDF protegido", needsPassword: true }, { type: "configure", id: "a", password: "x" }], added("a"));
   assert.equal(password[0].status, "password");
 });
@@ -51,11 +53,13 @@ test("un PDF protegido pide contraseña y al escribirla se puede reintentar", ()
   assert.deepEqual([items[0].status, items[0].password], ["queued", "1234"]);
 });
 
-test("un error se puede corregir cambiando el banco y volver a intentar", () => {
+test("un error se corrige cambiando el banco y reintentando de forma explícita", () => {
   const failed = run([{ type: "configure", id: "a", bank: "nu_debito", accountId: 2 }, { type: "enqueue", id: "a" }, { type: "start", id: "a" }, { type: "failed", id: "a", message: "Parece un estado de BBVA" }], added("a"));
   assert.deepEqual([failed[0].status, failed[0].message], ["error", "Parece un estado de BBVA"]);
   const fixed = run([{ type: "configure", id: "a", bank: "bbva_debito" }], failed);
-  assert.deepEqual([fixed[0].status, fixed[0].message], ["queued", null]);
+  assert.deepEqual([fixed[0].status, fixed[0].bank], ["error", "bbva_debito"]);
+  const retried = run([{ type: "enqueue", id: "a" }], fixed);
+  assert.deepEqual([retried[0].status, retried[0].message], ["queued", null]);
 });
 
 test("confirmar solo aplica a lo listo, un fallo lo deja listo con el mensaje y al terminar se libera la vista previa", () => {
@@ -63,14 +67,14 @@ test("confirmar solo aplica a lo listo, un fallo lo deja listo con el mensaje y 
   assert.equal(queueReducer(added("z"), { type: "confirming", id: "z" })[0].status, "configuring");
   const failed = run([{ type: "confirming", id: "a" }, { type: "confirmFailed", id: "a", message: "falló" }], ready);
   assert.deepEqual([failed[0].status, failed[0].message], ["ready", "falló"]);
-  const done = run([{ type: "confirming", id: "a" }, { type: "confirmed", id: "a", result: { imported: 3, linked: 1, skipped: 0, paired: 0 } }], ready);
+  const done = run([{ type: "confirming", id: "a" }, { type: "confirmed", id: "a", result: { importId: 7, imported: 3, linked: 1, skipped: 0, paired: 0 } }], ready);
   assert.deepEqual([done[0].status, done[0].preview, done[0].result?.imported], ["done", null, 3]);
 });
 
 test("no se puede quitar un archivo que se está leyendo o importando, y limpiar quita solo los terminados", () => {
   const reading = run([{ type: "configure", id: "a", bank: "bbva_debito", accountId: 1 }, { type: "enqueue", id: "a" }, { type: "start", id: "a" }], added("a", "b"));
   assert.deepEqual(run([{ type: "remove", id: "a" }, { type: "remove", id: "b" }], reading).map((i) => i.id), ["a"]);
-  const done = run([{ type: "parsed", id: "a", preview }, { type: "confirming", id: "a" }, { type: "confirmed", id: "a", result: { imported: 1, linked: 0, skipped: 0, paired: 0 } }, { type: "clearFinished" }], reading);
+  const done = run([{ type: "parsed", id: "a", preview }, { type: "confirming", id: "a" }, { type: "confirmed", id: "a", result: { importId: 8, imported: 1, linked: 0, skipped: 0, paired: 0 } }, { type: "clearFinished" }], reading);
   assert.deepEqual(done.map((i) => i.id), ["b"]);
 });
 
@@ -105,4 +109,11 @@ test("el paso actual de importación sigue el avance de la cola", async () => {
   assert.equal(step("configuring"), 1);
   assert.equal(step("configuring", "ready"), 2);
   assert.equal(step("done"), 3);
+});
+
+test("cancelar saca el archivo de la cola incluso si se está leyendo, y un archivo del buzón conserva su origen", () => {
+  const reading = run([{ type: "configure", id: "a", bank: "bbva_debito", accountId: 1 }, { type: "enqueue", id: "a" }, { type: "start", id: "a" }], added("a", "b"));
+  assert.deepEqual(run([{ type: "cancel", id: "a" }], reading).map((i) => i.id), ["b"]);
+  const fromInbox = queueReducer([], { type: "add", files: [{ id: "x", file: new File(["%PDF-"], "e.pdf"), bank: "bbva_debito", accountId: 1, inboxId: 42 }] });
+  assert.deepEqual([fromInbox[0].inboxId, fromInbox[0].status], [42, "queued"]);
 });

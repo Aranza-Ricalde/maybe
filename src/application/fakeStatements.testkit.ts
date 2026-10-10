@@ -55,6 +55,25 @@ export class FakeStatementWorld extends FakeLedger implements StatementImportOpe
     this.transactions.set(transactionId, { ...current, importHash: fields.importHash, importId: fields.importId, reconciled: true, ...(fields.postedDate ? { postedDate: fields.postedDate } : {}) });
   }
 
+  async findImport(importId: number): Promise<{ familyId: number; accountId: number | null } | null> {
+    const found = this.storedImports.find((record) => record.id === importId);
+    return found ? { familyId: found.familyId, accountId: found.accountId } : null;
+  }
+
+  async listImportTransactions(importId: number): Promise<Array<{ id: number; source: string }>> {
+    return [...this.transactions.values()].filter((t) => t.importId === importId).map((t) => ({ id: t.id, source: t.source }));
+  }
+
+  async unlinkStatementRow(transactionId: number): Promise<void> {
+    const current = this.transactions.get(transactionId) as TransactionRecord;
+    this.transactions.set(transactionId, { ...current, importHash: null, importId: null, reconciled: false, postedDate: null });
+  }
+
+  async deleteImportRecord(importId: number): Promise<void> {
+    const index = this.storedImports.findIndex((record) => record.id === importId);
+    if (index >= 0) this.storedImports.splice(index, 1);
+  }
+
   async insertImportRecord(record: NewImportRecord): Promise<number> {
     const id = this.storedImports.length + 1;
     this.storedImports.push({ ...record, id });

@@ -6,7 +6,7 @@ const E2E_HOST_FRAGMENT = "ep-frosty-boat-b45l6qth";
 function parseArguments(argv: string[]): { files: string[]; query: string | null } {
   const queryIndex = argv.indexOf("--query");
   const query = queryIndex >= 0 ? (argv[queryIndex + 1] ?? null) : null;
-  const files = argv.filter((argument, index) => argument.endsWith(".sql") && index !== queryIndex + 1);
+  const files = argv.filter((argument, index) => argument.endsWith(".sql") && (queryIndex < 0 || index !== queryIndex + 1));
   return { files, query };
 }
 

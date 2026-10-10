@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { BankMismatchError, EmptyStatementError, InvalidStatementDecisionError, StatementAccountError, StatementAlreadyImportedError, StatementFormatError, StatementPasswordError, StatementTotalsMismatchError, STATEMENT_BANKS, type StatementBank } from "@/domain/statements/types";
 import { InvalidTransactionError } from "@/domain/ledger/rules";
+import { ImportNotFoundError, StatementImportCancelledError, UndoNotPossibleError } from "@/domain/statements/importControl";
 import { logFailure } from "@/lib/log";
+import { statementPasswordFor } from "@/infrastructure/statements/passwords";
 import { getCurrentUser } from "./dal";
 
 export const MAX_STATEMENT_BYTES = 4 * 1024 * 1024;
@@ -50,11 +52,15 @@ export async function readStatementUpload(request: NextRequest): Promise<Stateme
   if (data.length === 0 || !PDF_MAGIC.every((byte, i) => data[i] === byte)) return statementFail(415, "tipo_no_permitido", "El archivo no es un PDF válido.");
 
   const rawPassword = form.get("password");
-  const password = typeof rawPassword === "string" && rawPassword.length > 0 && rawPassword.length <= MAX_PASSWORD_CHARS ? rawPassword : undefined;
+  const provided = typeof rawPassword === "string" && rawPassword.length > 0 && rawPassword.length <= MAX_PASSWORD_CHARS ? rawPassword : undefined;
+  const password = provided ?? statementPasswordFor(bank as StatementBank);
   return { familyId: user.familyId, accountId, bank: bank as StatementBank, data, password, form };
 }
 
 export function statementErrorResponse(error: unknown, route: string): NextResponse {
+  if (error instanceof StatementImportCancelledError) return statementFail(409, "importacion_cancelada", error.message);
+  if (error instanceof ImportNotFoundError) return statementFail(404, "importacion_no_encontrada", error.message);
+  if (error instanceof UndoNotPossibleError) return statementFail(409, "no_se_puede_deshacer", error.message);
   if (error instanceof StatementPasswordError) return statementFail(422, "pdf_protegido", "PDF protegido: ingresa la contraseña para abrirlo.");
   if (error instanceof StatementFormatError) return statementFail(422, "formato_no_reconocido", "No se reconoce el formato del estado de cuenta.");
   if (error instanceof BankMismatchError) return statementFail(422, "banco_no_coincide", error.message);

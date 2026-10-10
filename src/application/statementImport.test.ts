@@ -15,6 +15,8 @@ import { EnrichImportedTransactionsUseCase } from "./enrichImportedTransactions"
 import { FakeStatementWorld, identityHasher } from "./fakeStatements.testkit";
 import { ParseStatementUseCase } from "./parseStatement";
 import { ReconcileStatementUseCase } from "./reconcileStatement";
+import { StatementImportCancelledError } from "@/domain/statements/importControl";
+import { UndoStatementImportUseCase } from "./undoStatementImport";
 import { UpdateTransactionUseCase } from "./updateTransaction";
 
 const FAMILY = 1;
@@ -307,4 +309,46 @@ test("después de importar: las reglas resuelven comercio y la IA solo categoriz
   assert.equal(byAmount(-1_200).filter((t) => t.kind === "standard")[0].categoryId ?? null, null, "confianza media: no se aplica");
   assert.equal(byAmount(-1_200).filter((t) => t.kind === "transfer")[0].categoryId ?? null, null, "una transferencia no se categoriza");
   assert.equal(world.categoryTotals.get("10|2026-08-01"), -6_700);
+});
+
+test("cancelar mientras se importa revierte todo: sin movimientos, saldos ni registro de importación", async () => {
+  const { world, run } = setup();
+  const controller = new AbortController();
+  controller.abort();
+  await assert.rejects(() => run(BBVA_ACCOUNT, bbva(["05/08/2026", "04/09/2026"], AUGUST), [], { signal: controller.signal }), StatementImportCancelledError);
+  assert.equal(world.transactions.size, 0);
+  assert.equal(world.balanceOf(BBVA_ACCOUNT), 0);
+  assert.equal(world.storedImports.length, 0);
+});
+
+test("deshacer una importación elimina lo creado, restaura el saldo y deja el estado listo para importarse otra vez", async () => {
+  const { world, run } = setup();
+  const statement = bbva(["05/08/2026", "04/09/2026"], AUGUST);
+  const manual = world.addManual({ accountId: BBVA_ACCOUNT, date: "2026-08-06", amountCents: -1_200, name: "Va y ven manual" });
+  const balanceBefore = world.balanceOf(BBVA_ACCOUNT);
+  const result = await run(BBVA_ACCOUNT, statement, [{ index: 1, action: "link", linkTransactionId: manual.id }]);
+  assert.ok(result.imported > 0);
+
+  const undo = new UndoStatementImportUseCase(world);
+  const undone = await undo.execute(FAMILY, result.importId);
+  assert.equal(undone.removed, result.imported);
+  assert.deepEqual([...world.transactions.keys()], [manual.id]);
+  assert.equal(world.balanceOf(BBVA_ACCOUNT), balanceBefore);
+  assert.equal(world.storedImports.length, 0);
+  const restored = world.transactions.get(manual.id);
+  assert.equal(restored?.importHash, null);
+  assert.equal(restored?.importId, null);
+  assert.equal(restored?.name, "Va y ven manual");
+
+  const again = await run(BBVA_ACCOUNT, statement);
+  assert.ok(again.imported > 0);
+});
+
+test("no se puede deshacer una importación ajena ni inexistente", async () => {
+  const { world, run } = setup();
+  const result = await run(BBVA_ACCOUNT, bbva(["05/08/2026", "04/09/2026"], AUGUST));
+  const undo = new UndoStatementImportUseCase(world);
+  await assert.rejects(() => undo.execute(2, result.importId));
+  await assert.rejects(() => undo.execute(FAMILY, 999));
+  assert.equal(world.transactions.size, 4);
 });
