@@ -46,6 +46,11 @@ export function reviewGroupOf(row: ReviewQueueRow, ownerNames: string[]) {
   return { flow: classifyFlow(row.amountCents), hint, hintKey: hintKeyOf(hint) };
 }
 
+export function withoutPendingCaptures<T extends { id?: number }>(rows: T[], pendingTransactionIds: number[]): T[] {
+  const pending = new Set(pendingTransactionIds);
+  return rows.filter((row) => row.id === undefined || !pending.has(row.id));
+}
+
 export function buildCategoryReviewQueue(rows: ReviewQueueRow[], ownerNames: string[] = [], limit = CATEGORY_REVIEW_QUEUE_LIMIT): CategoryReviewGroup[] {
   const groups = new Map<string, CategoryReviewGroup>();
   for (const row of rows) {

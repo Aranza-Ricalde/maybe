@@ -14,7 +14,7 @@ import { GeminiNotificationExtractor } from "../gemini/notificationExtractor";
 import { GeminiCategoryClassifier } from "../gemini/categoryClassifier";
 import { Sha256ApiTokenCodec } from "../security/apiTokenCodec";
 import { accountsReader, categoriesReader, transactionsReader } from "./readers";
-import { dashboardRepo, deleteTransactionUseCase, resolvePeriodContextUseCase, recordTransactionUseCase, telegramRepo, telegramSender, resolveTransactionConceptUseCase, updateTransactionUseCase } from "./core";
+import { dashboardRepo, deleteTransactionUseCase, resolvePeriodContextUseCase, recordTransactionUseCase, resolveTransferSuggestionUseCase, telegramRepo, telegramSender, resolveTransactionConceptUseCase, updateTransactionUseCase } from "./core";
 
 const geminiAvailable = Boolean(process.env.GEMINI_API_KEY);
 const apiTokenRepo = new DrizzleApiTokenRepository();
@@ -32,7 +32,7 @@ export const captureMovementUseCase = new CaptureMovementUseCase(
   geminiAvailable ? new GeminiCategoryClassifier() : undefined,
 );
 export const captureNotificationUseCase = new CaptureNotificationUseCase(captureMovementUseCase, geminiAvailable ? new GeminiNotificationExtractor() : undefined);
-export const confirmCaptureUseCase = new ConfirmCaptureUseCase(captureRepo, new DrizzleLedgerUnitOfWork(db), updateTransactionUseCase);
+export const confirmCaptureUseCase = new ConfirmCaptureUseCase(captureRepo, new DrizzleLedgerUnitOfWork(db), updateTransactionUseCase, resolveTransferSuggestionUseCase);
 
 const correctCaptureUseCase = new CorrectCaptureUseCase(captureRepo, categoriesReader, new DrizzleLedgerUnitOfWork(db), updateTransactionUseCase, deleteTransactionUseCase);
 export const handleTelegramMessageUseCase = new HandleTelegramMessageUseCase(telegramRepo, captureMovementUseCase, captureNotificationUseCase, correctCaptureUseCase, new AnswerTelegramQueryUseCase(accountsReader, transactionsReader, categoriesReader, resolvePeriodContextUseCase, dashboardRepo), new DrizzleTelegramDraftRepository(), telegramSender);

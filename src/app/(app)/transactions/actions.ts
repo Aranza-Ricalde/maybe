@@ -110,11 +110,14 @@ export async function dismissTransferPairAction(formData: FormData) {
 export async function confirmCaptureAction(formData: FormData) {
   return runFormAction(formData, {
     schema: confirmCaptureForm,
-    owns: [ownsTransaction((input) => input.transactionId), ownsCategory((input) => input.categoryId)],
-    run: (input, user) => confirmCaptureUseCase.execute(user.familyId, input.transactionId, input.categoryId),
-    success: "Movimiento confirmado",
+    owns: [ownsTransaction((input) => input.transactionId), ownsCategory((input) => ("categoryId" in input.decision ? input.decision.categoryId : null))],
+    run: (input, user) =>
+      "transferKind" in input.decision
+        ? confirmCaptureUseCase.executeAsTransfer(user.familyId, input.transactionId, input.decision.transferKind)
+        : confirmCaptureUseCase.execute(user.familyId, input.transactionId, input.decision.categoryId),
+    success: (input) => ("transferKind" in input.decision ? "Marcado como transferencia" : "Movimiento confirmado"),
     revalidate: REVALIDATE.captureReview,
-    tolerate: [InvalidCaptureError],
+    tolerate: [InvalidCaptureError, InvalidTransferReviewError],
   });
 }
 

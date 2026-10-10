@@ -21,7 +21,7 @@ function setup(options: { classifier?: CategoryClassifier; learnedCategoryId?: n
       if (tx && options.learnedCategoryId) tx.categoryId = options.learnedCategoryId;
     },
   };
-  return { ledger, captures, useCase: new CaptureMovementUseCase(record, update, captures, fakeCategoriesReader, resolver, options.classifier), confirm: new ConfirmCaptureUseCase(captures, ledger, update) };
+  return { ledger, captures, useCase: new CaptureMovementUseCase(record, update, captures, fakeCategoriesReader, resolver, options.classifier), confirm: new ConfirmCaptureUseCase(captures, ledger, update, { confirmSingle: async () => {} }) };
 }
 
 const input = { familyId: 1, account: { name: "bbva" }, type: "expense" as const, amountCents: 15_000, description: "Tacos El Güero" };

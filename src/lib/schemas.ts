@@ -272,7 +272,17 @@ export const categorizeProviderForm = z
     };
   });
 
-export const confirmCaptureForm = z.object({ [FIELD.transactionId]: idField, [FIELD.categoryId]: optionalIdField });
+export const confirmCaptureForm = z
+  .object({
+    [FIELD.transactionId]: idField,
+    [FIELD.choice]: z.string().regex(new RegExp(`${REVIEW_CHOICE.source}|^$`)),
+  })
+  .transform((form) => {
+    const [type, value] = form[FIELD.choice].split(":");
+    const decision: { transferKind: "transfer" | "cc_payment" | "loan_payment" } | { categoryId: number | null } =
+      type === "kind" ? { transferKind: value as "transfer" | "cc_payment" | "loan_payment" } : { categoryId: type === "category" ? Number(value) : null };
+    return { transactionId: form[FIELD.transactionId], decision };
+  });
 
 export const mergeSubscriptionsForm = z.object({
   [FIELD.members]: z.preprocess(toArray, z.array(requiredText(MAX_NAME)).min(2).max(20)),

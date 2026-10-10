@@ -42,3 +42,11 @@ test("cada grupo trae sus movimientos, del más reciente al más antiguo", () =>
   assert.deepEqual(group.movements.map((m) => m.id), [2, 3, 1]);
   assert.equal(group.movements[0].accountName, "Nu Débito");
 });
+
+import { withoutPendingCaptures } from "./reviewQueue";
+
+test("un movimiento ya pendiente como captura no se repite en la revisión por comercio", () => {
+  const rows = [{ id: 1 }, { id: 2 }, {}];
+  assert.deepEqual(withoutPendingCaptures(rows, [2]), [{ id: 1 }, {}]);
+  assert.deepEqual(withoutPendingCaptures(rows, []), rows);
+});

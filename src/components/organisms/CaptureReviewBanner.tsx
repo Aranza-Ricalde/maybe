@@ -4,9 +4,11 @@ import { ActionForm } from "@/components/molecules/ActionForm";
 import type { FormAction } from "@/lib/actionResult";
 import { CircleQuestionMark } from "lucide-react";
 import { SignedAmountText } from "@/components/atoms/SignedAmountText";
-import { CategoryNativeSelect } from "@/components/molecules/CategoryNativeSelect";
+import { NativeSelect, NativeSelectOptGroup, NativeSelectOption } from "@/components/ui/native-select";
+import { TRANSFER_KIND_LABELS } from "@/domain/transfers/rules";
+import { TRANSFER_CHOICES, categoryChoice, flowOfAmount, kindChoice } from "@/lib/presenters/reviewChoices";
 import { PendingSubmitButton } from "@/components/molecules/PendingSubmitButton";
-import type { CategoryOption } from "@/components/viewModels";
+import type { ReviewCategoryOption } from "./CategoryReviewBanner";
 import type { PendingCapture } from "@/domain/captures/ports";
 import { formatShortDate } from "@/lib/format";
 import { FIELD } from "@/lib/formFields";
@@ -16,7 +18,7 @@ const SOURCE_LABELS: Record<string, string> = { api: "atajo del teléfono", tele
 
 export interface CaptureReviewBannerProps {
   captures: PendingCapture[];
-  categories: CategoryOption[];
+  categories: ReviewCategoryOption[];
   confirmAction: FormAction;
 }
 
@@ -30,7 +32,25 @@ export function CaptureReviewBanner({ captures, categories, confirmAction }: Cap
       renderActions={(capture) => (
         <ActionForm action={confirmAction} className="flex flex-wrap items-center gap-2">
           <input type="hidden" name={FIELD.transactionId} value={capture.transactionId} />
-          <CategoryNativeSelect name={FIELD.categoryId} options={categories} defaultValue={capture.categoryId} />
+          <NativeSelect size="sm" name={FIELD.choice} defaultValue={capture.categoryId != null ? categoryChoice(capture.categoryId) : ""} aria-label="Categoría" className="max-w-64">
+            <NativeSelectOption value="">Sin categoría</NativeSelectOption>
+            <NativeSelectOptGroup label="No cuenta como gasto ni ingreso">
+              {TRANSFER_CHOICES[flowOfAmount(capture.amountCents)].map((kind) => (
+                <NativeSelectOption key={kind} value={kindChoice(kind)}>
+                  {TRANSFER_KIND_LABELS[kind]}
+                </NativeSelectOption>
+              ))}
+            </NativeSelectOptGroup>
+            <NativeSelectOptGroup label={flowOfAmount(capture.amountCents) === "income" ? "Ingreso real (con categoría)" : "Gasto real (con categoría)"}>
+              {categories
+                .filter((category) => category.classification === flowOfAmount(capture.amountCents))
+                .map((category) => (
+                  <NativeSelectOption key={category.id} value={categoryChoice(category.id)}>
+                    {category.label ?? category.name}
+                  </NativeSelectOption>
+                ))}
+            </NativeSelectOptGroup>
+          </NativeSelect>
           <PendingSubmitButton>Confirmar</PendingSubmitButton>
         </ActionForm>
       )}

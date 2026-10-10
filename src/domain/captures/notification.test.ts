@@ -29,3 +29,8 @@ test("si no hay monto, comercio, o no se sabe si es gasto o ingreso, no adivina"
     assert.equal(parseBankNotification(text, TODAY), null, text);
   }
 });
+
+test("\"Tienes un cargo a tu cuenta\" es una transferencia enviada, no un comercio", () => {
+  const parsed = parseBankNotification("BBVA: Tienes un cargo a tu cuenta *1032 de $200.00 el 10 octubre", "2026-10-10");
+  assert.deepEqual(parsed, { type: "expense", amountCents: 20000, description: "Transferencia enviada", date: "2026-10-10" });
+});

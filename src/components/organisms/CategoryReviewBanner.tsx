@@ -11,6 +11,7 @@ import type { Flow } from "@/domain/ledger/rules";
 import { TRANSFER_KIND_LABELS } from "@/domain/transfers/rules";
 import type { FormAction } from "@/lib/actionResult";
 import { formatPesos, formatShortDate } from "@/lib/format";
+import { TRANSFER_CHOICES, categoryChoice, kindChoice } from "@/lib/presenters/reviewChoices";
 import { FIELD } from "@/lib/formFields";
 import { ReviewQueueBanner } from "./ReviewQueueBanner";
 
@@ -21,14 +22,6 @@ export interface CategoryReviewBannerProps {
   categories: ReviewCategoryOption[];
   categorizeAction: FormAction;
 }
-
-const kindChoice = (kind: string) => `kind:${kind}`;
-const categoryChoice = (id: number) => `category:${id}`;
-
-const TRANSFER_CHOICES: Record<Flow, Array<keyof typeof TRANSFER_KIND_LABELS>> = {
-  expense: ["transfer", "cc_payment", "loan_payment"],
-  income: ["transfer"],
-};
 
 export function CategoryReviewBanner({ groups, categories, categorizeAction }: CategoryReviewBannerProps) {
   return (

@@ -1,5 +1,5 @@
 import type { UncategorizedTransactionsRepository } from "@/domain/categories/ports";
-import { buildCategoryReviewQueue } from "@/domain/categories/reviewQueue";
+import { buildCategoryReviewQueue, withoutPendingCaptures } from "@/domain/categories/reviewQueue";
 import { categoryOptionsWithHierarchy } from "@/domain/categories/rules";
 import { parseTransactionDrilldown } from "@/domain/ledger/rules";
 import type { CaptureRepository } from "@/domain/captures/ports";
@@ -27,7 +27,7 @@ export class GetTransactionsPageUseCase {
       today,
       transferSuggestions,
       pendingCaptures,
-      categoryReviewQueue: buildCategoryReviewQueue(uncategorized, ownerNames),
+      categoryReviewQueue: buildCategoryReviewQueue(withoutPendingCaptures(uncategorized, pendingCaptures.map((capture) => capture.transactionId)), ownerNames),
       initialFilters: {
         ...(drilldown.categoryId ? { categoryId: String(drilldown.categoryId) } : {}),
         ...(drilldown.from && drilldown.to ? { dateRange: { start: drilldown.from, end: drilldown.to } } : {}),

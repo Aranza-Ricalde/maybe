@@ -15,6 +15,9 @@ const MERCHANT = /\ben\s+(.+?)\s*\$\s*\d/i;
 const INCOME_WORDS = /\b(deposito|abono|recibiste|te enviaron|te depositaron|transferencia recibida|spei recibido|nomina)\b/;
 const EXPENSE_WORDS = /\b(compra|cargo|retiro|pago|enviaste|transferencia enviada|domiciliacion|disposicion)\b/;
 
+const ACCOUNT_DEBIT_NOTICE = /\bcargo a tu cuenta\b/;
+const TRANSFER_NOTICE_DESCRIPTION = "Transferencia enviada";
+
 const plain = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 export function parseBankNotification(text: string, today: string): ParsedNotification | null {
@@ -29,7 +32,7 @@ export function parseBankNotification(text: string, today: string): ParsedNotifi
   const isExpense = EXPENSE_WORDS.test(words);
   if (isIncome === isExpense) return null;
 
-  const description = flat.match(MERCHANT)?.[1]?.trim();
+  const description = ACCOUNT_DEBIT_NOTICE.test(words) ? TRANSFER_NOTICE_DESCRIPTION : flat.match(MERCHANT)?.[1]?.trim();
   if (!description) return null;
 
   const dateMatch = flat.match(DATE);

@@ -37,6 +37,9 @@ describe("Registro por API — token, endpoint y confirmación", () => {
     cy.visit("/transactions");
     cy.get('[aria-label="Movimientos por confirmar"]').within(() => {
       cy.contains("Zzxq Tienda Rara").should("be.visible");
+    });
+    cy.get('[aria-label^="Qué es"][aria-label*="Zzxq"]').should("not.exist");
+    cy.get('[aria-label="Movimientos por confirmar"]').within(() => {
       cy.get('select[aria-label="Categoría"]').select("Alimentación");
       cy.contains("button", "Confirmar").click();
     });
@@ -71,6 +74,32 @@ describe("Registro por API — token, endpoint y confirmación", () => {
           expect((rows as { notes: string }[])[0].notes).to.eq(message);
         });
       });
+  });
+
+  it("un cargo a la cuenta del banco se entiende como transferencia y se puede confirmar como tal", () => {
+    cy.task("cleanupApiCapture");
+    cy.visit("/settings?s=integraciones");
+    cy.contains("button", /Generar/).click();
+    cy.get("[role=status] code")
+      .invoke("text")
+      .then((token) => {
+        const headers = { ...bearer(token), "Content-Type": "application/json", "X-Account": "Nu Débito" };
+        cy.request({ method: "POST", url: API, headers, body: { message: "Tienes un cargo a tu cuenta *1032 de $200.00 el 10 octubre" } }).then((response) => {
+          expect(response.status).to.eq(201);
+          expect(response.body).to.include({ ok: true, monto: -200, descripcion: "Transferencia enviada" });
+        });
+      });
+    cy.visit("/transactions");
+    cy.get('[aria-label="Movimientos por confirmar"]').within(() => {
+      cy.contains("Transferencia enviada").should("be.visible");
+      cy.get('select[aria-label="Categoría"]').find("optgroup").first().should("have.attr", "label", "No cuenta como gasto ni ingreso");
+      cy.get('select[aria-label="Categoría"]').select("Transferencia entre tus cuentas");
+      cy.contains("button", "Confirmar").click();
+    });
+    cy.get('[aria-label="Movimientos por confirmar"]').should("not.exist");
+    cy.task("dbQuery", "select kind from transactions where name = 'Transferencia enviada' and source = 'api'").then((rows) => {
+      expect((rows as { kind: string }[])[0].kind).to.not.eq("standard");
+    });
   });
 
   it("al generar un token nuevo el anterior deja de servir", () => {
